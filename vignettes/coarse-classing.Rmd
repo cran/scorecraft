@@ -1,0 +1,510 @@
+---
+title: "Coarse classing with an audit trail"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Coarse classing with an audit trail}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+has_glmnet <- requireNamespace("glmnet", quietly = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_glmnet)
+old_dt <- data.table::setDTthreads(2)
+```
+
+## Why manual coarse classing still matters
+
+Optimal binning does one job well: it finds the cut points and the
+groupings that maximise the information value of a variable subject to the
+admission rules (minimum bin size, monotonicity, hold-out stability). What
+it cannot know is how the business reads the variable. A bureau score is
+communicated to underwriters in policy bands; a region is priced as edge
+and core, not as five regions; an age is quoted in decades. A scorecard
+whose bins cut at 33.36 and 48.06 is correct, but nobody in the credit
+committee can explain it, and a bin nobody can explain is a bin nobody
+will defend when the model is challenged.
+
+There is also a stability argument. The optimal cut points are estimated
+on one training window, and a handful of them sit on thin slices of the
+distribution. Coarser, rounder bands lose a little information value on
+train and often lose nothing on hold-out, while being far less likely to
+drift when the population shifts. The lab in `scorecraft` lets the analyst
+make exactly that trade, and shows the price of it on train and hold-out
+before anything is committed.
+
+What the lab refuses to do is let a manual decision enter silently. Every
+proposal is compared against the optimal bins, every acceptance carries a
+reason, every override of a blocking rule is a row in an append-only
+ledger, and the automatic artefacts are frozen alongside the manual ones.
+The scorecard, the R scoring function and the production SQL consume the
+manual bins through the very same code path as the optimal ones, so there
+is no second implementation to keep in step.
+
+## A fast selection run
+
+The lab opens on an `scr_select()` result. The configuration below is a
+light one: a single thread, two consensus voters (elastic net and xgboost)
+and a short bootstrap. The selection itself is described in
+`vignette("scorecraft", package = "scorecraft")`.
+
+```{r setup}
+library(scorecraft)
+cfg <- scr_config(verbose = FALSE, nthread = 1, use_glmnet = TRUE, use_ranger = FALSE,
+                  use_lightgbm = FALSE, xgb_rounds = 60, n_boot = 20)
+res <- scr_select(scr_demo, "default", config = cfg,
+                  drop = c("id", "churn"), date_col = "ref_date")
+scr_selected(res)
+```
+
+## Opening the lab
+
+`scr_coarse_classing()` covers every variable that reached binning, not
+only the consensus shortlist, so a variable failed by screening can be
+rebinned and forced in later with a reason. `author` is free text recorded
+in the ledger; it defaults to the system user.
+
+```{r open}
+lab <- scr_coarse_classing(res, author = "analyst")
+lab
+```
+
+Without a variable, `scr_classing_view()` prints one line per variable:
+its current source (optimal or manual), the number of bins, the train and
+hold-out IV, the PSI and a verdict computed with the same rules a proposal
+will face. The last column says whether the variable is currently in the
+final shortlist (`yes`, or `-`).
+
+```{r overview}
+ov <- scr_classing_view(lab)
+```
+
+With a variable, the view is the bin table with train and hold-out side
+by side, plus a text bar chart of the event rate. `vl_score_01` is a
+numeric with seven optimal bins; `ds_region` is a categorical with one
+bin per state.
+
+```{r view-num}
+scr_classing_view(lab, "vl_score_01")
+```
+
+```{r view-cat}
+scr_classing_view(lab, "ds_region")
+```
+
+## Proposing bins
+
+`scr_classing_propose()` takes exactly one instruction per call. For a
+numeric variable the instruction is `breaks` (absolute interior cut
+points), `merge` (adjacent bin ids) or `split` (`c(id, at)`). For a
+categorical it is `groups` (a list of character vectors, optionally
+named), `merge` (bin ids), `missing_to` (which bin receives the
+`"MISSING"` category) or `other_to` (the catch-all bin for every training
+category not listed). A proposal is a value: nothing changes in the lab
+until it is accepted.
+
+### Numeric: breaks, merge, split
+
+Suppose underwriting quotes `vl_score_01` in the bands below 40, 40 to
+55, 55 to 70 and above 70.
+
+```{r propose-breaks}
+p_breaks <- scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70))
+p_breaks
+```
+
+The header repeats the instruction. The comparison table has one row per
+metric and three columns: the optimal bins, the proposal and the
+difference. Here the four policy bands cost about 0.05 of IV on train and
+about 0.014 on hold-out, while the IV ratio (hold-out over train), the KS
+and the smallest bin all improve, and the PSI halves. Below the table are
+the manual bins themselves with count, share, event rate and WOE on train
+and on hold-out. No warning was raised, so the verdict is `ACCEPTABLE`.
+
+`merge` and `split` are relative to the *current* bins of the variable
+and resolve to absolute cut points, which is what the header shows.
+
+```{r propose-merge-split}
+p_merge <- scr_classing_propose(lab, "vl_score_01", merge = c(1, 2))
+p_merge$entry$cutpoints
+p_split <- scr_classing_propose(lab, "vl_score_01",
+                                split = c(1, res$fit$results$vl_score_01$cutpoints[1] - 5))
+p_split
+```
+
+The split proposal is a `REVIEW` on two counts: the new first bin holds 2%
+of the training rows and breaks the monotone pattern of the event rate
+(`NOT_MONOTONIC`), and eight bins exceed the configured maximum of seven
+(`TOO_MANY_BINS`). A `REVIEW` verdict is advisory: the
+proposal can be accepted with a reason or discarded. Every proposal takes
+the next id from the lab's counter (`P001`, `P002`, ...), whether or not
+it is later acted on, so the ids in a session count the proposals made,
+not the decisions taken. A proposal is a value and can be kept for as long
+as the lab is open; the lab only refuses a proposal that has already been
+accepted or discarded.
+
+### Categorical: groups, other_to, missing_to
+
+Pricing works with two regions. Names given to the groups are display
+labels; the bin label stored in the entry is the categories joined by the
+configuration's separator, exactly as the binning engine writes it.
+
+```{r propose-groups}
+p_groups <- scr_classing_propose(lab, "ds_region",
+                                 groups = list(edge = c("NORTH", "SOUTH"),
+                                               core = c("EAST", "WEST", "CENTRE")))
+p_groups
+```
+
+Every training category must land somewhere. Listing them all is one
+option; the other is to name a catch-all bin with `other_to`, which is
+also how a reviewer says "everything else goes here". The result is the
+same grouping, and the entry records that the second bin is the catch-all
+(`is_other`).
+
+```{r propose-other}
+p_other <- scr_classing_propose(lab, "ds_region",
+                                groups = list(edge = c("NORTH", "SOUTH"), rest = "EAST"),
+                                other_to = "rest")
+p_other$entry$bin
+p_other$entry$manual$is_other
+```
+
+`ds_optin` carries a `"MISSING"` category, which the optimal binning kept
+on its own. `missing_to` folds it into another bin.
+
+```{r propose-missing}
+p_missing <- scr_classing_propose(lab, "ds_optin", missing_to = 1)
+p_missing$entry$bin
+p_missing$verdict
+p_missing$warnings
+```
+
+The optimal bins of `ds_optin` carried a training IV of 0.0065 (see the
+overview); folding `"MISSING"` into `YES` leaves almost none, below the
+admission minimum, and loses more than the lab allows on hold-out. With a
+training IV that close to zero, the hold-out/train IV ratio says nothing
+either, hence `IV_RATIO_UNSTABLE`.
+
+### Reading the warnings and the verdict
+
+Every proposal is screened with the eight engine rules on train,
+revalidated on hold-out with the bins frozen, and checked against a few
+lab-specific rules. Codes fall into two tiers.
+
+* **Warnings** (advisory) give a `REVIEW` verdict: the engine screening
+  codes (`NOT_MONOTONIC`, `SMALL_BIN`, `IV_BELOW_MIN`, `IV_SUSPECT`, ...),
+  the hold-out codes (`IV_DROPS_ON_HOLDOUT`, `IV_LOW_ON_HOLDOUT`,
+  `PSI_UNSTABLE`, ...), `IV_LOSS_VS_OPTIMAL`, raised when the hold-out
+  IV falls more than `lab_max_iv_loss` (10% by default) below the optimal
+  one, and `IV_RATIO_UNSTABLE`, raised when the train IV is below `iv_min`
+  and the hold-out/train IV ratio therefore carries little information.
+  The `ds_region` grouping is a `REVIEW` for `IV_LOSS_VS_OPTIMAL` alone:
+  two regions lose about a fifth of the hold-out IV of five states.
+* **Blocking** codes give a `BLOCKED` verdict: an empty bin, a degenerate
+  bin (no events or no non-events, unless the lab was opened with
+  `laplace > 0`), a bin below `lab_min_bin_pct_hard` (0.5%) and a manual IV
+  crossing `iv_max`, the leakage ceiling. The lab must not be the place
+  where leakage is manufactured.
+
+`ACCEPTABLE` means no code at all. The verdict, the codes and the reason
+travel with the decision into the ledger.
+
+## Accepting, discarding and the blocked path
+
+`reason` is mandatory, at least five characters, and it is the audit
+trail: write what a reviewer would need to read a year from now. Both
+verbs return the updated lab, so the idiom is to reassign.
+
+```{r accept}
+lab <- scr_classing_accept(lab, p_breaks, reason = "policy bands 40/55/70 used by underwriting")
+```
+
+The grouping proposed in the previous section is still valid and is
+accepted in turn.
+
+```{r accept-groups}
+lab <- scr_classing_accept(lab, p_groups, reason = "edge/core is what pricing uses")
+```
+
+The `ds_optin` proposal erased what little signal the variable had, so it
+is discarded, with a reason, and the variable keeps its optimal bins. A
+discarded proposal is a ledger row too.
+
+```{r discard}
+lab <- scr_classing_discard(lab, p_missing, reason = "folding MISSING into YES erases the signal")
+```
+
+A blocking rule cannot be accepted through the normal path. A break at
+-5000 on `vl_score_04`, whose minimum is above 16, leaves the first bin
+empty:
+
+```{r blocked}
+p_blocked <- scr_classing_propose(lab, "vl_score_04", breaks = c(-5000, 50))
+p_blocked$verdict
+p_blocked$blocking
+```
+
+```{r blocked-accept, error = TRUE}
+scr_classing_accept(lab, p_blocked, reason = "we need this band for the policy")
+```
+
+The override path is `override = TRUE`. It exists because there are
+legitimate reasons to carry a band the training data does not populate (a
+policy floor that will bind on a future population, for example), but it
+is never silent: the ledger receives an `override` row naming the blocking
+codes, followed by the `accept` row. Here it is exercised on a copy of the
+lab so that the session carries on without the empty bin.
+
+```{r override}
+lab_override <- scr_classing_accept(lab, p_blocked, reason = "deliberate policy floor at -5000",
+                                    override = TRUE)
+scr_decisions(lab_override)[variable == "vl_score_04", .(seq, action, proposal_id, verdict, warnings, reason)]
+```
+
+## Choosing the variables
+
+`scr_classing_choose()` builds the final list as
+`(consensus shortlist + force) - drop`, optionally intersected with
+`keep`. `force` is allowed for any variable that reached binning, with two
+exceptions that need `override = TRUE`: a variable failed for
+`IV_SUSPICIOUS` (the leakage ceiling) and a derived `__sp` flag when
+`allow_derived_final = FALSE`. `reason` is one string for every variable
+named, or a character vector named by variable.
+
+`vl_score_10` is in the consensus shortlist but will not be available at
+decision time; `vl_score_03` was failed by screening for `NOT_MONOTONIC`
+but policy requires it on the card.
+
+```{r choose}
+scr_funnel(res, cols = "all")[feature %in% c("vl_score_10", "vl_score_03"),
+                              .(feature, exit_stage, screen_reason)]
+lab <- scr_classing_choose(lab, drop = "vl_score_10", force = "vl_score_03",
+                           reason = c(vl_score_10 = "not available at decision time",
+                                      vl_score_03 = "policy: bureau band must be scored"))
+```
+
+## The session summary and the ledger
+
+Printing the lab summarises the session: the variables touched with bins
+and IV before and after, the verdicts, the reasons, the discards and the
+final choice.
+
+```{r summary}
+lab
+```
+
+`scr_decisions()` returns the ledger: one row per decision, append-only,
+with the author, the timestamp, the instruction, the metrics before and
+after, the verdict, the codes and the reason. The same function reads the
+ledger from the committed result and from the scorecard fitted on it.
+
+```{r ledger}
+scr_decisions(lab)[, .(seq, variable, action, proposal_id, verdict, reason)]
+```
+
+## The spec round trip: a reviewer edits in a spreadsheet
+
+Not every reviewer works in R. `scr_classing_spec()` writes the classing
+as a long table, one row per bin of every variable, optimal and manual.
+The authoritative columns a reviewer may edit are `lower` and `upper` for
+numerics, `categories` and `is_other` for categoricals, and `reason`;
+everything else (counts, rates, WOE) is context and is regenerated on
+read. Open ends are written as empty cells. A `.xlsx` path writes a
+workbook through openxlsx; a `.csv` path needs nothing.
+
+```{r spec, message = FALSE}
+spec <- scr_classing_spec(lab)
+spec
+spec_file <- file.path(tempdir(), "classing_default.csv")
+scr_classing_spec(lab, file = spec_file)
+```
+
+A reviewer opens the file, moves the first cut of `vl_score_01` from 40 to
+42 and writes why in `reason`. Done in R, as it would be done in a
+spreadsheet cell by cell:
+
+```{r edit}
+sheet <- read.csv(spec_file, stringsAsFactors = FALSE)
+i1 <- sheet$variable == "vl_score_01" & sheet$bin_id == 1
+sheet$upper[i1]  <- 42
+sheet$reason[sheet$variable == "vl_score_01"] <- "reviewer: first cut moved to 42 to match the bureau band"
+write.csv(sheet, spec_file, row.names = FALSE, na = "")
+```
+
+`scr_classing_read()` validates the file before anything else happens:
+`bin_id` must run from 1 to k without gaps, `upper` must be finite and
+strictly increasing except on the last bin, and the `lower` of every bin
+must equal the `upper` of the one before it. The edit above touched only
+`upper`, so the file is refused with a named reason.
+
+```{r read-refused, error = TRUE}
+scr_classing_read(spec_file)
+```
+
+Fixing the neighbouring `lower` makes the spec contiguous again.
+
+```{r read-ok}
+sheet$lower[sheet$variable == "vl_score_01" & sheet$bin_id == 2] <- 42
+write.csv(sheet, spec_file, row.names = FALSE, na = "")
+spec_back <- scr_classing_read(spec_file)
+```
+
+`scr_classing_import()` compares the file with the lab's current bins and
+turns every variable that differs into a proposal, with the same checks
+and the same comparison as a proposal made by hand. The reviewer's reason
+arrives as `imported_reason`; nothing is accepted on the analyst's behalf.
+
+```{r import}
+imported <- scr_classing_import(lab, spec_back)
+names(imported)
+imported$vl_score_01$imported_reason
+imported$vl_score_01
+```
+
+The comparison now has a fourth column, `current`, because the variable
+already carries an accepted manual proposal. Accepting the imported one
+supersedes it, and the ledger records both facts.
+
+```{r import-accept}
+lab <- scr_classing_accept(lab, imported$vl_score_01, reason = imported$vl_score_01$imported_reason)
+scr_decisions(lab)[variable == "vl_score_01", .(seq, action, proposal_id, instruction, verdict)]
+```
+
+## Committing the lab: what changed
+
+`scr_classing_apply()` returns a new `scr_result`. The input result is
+not modified. Inside the new one, the accepted manual entries replace the
+optimal ones in `fit`, the screening and hold-out rows of those variables
+are recomputed with the same pipeline functions, the final shortlist is
+the one implied by the choice, and the funnel, gains, SQL and summary are
+rebuilt.
+
+```{r apply}
+res2 <- scr_classing_apply(lab)
+res2
+```
+
+`scr_selected()` on the new result returns the final list; the automatic
+one is still there under `which = "consensus"`.
+
+```{r selected}
+scr_selected(res2)
+scr_selected(res2, "consensus")
+setdiff(scr_selected(res2), scr_selected(res2, "consensus"))
+setdiff(scr_selected(res2, "consensus"), scr_selected(res2))
+```
+
+The funnel gains two columns. `provenance` says what the lab did to each
+variable (`auto`, `manual:rebin`, `manual:add`, `manual:drop`, or
+`manual:rebin+add` / `manual:rebin+drop` when both happened) and
+`manual_reason` carries the reason. A dropped variable exits at a new
+stage, `08.manual_drop`; a forced one is `07.approved` even though the
+consensus never selected it.
+
+```{r funnel}
+touched <- c("vl_score_01", "ds_region", "vl_score_03", "vl_score_10")
+scr_funnel(res2, cols = "all")[feature %in% touched,
+                               .(feature, exit_stage, provenance, manual_reason)]
+```
+
+The automatic fit is frozen as `fit_auto`, so the optimal cut points
+remain available next to the manual ones for as long as the result lives.
+
+```{r frozen}
+res2$fit_auto$results$vl_score_01$cutpoints
+res2$fit$results$vl_score_01$cutpoints
+res2$fit$summary[res2$fit$summary$feature %in% c("vl_score_01", "ds_region"),
+                 c("feature", "algorithm", "n_bins", "total_iv")]
+```
+
+## Refitting the scorecard
+
+`scr_scorecard()` on the committed result fits the logistic regression on
+the WOE columns of the final list, the manual ones included, and aligns
+the score exactly as before. The points of a manually binned variable are
+distributed over its four policy bands.
+
+```{r scorecard}
+sc <- scr_scorecard(res2)
+sc
+sc$points[variable == "vl_score_01", .(variable, bin, woe, points)]
+sc$points[variable == "ds_region", .(variable, bin, woe, points)]
+```
+
+The manual decisions have a price, and the committee should see it. The
+scorecard fitted on the optimal bins and the consensus shortlist is the
+benchmark:
+
+```{r price}
+sc_auto <- scr_scorecard(res)
+rbind(scr_score_metrics(sc_auto)[, .(card = "optimal", sample, auc, auc_lo, auc_hi, ks)],
+      scr_score_metrics(sc)[, .(card = "manual", sample, auc, auc_lo, auc_hi, ks)])
+```
+
+On hold-out the manual card gives up about 0.005 of AUC and 0.03 of KS,
+well inside the bootstrap interval of either card. Whether policy bands,
+a two-region grouping, a forced bureau variable and a dropped unavailable
+one are worth that is a business decision; the lab makes sure it is taken
+with the numbers on the table.
+
+The model card states the provenance in words: which binning algorithms
+the card mixes, whether the shortlist came from the consensus or from the
+lab, how many manual bins it carries and which variables were forced in
+or dropped. The ledger travels into the scorecard as well.
+
+```{r model-card}
+str(sc$model_card[c("binning_algorithm", "shortlist_source", "n_manual_bins",
+                    "manual_bins", "forced_in", "manual_dropped", "n_decisions")])
+nrow(scr_decisions(sc))
+```
+
+## Production: R and SQL follow the manual bins
+
+Nothing downstream needs to know that a bin was drawn by hand.
+`scr_apply()` scores new rows in R with the frozen pre-processing and the
+frozen bins; the points for `vl_score_01` fall in one of the four policy
+bands and the points for `ds_region` in one of the two regions.
+
+```{r apply-new}
+new <- head(scr_demo, 5)
+new[, c("vl_score_01", "ds_region")]
+scr_apply(sc, new, what = "points")[, .(score, score_points, vl_score_01_points, ds_region_points)]
+```
+
+`scr_sql()` emits the same thing for the database. The header carries the
+provenance line; for the two variables touched, the lines below show the
+frozen pre-processing, the WOE `CASE` on the manual cut points and
+groupings with full precision, and the bin-index `CASE` on the same cuts.
+The tail composes the whole points from that index.
+
+```{r sql}
+sql <- scr_sql(sc, table = "prd.customers", dialect = "databricks")
+sql_lines <- unlist(strsplit(sql, "\n", fixed = TRUE))
+cat(grep("^-- Provenance", sql_lines, value = TRUE), sep = "\n")
+cat(grep("WHEN (vl_score_01|ds_region) ", sql_lines, value = TRUE), sep = "\n")
+cat(tail(sql, 8), sep = "\n")
+```
+
+That the two paths agree number for number, including a value sitting
+exactly on a manual cut point, is verified by the package tests, which run
+the generated SQL in DuckDB and compare it with `scr_apply()` on the same
+rows. This vignette does not need a database to run.
+
+## Governance
+
+A reviewer can reconstruct every manual decision from the deliverables. The
+ledger is append-only, with one row per `accept`, `discard`, `supersede`,
+`restore` (a `reset = TRUE` proposal that takes a variable back to its
+optimal bins), `override`, `force`, `drop` and `keep`, and it travels from
+the lab into the result, the scorecard and the workbooks written by
+`scr_export()`. Four conditions block a proposal: an empty bin, a
+degenerate bin without smoothing, a bin below the hard minimum share and a
+manual IV above the leakage ceiling. Accepting a blocked proposal, forcing
+a variable failed for `IV_SUSPICIOUS` and forcing a derived `__sp` flag
+under `allow_derived_final = FALSE` each need `override = TRUE`, which adds
+its own ledger row.
+
+```{r, include = FALSE, eval = TRUE}
+data.table::setDTthreads(old_dt)
+```

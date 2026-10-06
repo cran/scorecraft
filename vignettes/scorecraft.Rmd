@@ -1,0 +1,425 @@
+---
+title: "scorecraft: from raw table to production SQL and monitoring"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{scorecraft: from raw table to production SQL and monitoring}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+has_glmnet <- requireNamespace("glmnet", quietly = TRUE)
+has_db     <- requireNamespace("DBI", quietly = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_glmnet)
+old_dt <- data.table::setDTthreads(2)
+```
+
+This vignette takes one target from a raw table to a scorecard, a cut-off
+policy, production SQL checked against R, a monitoring run and the
+deliverables. It runs on `scr_demo`, a synthetic table built with the
+defects real data has: the sentinel `-999`, missing values, constants,
+duplicates, a redundant pair, high cardinality, pure noise and a column
+(`vl_late`) that degrades in the last period only. Two companion vignettes
+go deeper: `vignette("coarse-classing", package = "scorecraft")` on manual
+binning with an audit trail, and
+`vignette("alignment-and-portfolio", package = "scorecraft")` on the points
+scale.
+
+## 1. Configuration
+
+One `scr_config()` object drives every stage. A preset fixes the admission
+rules of the funnel; `scr_presets()` lists them and `scr_config_keys()`
+documents every key.
+
+```{r presets}
+library(scorecraft)
+library(data.table)
+scr_presets()[, c("preset", "target_max", "min_votes", "corr_cutoff", "iv_min")]
+```
+
+The overrides below only make the run light: one thread, two consensus
+voters (elastic net and xgboost), a short boosting schedule and twenty
+bootstrap resamples. A development run would keep the defaults.
+
+```{r config}
+cfg <- scr_config("moderate", objective = "risk", verbose = FALSE, nthread = 1,
+                  use_glmnet = TRUE, use_ranger = FALSE, use_lightgbm = FALSE,
+                  xgb_rounds = 60, n_boot = 20)
+cfg
+```
+
+## 2. Selection and the funnel
+
+`scr_select()` chains the split, the triage, the optimal binning with
+screening and hold-out revalidation, the redundancy pruning and the
+consensus of the models. Each stage is also exported on its own
+(`scr_split()`, `scr_triage()`, `scr_bin()`, `scr_model()`). With
+`date_col` the split is out-of-time by whole periods: the last periods form
+the hold-out. The sibling target `churn` is dropped so that it cannot
+become a candidate.
+
+```{r select}
+res <- scr_select(scr_demo, "default", config = cfg, drop = c("id", "churn"),
+                  date_col = "ref_date")
+res
+```
+
+Binning works on the weight of evidence. For bin $i$ of a variable, with
+$e_i$ events and $n_i$ non-events out of totals $E$ and $N$,
+
+$$
+\mathrm{WOE}_i = \ln\frac{e_i / E}{n_i / N}, \qquad
+\mathrm{IV} = \sum_i \left(\frac{e_i}{E} - \frac{n_i}{N}\right)\mathrm{WOE}_i .
+$$
+
+The WOE is the log of the event share over the non-event share, so a bin
+riskier than average has a positive WOE. This is the opposite sign to the
+good-over-bad convention of Siddiqi (2017); under it the logistic
+coefficients on the WOE columns are expected to be positive, and the sign
+check of the scorecard tests exactly that. The preset admits an IV in
+$[0.02, 1)$ and warns from 0.5, where leakage is more likely than signal.
+
+The funnel is the audit trail: every input column, the stage it left at and
+why. No candidate is dropped from the report.
+
+```{r funnel}
+table(scr_funnel(res, cols = "all")$exit_stage)
+head(scr_funnel(res, only_selected = TRUE)[, .(feature, total_iv, iv_holdout, ks, psi, psi_flag_adjusted)])
+```
+
+`vl_late` is approved, but its PSI between train and hold-out is already
+flagged as a shift. Section 8 shows where that comes from.
+
+## 3. The scorecard
+
+`scr_scorecard()` fits a logistic regression on the WOE columns of the
+shortlist, checks the signs and aligns the logit to the declared scale:
+600 points at odds of 50:1 (non-event to event), doubling every 20 points.
+How the alignment and the points are computed is the subject of the
+alignment vignette.
+
+```{r scorecard}
+sc <- scr_scorecard(res)
+sc
+all(sc$sign_check$coef > 0)
+scr_score_metrics(sc)[, .(sample, auc, auc_lo, auc_hi, ks, gini)]
+```
+
+Every discrimination figure carries a bootstrap interval. The hold-out
+figures, not the training ones, are the ones to quote.
+
+## 4. Cut-off and strategy
+
+### The sweep
+
+`scr_cutoff()` takes candidate cuts at quantiles of the score **on train**
+and applies them **frozen** to the hold-out, so both samples answer the same
+question at the same score.
+
+```{r cutoff}
+ct <- scr_cutoff(sc, n_cuts = 8)
+ct
+ct$table[cut == ct$cuts[4], .(sample, cut, pct_safe, event_rate_safe, events_avoided_pct, ks_at_cut)]
+```
+
+`%safe` is the approval rate, `ev.safe` and `ev.risky` the event rates on
+each side, and `ev.avoid` the share of all events that fall on the risky
+side, the events the cut would decline. `KS` at the cut is the distance
+between that share and the share of non-events declined with them. The cut
+with the largest KS separates the populations best; it is not the cut the
+business should necessarily choose.
+
+### The strategy table
+
+`scr_strategy()` gives each score band (the training deciles, frozen) an
+expected profit per account,
+$EP = (1 - p)\,\text{revenue\_good} - p\,\text{loss\_bad}$, with break-even
+event rate `revenue_good / (revenue_good + loss_bad)`. With 1,080 per good
+account and 4,500 per bad one, break-even is 19.35%. A band below
+break-even is approved, one up to 25% above it goes to review, and the rest
+is declined; `decisions` imposes a policy by hand.
+
+```{r strategy}
+st <- scr_strategy(sc, revenue_good = 1080, loss_bad = 4500)
+st
+st$table[, .(band, event_rate = round(event_rate, 4), decision, cum_pct = round(cum_pct, 3), cum_profit)]
+```
+
+The lowest approved band has an event rate of 17.4%, above the portfolio
+rate of 14.5%, yet a positive expected profit: declining it would look
+prudent and lose money. The cumulative profit peaks at that band.
+`loss_bad` is a flat loss per bad account here; in an IRB setting it is
+the product of the exposure at default and the loss given default, modelled
+in the article on
+[LGD and EAD](https://evandeilton.github.io/scorecraft/articles/lgd-and-ead-under-irb.html)
+and combined in
+[expected loss and capital](https://evandeilton.github.io/scorecraft/articles/expected-loss-and-capital.html).
+
+## 5. Reject inference
+
+The scorecard is fitted on accounts that were accepted and therefore have an
+outcome. Classical reject inference (parcelling, augmentation,
+extrapolation) assigns outcomes to the declined applicants, and it cannot
+be validated on the data at hand: every method rests on an assumption about
+the rejects that the accepts cannot test (Hand and Henley, 1993).
+`scr_reject()` therefore makes no such assignment. It states the population
+scope, measures the coverage of each score band and reports a sensitivity
+band: the event rate each band would have if the applicants without an
+outcome were 2, 4 or 8 times worse than the accepted ones in the same band.
+
+To see the coverage problem, the hold-out vintages play the booked accounts
+and an old policy is simulated on the training rows: an older score (the
+new one plus noise) declined its lowest 30%, and policy rules declined a
+further 5% above that cut (high-side overrides). The declined rows form the
+applicants without an outcome. The booked accounts also contain applicants
+below the old cut (low-side overrides), which is why the lowest bands keep
+some outcomes.
+
+```{r reject}
+set.seed(11)
+train <- scr_demo[res$split$train_idx, ]
+old_score <- scr_apply(sc, train)$score + stats::rnorm(nrow(train), sd = 20)
+declined <- old_score < stats::quantile(old_score, 0.30) | stats::runif(nrow(train)) < 0.05
+ttd <- rbind(scr_demo[res$split$holdout_idx, ], train[declined, ])
+booked <- rep(c(TRUE, FALSE), c(length(res$split$holdout_idx), sum(declined)))
+rj <- scr_reject(sc, population = ttd, accepted = booked)
+rj
+rj$coverage[, .(band, n_dev, n_unknown, coverage = round(coverage, 2), coverage_flag)]
+```
+
+Coverage falls from the safest band to the riskiest, which is where the
+rejects sit. `few_events` marks bands with fewer than 30 events, where the
+observed rate is itself fragile, and `no_outcome` bands with none. The
+`TOTAL` rows of `rj$sensitivity` are the headline: the observed rate and
+what it becomes under each declared multiplier. The analyst states the
+multiplier the business is prepared to defend; the package does not choose
+it.
+
+## 6. Scoring and reasons
+
+`scr_apply()` reproduces in R what the production SQL does: the frozen
+pre-processing (training median for missing and sentinel values,
+`"MISSING"` for absent categories), the frozen bins and the points. Nothing
+is refitted.
+
+```{r apply}
+new <- head(scr_demo, 5)
+scr_apply(sc, new, what = "all")[, .(prob = round(prob, 4), score = round(score, 2), score_points,
+                                     vl_score_01_woe = round(vl_score_01_woe, 3), vl_score_01_points)]
+```
+
+`score` is exact (`a + b * logit`); `score_points` is the sum of the whole
+points of each bin, which is what a points table on paper gives.
+`scr_reasons()` returns the decline reasons: the variables whose points
+fall furthest below a reference, the mean points on the training population
+by default (`reference = "max"` uses the best bin).
+
+```{r reasons}
+scr_reasons(sc, new, k = 2)
+```
+
+## 7. Production SQL
+
+`scr_sql()` on a scorecard emits three blocks: a CTE with the pre-processing
+frozen on train, a CTE with the WOE and bin index from the cut points at
+full precision, and the final `SELECT` with the exact score, the points per
+variable and the whole-points score. `what = "all"` adds the bin label and
+the WOE of every variable next to its points, and `keep_columns` carries key
+columns through untransformed, so the output can be joined back to the
+customer. Fourteen dialects are supported; `file` writes the script.
+
+```{r sql}
+sql <- scr_sql(sc, table = "prd.customers", dialect = "databricks",
+               what = "all", keep_columns = c("id", "ref_date"))
+length(sql)
+cat(grep("^-- (Scale|score =)", sql, value = TRUE), sep = "\n")
+i <- max(which(sql == "SELECT"))
+cat(sql[i:(i + 6)], sep = "\n")
+```
+
+The claim that R and SQL agree is tested in the package; here it is also
+demonstrated. DuckDB runs in-process and executes the `duckdb` dialect on
+`scr_demo`.
+
+```{r duckdb, eval = has_glmnet && has_db && requireNamespace("duckdb", quietly = TRUE), message = FALSE}
+con <- DBI::dbConnect(duckdb::duckdb(), config = list(threads = "1"))
+DBI::dbWriteTable(con, "scr_demo", scr_demo)
+got <- DBI::dbGetQuery(con, paste(scr_sql(sc, table = "scr_demo", dialect = "duckdb", what = "all",
+                                          keep_columns = "id"), collapse = "\n"))
+DBI::dbDisconnect(con, shutdown = TRUE)
+got <- got[order(got$id), ]
+exp <- scr_apply(sc, scr_demo, what = "all")
+all.equal(got$score, exp$score)
+identical(as.numeric(got$score_points), as.numeric(exp$score_points))
+all(vapply(sc$features, function(f) isTRUE(all.equal(got[[paste0(f, "_points")]], exp[[paste0(f, "_points")]])) &&
+             isTRUE(all.equal(got[[paste0(f, "_woe")]], exp[[paste0(f, "_woe")]])), logical(1)))
+```
+
+The exact score agrees to floating-point precision; the whole points and
+the WOE of every variable agree for every row.
+
+## 8. Monitoring
+
+`scr_monitor()` scores a new table with the frozen scorecard and recomputes,
+per period of `date_col`, the score PSI against the training distribution
+on frozen bands, the CSI of every variable with the signed points shift and,
+when the target is present, the performance by vintage. It schedules
+nothing. Here the new data are `scr_demo` itself: the first four periods are
+the training vintages, the last two the hold-out.
+
+```{r monitor}
+mo <- scr_monitor(sc, scr_demo, date_col = "ref_date", target = "default", n_boot = 20)
+mo
+```
+
+Every PSI carries two thresholds. `fixed` is the rule of thumb of 0.10 for
+a moderate shift and 0.25 for action (Siddiqi, 2017), which has no
+statistical derivation and ignores how many rows produced the number.
+`critical` is the sample-size-adjusted value at level `alpha`: with no
+shift, the PSI over $B$ bands from $n$ base and $m$ comparison rows behaves
+like $(1/n + 1/m)\,\chi^2_{B-1}$ (Yurdakul and Naranjo, 2020). With 2,800
+training rows, 700 rows per period and ten bands the critical value is
+about 0.03, so the fixed 0.10 would let a real shift pass unflagged.
+
+The CSI applies the same statistic to each variable's bins. It is unsigned;
+the `points_shift` gives the direction: the change in bin shares weighted
+by the points of each bin, the amount by which the variable moved the mean
+score. `vl_late` is stable for five periods and then shifts far above both
+thresholds:
+
+```{r monitor-csi}
+mo$csi[variable == "vl_late", .(period, csi = round(csi, 4), flag_fixed, flag_adjusted,
+                                points_shift = round(points_shift, 2))]
+```
+
+A vintage with fewer events than the plan's minimum (100) is marked
+`insufficient events`: its AUC is shown but no verdict is drawn from it.
+The first four vintages were used for training, so their higher AUC is
+expected; the comparison that matters is between successive production
+periods and the scorecard's own hold-out interval. For grade migration and
+the traffic lights of a PD model, see
+[PD calibration and rating grades](https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html).
+
+### The monitoring plan
+
+The thresholds are a contract, not a default buried in code.
+`scr_scorecard()` stores it as `sc$monitoring_plan`, `scr_export()` writes
+it to the `Monitoring_Plan` sheet, and `scr_monitor(plan = )` reads it back,
+from the table or from the workbook. Edit the plan and the flags follow it:
+
+```{r plan}
+plan <- sc$monitoring_plan
+plan[plan$item != "threshold_source", ]
+plan$value[plan$item == "min_events_per_period"] <- "90"
+mo2 <- scr_monitor(sc, scr_demo, date_col = "ref_date", target = "default", n_boot = 20, plan = plan)
+data.table(period = mo$vintage$period, events = mo$vintage$events,
+           status_default = mo$vintage$status, status_edited = mo2$vintage$status)
+```
+
+With the minimum lowered to 90 events, the three vintages that were marked
+insufficient now receive a verdict. The change lives in the plan, where a
+validator can see it, not in the code.
+
+## 9. Deliverables
+
+`scr_export()` writes the selection workbook, the SQL and a Markdown
+summary for an `scr_result`, and the scorecard, validation and strategy
+workbooks plus the SQL for an `scr_scorecard`. The objects computed above
+can be passed in, so the workbooks carry what was read in this session.
+`stamp = TRUE` (the default) writes into a new timestamped directory, so an
+earlier run is never overwritten.
+
+```{r export, eval = has_glmnet && requireNamespace("openxlsx", quietly = TRUE), message = FALSE}
+out <- file.path(tempdir(), "scorecraft-get-started")
+files_res <- scr_export(res, out, stamp = FALSE)$files
+files_sc  <- scr_export(sc, out, stamp = FALSE, cutoff = ct, strategy = st, reject = rj,
+                        monitor = mo)$files
+basename(unlist(c(files_res, files_sc)))
+mo3 <- scr_monitor(sc, scr_demo, date_col = "ref_date", target = "default", n_boot = 20,
+                   plan = files_sc$strategy)
+identical(mo3$psi$flag_adjusted, mo$psi$flag_adjusted)
+```
+
+Every sheet is sanitised before it is written (a cell starting with `=`,
+`+`, `-` or `@` cannot become a formula), and each workbook is verified
+after writing. `?scr_export` lists the sheets.
+
+## 10. Before go-live
+
+1. **Split and figures.** The split is out-of-time and the hold-out figures,
+   with their intervals, are the ones quoted.
+2. **Policy.** The cut-off and the bands come from `scr_cutoff()` and
+   `scr_strategy()` with revenue and loss figures the business signed off,
+   and the reject coverage and multiplier are written down with them.
+3. **SQL.** The script in production is the exported one, with `table` and
+   `keep_columns` set, and its output was compared with `scr_apply()` on
+   the same rows after deployment.
+4. **Reasons.** `scr_reasons()` is the source of decline reasons, with the
+   reference stated in the policy.
+5. **Monitoring.** The monitoring plan is filed with the deliverables, and
+   `scr_monitor(plan = )` runs on every new period.
+
+## Appendix: from a database
+
+In production the table lives in a warehouse. `scr_connect()` opens a DBI
+connection: with a `dsn` through ODBC (forcing `bigint = "numeric"`, so a
+BIGINT is not read as a high-cardinality categorical), with a `driver`
+through any DBI driver. SQLite stands in for the warehouse here. It has no
+date type, so `ref_date` is stored as text, which the split reads as a
+date.
+
+```{r db, eval = has_glmnet && has_db && requireNamespace("RSQLite", quietly = TRUE)}
+con <- scr_connect(driver = RSQLite::SQLite(), dbname = ":memory:")
+d <- scr_demo
+d$ref_date <- as.character(d$ref_date)
+DBI::dbWriteTable(con, "dtm", d)
+nrow(scr_fetch(con, "dtm", sample_frac = 0.5, seed = 42))
+nrow(scr_fetch(con, "dtm", max_rows = 1000))
+```
+
+`scr_fetch()` samples **on the server**: the fraction becomes a `WHERE`
+clause on a random expression chosen by the connection class, and
+`max_rows` lowers the fraction so that the expected count fits under the
+cap. The query is echoed while `scr_verbose()` is on.
+
+`scr_run()` chains fetch and selection over several targets, dropping each
+sibling target from the candidates and recording a failure on one target
+without stopping the others. With `date_col` the split is out-of-time, as
+in section 2, and the table name is recorded for the SQL.
+
+```{r run, eval = has_glmnet && has_db && requireNamespace("RSQLite", quietly = TRUE)}
+rs <- scr_run(con, "dtm", targets = c("default", "churn"), config = cfg, drop = "id",
+              date_col = "ref_date")
+rs
+c(split = rs$default$split$method, cutoff = rs$default$split$cutoff,
+  table = rs$default$config$sql_table)
+DBI::dbDisconnect(con)
+```
+
+## Next steps
+
+- `vignette("coarse-classing", package = "scorecraft")`: replacing optimal
+  bins by business bands, with every decision in a ledger.
+- `vignette("alignment-and-portfolio", package = "scorecraft")`: the points
+  scale, odds orientation, challengers and rescaling.
+- From the scorecard to IRB risk parameters:
+  [PD calibration and rating grades](https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html),
+  [LGD and EAD](https://evandeilton.github.io/scorecraft/articles/lgd-and-ead-under-irb.html)
+  and
+  [expected loss and capital](https://evandeilton.github.io/scorecraft/articles/expected-loss-and-capital.html).
+
+## References
+
+Hand, D. J. and Henley, W. E. (1993). Can reject inference ever work? *IMA
+Journal of Mathematics Applied in Business and Industry*, 5(1), 45-55.
+
+Siddiqi, N. (2017). *Intelligent Credit Scoring: Building and Implementing
+Better Credit Risk Scorecards*, 2nd edition. Wiley.
+
+Yurdakul, B. and Naranjo, J. (2020). Statistical properties of the
+population stability index. *Journal of Risk Model Validation*, 14(4),
+89-100.
+
+```{r, include = FALSE, eval = TRUE}
+data.table::setDTthreads(old_dt)
+```

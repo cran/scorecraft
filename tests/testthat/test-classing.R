@@ -1,0 +1,291 @@
+lab_demo <- function() scr_coarse_classing(res_demo(), author = "tester")
+
+test_that("the lab opens on every binned variable and views a variable", {
+  lab <- lab_demo()
+  expect_s3_class(lab, "scr_classing")
+  expect_setequal(lab$features, names(res_demo()$fit$results))
+  expect_true(all(lab$source == "optimal"))
+  expect_output(print(lab), "0 proposals")
+  expect_output(ov <- scr_classing_view(lab), "verdict")
+  expect_equal(nrow(ov), length(lab$features))
+  expect_output(b <- scr_classing_view(lab, "vl_score_01"), "event rate by bin")
+  expect_equal(sum(b$n), length(res_demo()$split$train_idx))
+  expect_error(scr_classing_view(lab, "nope"), "not in the lab")
+  expect_error(scr_coarse_classing(res_demo(), features = "vl_constant"), "never reached binning")
+})
+
+test_that("a manual spec equal to the optimal cut points reproduces the engine's WOE and IV exactly", {
+  lab <- lab_demo()
+  for (f in c("vl_score_01", "ds_region")) {
+    opt <- lab$optimal[[f]]
+    p <- if (identical(opt$type, "numerical")) scr_classing_propose(lab, f, breaks = opt$cutpoints)
+         else scr_classing_propose(lab, f, groups = strsplit(opt$bin, "%;%", fixed = TRUE))
+    tol <- if (identical(opt$type, "numerical")) 1e-12 else 0.01   # engine categoricals carry a small smoothing
+    expect_equal(p$entry$woe, opt$woe, tolerance = tol)
+    expect_equal(sum(p$entry$iv), sum(opt$iv), tolerance = tol)
+    expect_identical(p$entry$bin, opt$bin)
+    expect_identical(p$entry$count, as.integer(opt$count))
+    expect_equal(p$compare[metric == "iv_holdout", delta], 0, tolerance = 1e-12)
+  }
+})
+
+test_that("numeric proposals: breaks, merge and split resolve to absolute cut points", {
+  lab <- lab_demo()
+  p <- scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70))
+  expect_s3_class(p, "scr_classing_proposal")
+  expect_equal(p$entry$cutpoints, c(40, 55, 70))
+  expect_equal(p$entry$bin, c("(-Inf;40.000000]", "(40.000000;55.000000]", "(55.000000;70.000000]", "(70.000000;+Inf]"))
+  expect_true(p$verdict %in% c("ACCEPTABLE", "REVIEW", "BLOCKED"))
+  expect_output(print(p), "Verdict")
+  k <- length(lab$optimal$vl_score_01$cutpoints)
+  pm <- scr_classing_propose(lab, "vl_score_01", merge = c(1, 2))
+  expect_equal(length(pm$entry$cutpoints), k - 1L)
+  ps <- scr_classing_propose(lab, "vl_score_01", split = c(1, lab$optimal$vl_score_01$cutpoints[1] - 5))
+  expect_equal(length(ps$entry$cutpoints), k + 1L)
+  expect_error(scr_classing_propose(lab, "vl_score_01", merge = c(1, 3)), "adjacent")
+  expect_error(scr_classing_propose(lab, "vl_score_01", split = c(1, 999)), "not strictly inside")
+  expect_error(scr_classing_propose(lab, "vl_score_01", breaks = c(40, 40)), "duplicates|strictly")
+  expect_error(scr_classing_propose(lab, "vl_score_01", groups = list("a")), "numeric")
+  expect_error(scr_classing_propose(lab, "vl_score_01"), "exactly one")
+  expect_error(scr_classing_propose(lab, "vl_score_01", breaks = 50, merge = c(1, 2)), "exactly one")
+})
+
+test_that("categorical proposals: groups, other_to, merge and missing_to", {
+  lab <- lab_demo()
+  p <- scr_classing_propose(lab, "ds_region", groups = list(edge = c("NORTH", "SOUTH"), core = c("EAST", "WEST", "CENTRE")))
+  expect_equal(p$entry$bin, c("NORTH%;%SOUTH", "EAST%;%WEST%;%CENTRE"))
+  expect_equal(sum(p$entry$count), length(res_demo()$split$train_idx))
+  expect_error(scr_classing_propose(lab, "ds_region", groups = list(c("NORTH", "SOUTH"), c("EAST", "WEST"))), "unassigned")
+  po <- scr_classing_propose(lab, "ds_region", groups = list(c("NORTH", "SOUTH"), c("EAST")), other_to = 2)
+  expect_true("CENTRE" %in% strsplit(po$entry$bin[2], "%;%", fixed = TRUE)[[1]])
+  expect_true(po$entry$manual$is_other[2])
+  expect_error(scr_classing_propose(lab, "ds_region", groups = list(c("NORTH", "SOUTH"), c("EAST", "WEST", "CENTRE", "XX"))), "not seen on train")
+  expect_error(scr_classing_propose(lab, "ds_region", groups = list(c("NORTH", "SOUTH"), c("EAST", "WEST", "CENTRE", "NORTH"))), "two groups")
+  k <- length(lab$optimal$ds_region$bin)
+  pm <- scr_classing_propose(lab, "ds_region", merge = c(1, 2))
+  expect_equal(length(pm$entry$bin), k - 1L)
+  # ds_optin has a MISSING category in the clean data
+  pmiss <- scr_classing_propose(lab, "ds_optin", missing_to = 1)
+  expect_true("MISSING" %in% strsplit(pmiss$entry$bin[1], "%;%", fixed = TRUE)[[1]])
+  expect_error(scr_classing_propose(lab, "ds_region", breaks = 1), "categorical")
+})
+
+test_that("accept records a reason, supersedes, blocks and overrides; discard is logged", {
+  lab <- lab_demo()
+  p <- scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70))
+  expect_error(scr_classing_accept(lab, p, reason = "ok"), "at least 5")
+  expect_error(scr_classing_accept(lab, p), "reason")
+  lab <- scr_classing_accept(lab, p, reason = "policy bands 40/55/70")
+  expect_equal(unname(lab$source["vl_score_01"]), "manual")
+  expect_identical(lab$current$vl_score_01$cutpoints, c(40, 55, 70))
+  expect_equal(nrow(scr_decisions(lab)), 1L)
+  expect_error(scr_classing_accept(lab, p, reason = "again please"), "already accepted")
+  p2 <- scr_classing_propose(lab, "vl_score_01", breaks = c(45, 60))
+  expect_true("current" %in% names(p2$compare))
+  lab <- scr_classing_accept(lab, p2, reason = "two bands are enough")
+  expect_true("supersede" %in% scr_decisions(lab)$action)
+  expect_equal(lab$accepted$vl_score_01$proposal_id, "P002")
+  p3 <- scr_classing_propose(lab, "vl_score_02", merge = c(1, 2))
+  lab <- scr_classing_discard(lab, p3, reason = "loses too much hold-out IV")
+  expect_equal(unname(lab$source["vl_score_02"]), "optimal")
+  expect_true("discard" %in% scr_decisions(lab)$action)
+  expect_output(print(lab), "discard")
+  # an empty bin blocks; override is recorded
+  pb <- scr_classing_propose(lab, "vl_score_04", breaks = c(-5000, 50))
+  expect_equal(pb$verdict, "BLOCKED")
+  expect_true("EMPTY_BIN" %in% pb$blocking)
+  expect_error(scr_classing_accept(lab, pb, reason = "force it through"), "BLOCKED")
+  lab2 <- scr_classing_accept(lab, pb, reason = "deliberate policy band", override = TRUE)
+  expect_true("override" %in% scr_decisions(lab2)$action)
+  # reset proposal restores the optimal source
+  pr <- scr_classing_propose(lab, "vl_score_01", reset = TRUE)
+  lab3 <- scr_classing_accept(lab, pr, reason = "back to the optimal bins")
+  expect_equal(unname(lab3$source["vl_score_01"]), "optimal")
+  expect_true("restore" %in% scr_decisions(lab3)$action)
+  # a proposal from another lab is refused
+  other <- scr_coarse_classing(res_demo())
+  expect_error(scr_classing_accept(other, p3, reason = "wrong lab entirely"), "different lab")
+})
+
+test_that("degenerate manual bins are blocked without smoothing and allowed with laplace", {
+  res <- res_demo()
+  lab0 <- scr_coarse_classing(res)
+  tr <- res$data_clean[res$split$train_idx]
+  # a break so low that the first bin holds a handful of rows, most likely single-class
+  q <- stats::quantile(tr$vl_score_01, 0.002)
+  p0 <- scr_classing_propose(lab0, "vl_score_01", breaks = c(q, 50))
+  if (any(p0$entry$count_pos == 0L | p0$entry$count_neg == 0L)) {
+    expect_equal(p0$verdict, "BLOCKED")
+    lab1 <- scr_coarse_classing(res, laplace = 0.5)
+    p1 <- scr_classing_propose(lab1, "vl_score_01", breaks = c(q, 50))
+    expect_true(all(is.finite(p1$entry$woe)))
+    expect_false("DEGENERATE_BIN" %in% p1$blocking)
+  } else skip("no degenerate bin produced on this data")
+})
+
+test_that("choose builds the final list with reasons and refuses what must not pass silently", {
+  lab <- lab_demo()
+  cons <- res_demo()$consensus$selected
+  expect_error(scr_classing_choose(lab, drop = cons[1]), "reason")
+  expect_error(scr_classing_choose(lab, force = "vl_constant", reason = "policy says so"), "not a binned")
+  cand <- setdiff(names(res_demo()$fit$results), c(cons, res_demo()$triage$derived))
+  lab <- scr_classing_choose(lab, drop = cons[1], force = cand[1],
+                             reason = c(stats::setNames("not available at decision time", cons[1]),
+                                        stats::setNames("policy: must be scored", cand[1])))
+  fin <- .lab_final(lab)
+  expect_false(cons[1] %in% fin)
+  expect_true(cand[1] %in% fin)
+  expect_setequal(scr_decisions(lab)$action, c("drop", "force"))
+  sp <- res_demo()$triage$derived[1]
+  expect_error(scr_classing_choose(lab, force = sp, reason = "the missing state carries signal"), "allow_derived_final")
+  lab2 <- scr_classing_choose(lab, force = sp, reason = "the missing state carries signal", override = TRUE)
+  expect_true(sp %in% .lab_final(lab2))
+  lab3 <- scr_classing_choose(lab, keep = cons[2:3], reason = "parsimonious card")
+  expect_setequal(.lab_final(lab3), intersect(union(cons, cand[1]), cons[2:3]))
+  expect_error(scr_classing_choose(lab, keep = "vl_noise_01", reason = "empty on purpose"), "empty")
+})
+
+test_that("apply commits manual bins and the final list into a consistent scr_result", {
+  res <- res_demo()
+  lab <- lab_demo()
+  p <- scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70))
+  lab <- scr_classing_accept(lab, p, reason = "policy bands 40/55/70")
+  pg <- scr_classing_propose(lab, "ds_region", groups = list(edge = c("NORTH", "SOUTH"), core = c("EAST", "WEST", "CENTRE")))
+  lab <- scr_classing_accept(lab, pg, reason = "edge/core is what pricing uses")
+  cons <- res$consensus$selected
+  cand <- setdiff(names(res$fit$results), c(cons, res$triage$derived))
+  lab <- scr_classing_choose(lab, drop = cons[length(cons)], force = cand[1],
+                             reason = c(stats::setNames("not available at decision time", cons[length(cons)]),
+                                        stats::setNames("policy: must be scored", cand[1])))
+  res2 <- scr_classing_apply(lab)
+  expect_s3_class(res2, "scr_result")
+  # the original is untouched and frozen alongside
+  expect_identical(res$fit$results$vl_score_01$cutpoints, res2$fit_auto$results$vl_score_01$cutpoints)
+  expect_identical(res$consensus$selected, res2$consensus$selected)
+  expect_identical(res2$fit$results$vl_score_01$cutpoints, c(40, 55, 70))
+  expect_equal(res2$fit$summary$algorithm[res2$fit$summary$feature == "vl_score_01"], "manual")
+  expect_true("manual" %in% res2$fit$algorithm)
+  # shortlists
+  fin <- scr_selected(res2)
+  expect_identical(scr_selected(res2, "consensus"), cons)
+  expect_identical(scr_selected(res2, "manual"), fin)
+  expect_false(cons[length(cons)] %in% fin); expect_true(cand[1] %in% fin)
+  expect_null(scr_selected(res, "manual"))
+  # funnel invariants and provenance
+  f <- scr_funnel(res2, cols = "all")
+  expect_setequal(f[approved == TRUE, feature], fin)
+  expect_equal(f[feature == cand[1], exit_stage], "07.approved")
+  expect_equal(f[feature == cand[1], provenance], "manual:add")
+  expect_false(isTRUE(f[feature == cand[1], consensus_selected]))
+  expect_equal(f[feature == cons[length(cons)], exit_stage], "08.manual_drop")
+  expect_equal(f[feature == "vl_score_01", provenance], "manual:rebin")
+  expect_match(f[feature == "ds_region", manual_reason], "pricing")
+  # revalidation rows recomputed on the manual bins
+  expect_equal(res2$screen$summary[feature == "vl_score_01", total_iv], sum(res2$fit$results$vl_score_01$iv), tolerance = 1e-10)
+  expect_true(is.finite(res2$holdout[feature == "vl_score_01", iv_holdout]))
+  expect_equal(res2$screen$summary[feature == "vl_score_01", n_bins], 4L)
+  expect_true(all(fin %in% res2$gains[approved == TRUE, feature]))
+  expect_true(any(grepl("Provenance", res2$sql)))
+  expect_match(res2$summary_md, "Manual interventions")
+  expect_output(print(res2), "Coarse classing")
+  expect_equal(nrow(scr_decisions(res2)), nrow(scr_decisions(lab)))
+  expect_s3_class(scr_classing_spec(res2), "scr_classing_spec")
+})
+
+test_that("the scorecard, R scoring and SQL follow the manual bins and the manual list", {
+  skip_if_not_installed("duckdb"); skip_if_not_installed("DBI")
+  res <- res_demo()
+  lab <- lab_demo()
+  lab <- scr_classing_accept(lab, scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70)), reason = "policy bands 40/55/70")
+  lab <- scr_classing_accept(lab, scr_classing_propose(lab, "ds_region", groups = list(c("NORTH", "SOUTH"), c("EAST", "WEST", "CENTRE"))), reason = "north/south grouping")
+  res2 <- scr_classing_apply(lab)
+  sc <- scr_scorecard(res2, n_boot = 10)
+  expect_true("vl_score_01" %in% sc$features)
+  expect_equal(nrow(sc$points[variable == "vl_score_01"]), 4L)
+  expect_match(sc$model_card$binning_algorithm, "manual")
+  expect_equal(sc$model_card$n_manual_bins, 2L)
+  expect_equal(nrow(scr_decisions(sc)), nrow(scr_decisions(lab)))
+  expect_true(any(grepl("Provenance", sc$sql)))
+  # R vs SQL on the manual bins, including a value exactly on a manual cut point
+  new <- scr_demo; new$vl_score_01[1:3] <- c(40, 55, 70)
+  con <- DBI::dbConnect(duckdb::duckdb(), config = list(threads = "1"))
+  on.exit(DBI::dbDisconnect(con, shutdown = TRUE))
+  DBI::dbWriteTable(con, "new", new)
+  gs <- DBI::dbGetQuery(con, paste(scr_sql(sc, table = "new", dialect = "duckdb"), collapse = "\n"))
+  es <- scr_apply(sc, new, what = "points")
+  expect_equal(gs$score, es$score, tolerance = 1e-10)
+  expect_equal(gs$score_points, es$score_points)
+  gw <- DBI::dbGetQuery(con, paste(scr_sql(res2, table = "new", dialect = "duckdb"), collapse = "\n"))
+  ew <- scr_apply(res2, new, what = "both")
+  expect_identical(gw$vl_score_01_bin[1:3], c("(-Inf;40.000000]", "(40.000000;55.000000]", "(55.000000;70.000000]"))
+  expect_identical(gw$vl_score_01_bin, ew$vl_score_01_bin)
+  expect_equal(gw$ds_region_woe, ew$ds_region_woe, tolerance = 1e-12)
+  # downstream unchanged
+  expect_s3_class(scr_cutoff(sc, n_cuts = 5), "scr_cutoff")
+  mo <- scr_monitor(sc, head(scr_demo, 800), n_boot = 5)
+  expect_true(all(is.finite(mo$csi$points_shift)))
+})
+
+test_that("the spec round-trips through CSV and xlsx and imports only what changed", {
+  lab <- lab_demo()
+  lab <- scr_classing_accept(lab, scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70)), reason = "policy bands 40/55/70")
+  sp <- scr_classing_spec(lab)
+  expect_s3_class(sp, "scr_classing_spec")
+  expect_output(print(sp), "scr_classing_spec")
+  expect_equal(sum(sp$variable == "vl_score_01"), 4L)
+  expect_true(is.na(sp$lower[sp$variable == "vl_score_01"][1]))
+  expect_equal(sp$source[sp$variable == "vl_score_01"][1], "manual")
+  f <- tempfile(fileext = ".csv")
+  scr_classing_spec(lab, file = f)
+  back <- scr_classing_read(f)
+  expect_length(scr_classing_import(lab, back), 0L)          # nothing changed
+  back$upper[back$variable == "vl_score_01" & back$bin_id == 1] <- 42
+  back$lower[back$variable == "vl_score_01" & back$bin_id == 2] <- 42
+  ps <- scr_classing_import(lab, back)
+  expect_named(ps, "vl_score_01")
+  expect_equal(ps$vl_score_01$entry$cutpoints, c(42, 55, 70))
+  # categorical edit through the file
+  back2 <- scr_classing_read(f)
+  i <- which(back2$variable == "ds_region")
+  back2 <- back2[-i, ]
+  extra <- data.frame(target = "default", variable = "ds_region", type = "categorical", bin_id = 1:2,
+                      lower = NA_real_, upper = NA_real_, categories = c("NORTH%;%SOUTH", "EAST%;%WEST%;%CENTRE"),
+                      is_other = c(FALSE, TRUE), source = "manual", reason = "reviewer grouping", stringsAsFactors = FALSE)
+  back2 <- as.data.frame(data.table::rbindlist(list(back2, extra), use.names = TRUE, fill = TRUE))
+  class(back2) <- c("scr_classing_spec", "data.frame")
+  ps2 <- scr_classing_import(lab, back2)
+  expect_true("ds_region" %in% names(ps2))
+  expect_equal(ps2$ds_region$imported_reason, "reviewer grouping")
+  # invalid files are refused with named reasons
+  bad <- back; bad$upper[bad$variable == "vl_score_01" & bad$bin_id == 2] <- 30
+  fb <- tempfile(fileext = ".csv"); utils::write.csv(bad, fb, row.names = FALSE, na = "")
+  expect_error(scr_classing_read(fb), "strictly increasing|contiguity")
+  skip_if_not_installed("openxlsx")
+  fx <- tempfile(fileext = ".xlsx")
+  scr_classing_spec(lab, file = fx)
+  bx <- scr_classing_read(fx)
+  expect_length(scr_classing_import(lab, bx), 0L)
+  out <- scr_export(lab, file.path(tempdir(), "scr-lab"), stamp = FALSE)
+  expect_true(file.exists(out$files$xlsx))
+  expect_true(all(c("01_Spec", "04_Ledger") %in% openxlsx::getSheetNames(out$files$xlsx)))
+})
+
+test_that("export carries the classing sheets and the ledger", {
+  skip_if_not_installed("openxlsx")
+  lab <- lab_demo()
+  lab <- scr_classing_accept(lab, scr_classing_propose(lab, "vl_score_01", breaks = c(40, 55, 70)), reason = "policy bands 40/55/70")
+  res2 <- scr_classing_apply(lab)
+  out <- file.path(tempdir(), "scr-lab-export"); unlink(out, recursive = TRUE)
+  r <- scr_export(res2, out, stamp = FALSE)
+  expect_true(all(c("10_Coarse_Classing", "11_Decision_Ledger") %in% openxlsx::getSheetNames(r$files$xlsx)))
+  sc <- scr_export(scr_scorecard(res2, n_boot = 5), out, stamp = FALSE)
+  expect_true(all(c("Coarse_Classing", "Decision_Ledger") %in% openxlsx::getSheetNames(sc$files$scorecard)))
+})
+
+test_that("a proposal over a train IV near zero flags the unstable IV ratio without blocking", {
+  lab <- scr_coarse_classing(res_demo())
+  p <- scr_classing_propose(lab, "ds_optin", missing_to = 1)
+  expect_true("IV_RATIO_UNSTABLE" %in% p$warnings)
+  expect_false("IV_RATIO_UNSTABLE" %in% p$blocking)
+  expect_identical(p$verdict, "REVIEW")
+})

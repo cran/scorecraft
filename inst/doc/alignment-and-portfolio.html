@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Scaling, alignment and challengers</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Scaling, alignment and challengers</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(scorecraft)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(data.table)</span></code></pre></div>
+<div id="why-700-points-means-nothing-on-its-own" class="section level2">
+<h2>1. Why “700 points” means nothing on its own</h2>
+<p>A points score is a linear function of a log-odds. Which log-odds, in
+which orientation, and through which map, is what gives the number its
+meaning. Two scorecards can both print “700” for a customer and disagree
+completely about that customer’s risk unless both raw scores were taken
+to the <strong>same scale</strong> by the <strong>same
+procedure</strong>. That is the whole subject of this vignette.</p>
+<div id="the-scale-is-one-statement" class="section level3">
+<h3>The scale is one statement</h3>
+<p><code>base_score</code>, <code>base_odds</code> and <code>pdo</code>
+are not three independent knobs; they are a single sentence: <em>at
+<code>base_score</code> points the odds are <code>base_odds</code>, and
+every <code>pdo</code> points they double</em>. From that sentence
+follow two constants,</p>
+<p><span class="math display">\[
+\mathrm{factor} = \frac{\mathrm{pdo}}{\ln 2}, \qquad
+\mathrm{offset} = \mathrm{base\_score} - \mathrm{factor} \cdot
+\ln(\mathrm{base\_odds}),
+\]</span></p>
+<p>and the map from log-odds to points, <span class="math inline">\(\mathrm{score} = \mathrm{offset} + \mathrm{factor}
+\cdot \ln(\mathrm{odds})\)</span>. The textbook example is 600 points at
+odds 50:1 with a PDO of 20 (Siddiqi, 2017); it is an example, not a
+standard.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>factor <span class="ot">&lt;-</span> <span class="dv">20</span> <span class="sc">/</span> <span class="fu">log</span>(<span class="dv">2</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>offset <span class="ot">&lt;-</span> <span class="dv">600</span> <span class="sc">-</span> factor <span class="sc">*</span> <span class="fu">log</span>(<span class="dv">50</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">c</span>(<span class="at">factor =</span> factor, <span class="at">offset =</span> offset)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   factor   offset </span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  28.8539 487.1229</span></span></code></pre></div>
+</div>
+<div id="the-orientation-trap" class="section level3">
+<h3>The orientation trap</h3>
+<p>The word <em>odds</em> changes meaning between the two literatures.
+Under <code>objective = &quot;risk&quot;</code> the event is the bad case, more
+points are safer, and <code>base_odds</code> is
+<strong>non-event:event</strong> (<code>safe:event</code>). Under
+<code>objective = &quot;propensity&quot;</code> the event is the good case, more
+points mean a higher chance of the event, and <code>base_odds</code> is
+<strong>event:non-event</strong> (<code>event:safe</code>). Feeding the
+same number <code>50</code> to both conventions is the most common sign
+error in scorecard work, and it is silent: nothing fails, the points
+simply mean something else.</p>
+<p><code>scr_align()</code> records <code>odds_orientation</code> on the
+object precisely so that this can never be implicit. Let us see the trap
+on a simulated, well-calibrated event logit.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>n   <span class="ot">&lt;-</span> <span class="dv">4000</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>raw <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">rnorm</span>(n, <span class="at">mean =</span> stats<span class="sc">::</span><span class="fu">qlogis</span>(<span class="fl">0.12</span>), <span class="at">sd =</span> <span class="fl">1.2</span>)   <span class="co"># event logit</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>y   <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">rbinom</span>(n, <span class="dv">1</span>, stats<span class="sc">::</span><span class="fu">plogis</span>(raw))                 <span class="co"># calibrated outcome</span></span></code></pre></div>
+<p>With <code>method = &quot;direct&quot;</code> the model is trusted as
+calibrated: the log-odds <em>is</em> the raw logit, in the orientation
+the direction implies (<code>S = -1</code> under
+<code>higher_is_safer</code>, <code>+1</code> under
+<code>higher_is_riskier</code>, <code>I = 0</code>).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>al_risk <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw, y, <span class="at">base_score =</span> <span class="dv">600</span>, <span class="at">base_odds =</span> <span class="dv">50</span>, <span class="at">pdo =</span> <span class="dv">20</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                     <span class="at">direction =</span> <span class="st">&quot;higher_is_safer&quot;</span>, <span class="at">method =</span> <span class="st">&quot;direct&quot;</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>al_risk</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 600 points at odds 50:1 (safe:event), PDO 20 | higher_is_safer</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;   factor = 28.853901 | offset = 487.122876</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;   calibration: direct (model assumed calibrated; I = 0.000, S = -1)</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;   score = 487.122876 + -28.853901 * raw</span></span></code></pre></div>
+<p>The same <code>50</code>, passed under the propensity convention,
+states that at 600 points the event is fifty times <em>more</em> likely
+than not. The equivalent statement in that orientation is
+<code>base_odds = 1/50</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>al_prop_wrong <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw, y, <span class="at">base_score =</span> <span class="dv">600</span>, <span class="at">base_odds =</span> <span class="dv">50</span>, <span class="at">pdo =</span> <span class="dv">20</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>                           <span class="at">direction =</span> <span class="st">&quot;higher_is_riskier&quot;</span>, <span class="at">method =</span> <span class="st">&quot;direct&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>al_prop_right <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw, y, <span class="at">base_score =</span> <span class="dv">600</span>, <span class="at">base_odds =</span> <span class="dv">1</span> <span class="sc">/</span> <span class="dv">50</span>, <span class="at">pdo =</span> <span class="dv">20</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                           <span class="at">direction =</span> <span class="st">&quot;higher_is_riskier&quot;</span>, <span class="at">method =</span> <span class="st">&quot;direct&quot;</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co"># what does &quot;600 points&quot; mean under each object? Invert score = a + b * raw</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>prob_at <span class="ot">&lt;-</span> <span class="cf">function</span>(al, score) <span class="fu">predict</span>(al, (score <span class="sc">-</span> al<span class="sc">$</span>a) <span class="sc">/</span> al<span class="sc">$</span>b, <span class="at">type =</span> <span class="st">&quot;prob&quot;</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="fu">data.table</span>(</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">object      =</span> <span class="fu">c</span>(<span class="st">&quot;risk 50 (safe:event)&quot;</span>, <span class="st">&quot;propensity 50 (event:safe)&quot;</span>, <span class="st">&quot;propensity 1/50 (event:safe)&quot;</span>),</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="at">orientation =</span> <span class="fu">c</span>(al_risk<span class="sc">$</span>odds_orientation, al_prop_wrong<span class="sc">$</span>odds_orientation, al_prop_right<span class="sc">$</span>odds_orientation),</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">p_event_at_600 =</span> <span class="fu">round</span>(<span class="fu">c</span>(<span class="fu">prob_at</span>(al_risk, <span class="dv">600</span>), <span class="fu">prob_at</span>(al_prop_wrong, <span class="dv">600</span>), <span class="fu">prob_at</span>(al_prop_right, <span class="dv">600</span>)), <span class="dv">4</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>)</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;                          object orientation p_event_at_600</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;                          &lt;char&gt;      &lt;char&gt;          &lt;num&gt;</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; 1:         risk 50 (safe:event)  safe:event         0.0196</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; 2:   propensity 50 (event:safe)  event:safe         0.9804</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; 3: propensity 1/50 (event:safe)  event:safe         0.0196</span></span></code></pre></div>
+<p>Under the correct pair of statements the two scales are mirror images
+of each other around 600, and both return the same event probability for
+the same customer; under the wrong pair, “600 points” is a 2% customer
+on one card and a 98% customer on the other.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">data.table</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="at">raw   =</span> <span class="fu">round</span>(raw, <span class="dv">3</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">p_true =</span> <span class="fu">round</span>(stats<span class="sc">::</span><span class="fu">plogis</span>(raw), <span class="dv">4</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">score_risk =</span> <span class="fu">round</span>(<span class="fu">predict</span>(al_risk, raw), <span class="dv">1</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">score_prop =</span> <span class="fu">round</span>(<span class="fu">predict</span>(al_prop_right, raw), <span class="dv">1</span>),</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="at">p_risk =</span> <span class="fu">round</span>(<span class="fu">predict</span>(al_risk, raw, <span class="at">type =</span> <span class="st">&quot;prob&quot;</span>), <span class="dv">4</span>),</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">p_prop =</span> <span class="fu">round</span>(<span class="fu">predict</span>(al_prop_right, raw, <span class="at">type =</span> <span class="st">&quot;prob&quot;</span>), <span class="dv">4</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>), <span class="dv">5</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;       raw p_true score_risk score_prop p_risk p_prop</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt;  &lt;num&gt;      &lt;num&gt;      &lt;num&gt;  &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; 1: -1.368 0.2030      526.6      673.4 0.2030 0.2030</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; 2: -3.288 0.0360      582.0      618.0 0.0360 0.0360</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; 3: -1.825 0.1388      539.8      660.2 0.1388 0.1388</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; 4: -2.094 0.1097      547.5      652.5 0.1097 0.1097</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt; 5: -2.792 0.0577      567.7      632.3 0.0577 0.0577</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="fu">all.equal</span>(<span class="fu">predict</span>(al_risk, raw) <span class="sc">+</span> <span class="fu">predict</span>(al_prop_right, raw), <span class="fu">rep</span>(<span class="dv">1200</span>, n))</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Now the default, <code>method = &quot;regression&quot;</code>. On a calibrated
+logit it should recover an intercept near 0 and a slope near
+<code>-1</code> (the sign of the direction), and it does. The slope sits
+a little below 1 in magnitude because the regression runs on band means:
+averaging the logit inside a band is not the same as taking the logit of
+the band’s event rate, and the difference attenuates the slope slightly.
+That is a property of any banded calibration, not a defect of this
+one.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>al_reg <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw, y, <span class="at">base_score =</span> <span class="dv">600</span>, <span class="at">base_odds =</span> <span class="dv">50</span>, <span class="at">pdo =</span> <span class="dv">20</span>,</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>                    <span class="at">direction =</span> <span class="st">&quot;higher_is_safer&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>al_reg</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 600 points at odds 50:1 (safe:event), PDO 20 | higher_is_safer</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   factor = 28.853901 | offset = 487.122876</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   calibration: ln(odds) = 0.082592 + -0.915197 * raw  (adj. R2 = 0.9787, 10 bands)</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;   score = 489.505966 + -26.406998 * raw</span></span></code></pre></div>
+</div>
+</div>
+<div id="the-two-step-regression-alignment" class="section level2">
+<h2>2. The two-step regression alignment</h2>
+<p><code>method = &quot;regression&quot;</code> does not trust the raw score to be
+a log-odds. It measures how the raw score maps to the <em>empirical</em>
+log-odds and composes that map with the PDO map:</p>
+<ol style="list-style-type: decimal">
+<li>band the raw score by quantiles on the reference data
+(<code>n_bands</code>, default 10);</li>
+<li>in every band, compute the empirical log-odds with Laplace
+smoothing, in the orientation the direction implies;</li>
+<li>regress the band log-odds on the band mean of the raw score,
+weighted by band size: <span class="math inline">\(\ln(\mathrm{odds}) =
+I + S \cdot \mathrm{raw}\)</span>;</li>
+<li>compose with the scale: <span class="math inline">\(\mathrm{score} =
+\mathrm{offset} + \mathrm{factor}\,(I + S \cdot \mathrm{raw}) = a + b
+\cdot \mathrm{raw}\)</span>.</li>
+</ol>
+<p>The bands are kept on the object, so the regression can be audited
+row by row.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>al_reg<span class="sc">$</span>calibration<span class="sc">$</span>bands</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;               band   n events    raw_mean    ln_odds ln_odds_fit</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; 1     [-Inf,-3.53] 400     10 -4.07429239  3.6160527 3.811370945</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; 2    (-3.53,-3.01] 400     14 -3.24729758  3.2829832 3.054507943</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; 3    (-3.01,-2.63] 400     28 -2.81324430  2.5703330 2.657263770</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; 4    (-2.63,-2.31] 400     37 -2.47321872  2.2714384 2.346073457</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt; 5    (-2.31,-2.01] 400     48 -2.16009650  1.9834868 2.059505001</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; 6    (-2.01,-1.71] 400     53 -1.85637134  1.8710830 1.781536714</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; 7    (-1.71,-1.39] 400     61 -1.55681460  1.7084368 1.507383339</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; 8   (-1.39,-0.995] 400     86 -1.20975072  1.2908397 1.189751591</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt; 9  (-0.995,-0.429] 400    125 -0.72959054  0.7862819 0.750310530</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; 10   (-0.429, Inf] 400    222  0.08708293 -0.2203385 0.002893594</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="fu">c</span>(<span class="at">intercept =</span> al_reg<span class="sc">$</span>calibration<span class="sc">$</span>intercept, <span class="at">slope =</span> al_reg<span class="sc">$</span>calibration<span class="sc">$</span>slope,</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>  <span class="at">adj_r2 =</span> al_reg<span class="sc">$</span>calibration<span class="sc">$</span>r2)</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;   intercept       slope      adj_r2 </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;  0.08259161 -0.91519679  0.97874564</span></span></code></pre></div>
+<p>How to read the three numbers:</p>
+<ul>
+<li><strong>intercept</strong> <span class="math inline">\(I\)</span>:
+the log-odds at <code>raw = 0</code>, in the scale’s orientation. A
+value away from 0 means the raw score is shifted relative to the
+population it is being aligned on (a prior shift, a reweighted sample, a
+model fitted on a different base rate).</li>
+<li><strong>slope</strong> <span class="math inline">\(S\)</span>: how
+many log-odds units the empirical odds move per unit of raw score. Its
+<strong>sign</strong> must agree with the direction (<code>-1</code>
+expected under <code>higher_is_safer</code>, <code>+1</code> under
+<code>higher_is_riskier</code>); <code>scr_align()</code> warns when it
+does not. Its <strong>magnitude</strong> measures over- or
+under-confidence: <span class="math inline">\(|S| &lt; 1\)</span> means
+the raw logit spreads more than the data support, <span class="math inline">\(|S| &gt; 1\)</span> that it is too timid.</li>
+<li><strong>adj. R2</strong>: how well a straight line explains the band
+log-odds. A low value means the raw score is not linear in log-odds, and
+a linear alignment will be systematically wrong in the tails; that is a
+signal to inspect the bands, not to trust the map.</li>
+</ul>
+<p>Why not always use <code>&quot;direct&quot;</code>? Because raw scores are
+rarely calibrated on the population they are deployed to. Shrink and
+shift the simulated logit and compare the two methods:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>raw_bad <span class="ot">&lt;-</span> <span class="fl">0.6</span> <span class="sc">*</span> raw <span class="sc">-</span> <span class="dv">1</span>            <span class="co"># over-timid and shifted</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>al_bad_direct <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw_bad, y, <span class="at">method =</span> <span class="st">&quot;direct&quot;</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>al_bad_reg    <span class="ot">&lt;-</span> <span class="fu">scr_align</span>(raw_bad, y)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>al_bad_reg<span class="sc">$</span>calibration[<span class="fu">c</span>(<span class="st">&quot;intercept&quot;</span>, <span class="st">&quot;slope&quot;</span>, <span class="st">&quot;r2&quot;</span>)]</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; $intercept</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; [1] -1.442736</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; $slope</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; [1] -1.525328</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; $r2</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; [1] 0.9787456</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="fu">data.table</span>(</span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="at">method =</span> <span class="fu">c</span>(<span class="st">&quot;direct&quot;</span>, <span class="st">&quot;regression&quot;</span>),</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  <span class="at">mean_predicted =</span> <span class="fu">c</span>(<span class="fu">mean</span>(<span class="fu">predict</span>(al_bad_direct, raw_bad, <span class="at">type =</span> <span class="st">&quot;prob&quot;</span>)),</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>                     <span class="fu">mean</span>(<span class="fu">predict</span>(al_bad_reg,    raw_bad, <span class="at">type =</span> <span class="st">&quot;prob&quot;</span>))),</span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>  <span class="at">observed =</span> <span class="fu">mean</span>(y)</span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a>)</span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="co">#&gt;        method mean_predicted observed</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt;          &lt;num&gt;    &lt;num&gt;</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="co">#&gt; 1:     direct      0.1174596    0.171</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="co">#&gt; 2: regression      0.1714736    0.171</span></span></code></pre></div>
+<p>The true map is <span class="math inline">\(\ln(\mathrm{odds}_{\mathrm{safe:event}}) = -(1 +
+\mathrm{raw\_bad}) / 0.6\)</span>, so intercept and slope should both be
+near <span class="math inline">\(-1.67\)</span>. The regression lands at
+about <span class="math inline">\(-1.4\)</span> and <span class="math inline">\(-1.5\)</span>, attenuated by the banding as above
+but in the right place, and its mean predicted probability matches the
+observed event rate; the direct map reports whatever the raw score
+claims, here a third too low. This is why <code>scr_scorecard()</code>
+always aligns and defaults to <code>&quot;regression&quot;</code>.</p>
+<p>The regression aligns the score to the event rate of the sample it is
+fitted on, a point-in-time rate. It is not a calibration to a long-run
+default rate with rating grades and margins of conservatism; that step
+is covered in <a href="https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html">PD
+calibration and rating grades</a>.</p>
+</div>
+<div id="two-targets-two-conventions-one-scale" class="section level2">
+<h2>3. Two targets, two conventions, one scale</h2>
+<p>The bundled <code>scr_demo</code> table carries two binary targets:
+<code>default</code>, a risk target, and <code>churn</code>, which we
+shall treat as a propensity target (the campaign wants to reach
+customers who <em>will</em> churn). Each is selected with the other
+target dropped, so that neither becomes a candidate for the other.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>cfg_risk <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="at">objective =</span> <span class="st">&quot;risk&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>, <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                       <span class="at">use_ranger =</span> <span class="cn">FALSE</span>, <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>, <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>cfg_prop <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="at">objective =</span> <span class="st">&quot;propensity&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>, <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>                       <span class="at">use_ranger =</span> <span class="cn">FALSE</span>, <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>, <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>res_risk <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;default&quot;</span>, <span class="at">config =</span> cfg_risk, <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;churn&quot;</span>),</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>                       <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>res_prop <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;churn&quot;</span>, <span class="at">config =</span> cfg_prop, <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;default&quot;</span>),</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>                       <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a>sc_risk <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res_risk)</span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a>sc_prop <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res_prop)</span></code></pre></div>
+<p>Both scorecards declare the same scale, 600/50/20, but the two
+alignment objects differ in direction and in odds orientation, and
+therefore in the sign of the map from logit to points.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>sc_risk<span class="sc">$</span>alignment</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 600 points at odds 50:1 (safe:event), PDO 20 | higher_is_safer</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;   factor = 28.853901 | offset = 487.122876</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;   calibration: ln(odds) = 0.141187 + -0.912143 * raw  (adj. R2 = 0.9668, 10 bands)</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;   score = 491.196658 + -26.318891 * raw</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>sc_prop<span class="sc">$</span>alignment</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 600 points at odds 50:1 (event:safe), PDO 20 | higher_is_riskier</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt;   factor = 28.853901 | offset = 487.122876</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;   calibration: ln(odds) = 0.004026 + 1.008929 * raw  (adj. R2 = 0.9904, 10 bands)</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt;   score = 487.239034 + 29.111532 * raw</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="fu">c</span>(<span class="at">risk =</span> sc_risk<span class="sc">$</span>odds_orientation, <span class="at">propensity =</span> sc_prop<span class="sc">$</span>odds_orientation)</span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt;         risk   propensity </span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; &quot;safe:event&quot; &quot;event:safe&quot;</span></span></code></pre></div>
+<p><code>scr_score_metrics()</code> reports the AUC <strong>in the
+direction of the scale</strong>: above 0.5 whenever the score ranks
+correctly in its own convention. The <code>direction</code> column is
+carried on the table so the reader knows which way the score was
+read.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">scr_score_metrics</span>(sc_risk)[, .(sample, direction, auc, auc_lo, auc_hi, ks)]</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">#&gt;     sample       direction       auc    auc_lo    auc_hi        ks</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt;          &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt; 1:   train higher_is_safer 0.7856428 0.7662170 0.8069608 0.4411466</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt; 2: holdout higher_is_safer 0.7394060 0.7066284 0.7770357 0.3889033</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="fu">scr_score_metrics</span>(sc_prop)[, .(sample, direction, auc, auc_lo, auc_hi, ks)]</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt;     sample         direction       auc    auc_lo    auc_hi        ks</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt;            &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; 1:   train higher_is_riskier 0.7404593 0.7218347 0.7547629 0.3715330</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; 2: holdout higher_is_riskier 0.7285271 0.7107000 0.7557903 0.3276755</span></span></code></pre></div>
+<p>Compare the mean score by outcome on hold-out. Under risk, events
+score lower; under propensity, events score higher. The same points
+scale, read the other way round.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">rbind</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  sc_risk<span class="sc">$</span>samples<span class="sc">$</span>holdout[, .(<span class="at">scorecard =</span> <span class="st">&quot;default (risk)&quot;</span>, <span class="at">n =</span> .N, <span class="at">mean_score =</span> <span class="fu">round</span>(<span class="fu">mean</span>(score), <span class="dv">1</span>)), <span class="at">by =</span> y],</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  sc_prop<span class="sc">$</span>samples<span class="sc">$</span>holdout[, .(<span class="at">scorecard =</span> <span class="st">&quot;churn (propensity)&quot;</span>, <span class="at">n =</span> .N, <span class="at">mean_score =</span> <span class="fu">round</span>(<span class="fu">mean</span>(score), <span class="dv">1</span>)), <span class="at">by =</span> y]</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)[<span class="fu">order</span>(scorecard, y)]</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;        y          scorecard     n mean_score</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;             &lt;char&gt; &lt;int&gt;      &lt;num&gt;</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 1:     0 churn (propensity)   976      449.0</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt; 2:     1 churn (propensity)   424      472.3</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt; 3:     0     default (risk)  1197      554.9</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt; 4:     1     default (risk)   203      529.6</span></span></code></pre></div>
+<p>Reading a risk score as if it were a propensity score is the same
+error in reverse: <code>scr_metrics()</code> with the wrong
+<code>higher_is_event</code> returns one minus the AUC.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>s <span class="ot">&lt;-</span> sc_risk<span class="sc">$</span>samples<span class="sc">$</span>holdout</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fu">c</span>(<span class="at">read_as_safer  =</span> <span class="fu">scr_metrics</span>(s<span class="sc">$</span>score, s<span class="sc">$</span>y, <span class="at">higher_is_event =</span> <span class="cn">FALSE</span>, <span class="at">ci =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>auc,</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">read_as_riskier =</span> <span class="fu">scr_metrics</span>(s<span class="sc">$</span>score, s<span class="sc">$</span>y, <span class="at">higher_is_event =</span> <span class="cn">TRUE</span>,  <span class="at">ci =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>auc)</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;   read_as_safer read_as_riskier </span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt;        0.739406        0.260594</span></span></code></pre></div>
+</div>
+<div id="from-logit-to-points" class="section level2">
+<h2>4. From logit to points</h2>
+<p>With <code>score = a + b * logit</code> and
+<code>logit = alpha + sum(beta_j * woe_ij)</code>, the score splits into
+a constant and one term per variable:</p>
+<p><span class="math display">\[
+\mathrm{base} = a + b\,\alpha, \qquad
+\mathrm{points}_{ij} = b\,\beta_j\,\mathrm{WOE}_{ij}.
+\]</span></p>
+<p>Under the default <code>points_style = &quot;base_plus_deviation&quot;</code>
+the constant is kept apart as <code>base_points</code> and each bin
+carries its deviation, so a bin with a WOE of 0 (the average risk)
+scores 0 points. <code>&quot;distributed&quot;</code> spreads the constant over
+the variables instead (Siddiqi, 2017), and no bin has a zero reference.
+The exact points are kept in <code>points_raw</code>; the published
+points are rounded.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>al <span class="ot">&lt;-</span> sc_risk<span class="sc">$</span>alignment</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="fu">c</span>(<span class="at">a =</span> al<span class="sc">$</span>a, <span class="at">b =</span> al<span class="sc">$</span>b, <span class="at">alpha =</span> <span class="fu">unname</span>(sc_risk<span class="sc">$</span>coef[<span class="st">&quot;(Intercept)&quot;</span>]),</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">base_exact =</span> sc_risk<span class="sc">$</span>base_points_raw, <span class="at">base_points =</span> sc_risk<span class="sc">$</span>base_points)</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;           a           b       alpha  base_exact base_points </span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt;  491.196658  -26.318891   -1.789721  538.300127  538.000000</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>sc_risk<span class="sc">$</span>points[variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span>, .(bin, woe, coef, <span class="at">points_raw =</span> <span class="fu">round</span>(points_raw, <span class="dv">2</span>), points)]</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;                      bin         woe     coef points_raw points</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;                   &lt;char&gt;       &lt;num&gt;    &lt;num&gt;      &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; 1:      (-Inf;33.360000] -2.06253559 1.128507      61.26     61</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; 2: (33.360000;38.150000] -0.73104946 1.128507      21.71     22</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; 3: (38.150000;44.240000] -0.65810792 1.128507      19.55     20</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; 4: (44.240000;48.060000] -0.52261206 1.128507      15.52     16</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; 5: (48.060000;63.940000]  0.03978629 1.128507      -1.18     -1</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; 6: (63.940000;72.610000]  0.70394095 1.128507     -20.91    -21</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt; 7:      (72.610000;+Inf]  0.99617148 1.128507     -29.59    -30</span></span></code></pre></div>
+<p>A risky bin has a positive WOE, the coefficient is positive and
+<code>b</code> is negative under <code>higher_is_safer</code>, so the
+riskiest bin of <code>vl_score_01</code> loses 30 points and the safest
+gains 61. <code>scr_apply()</code> returns both scores:
+<code>score</code> is exact, and <code>score_points</code> is
+<code>base_points</code> plus the rounded points of each bin, which is
+what a points table on paper gives. The two differ by the rounding of
+one constant and twelve bin points.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>sc_new <span class="ot">&lt;-</span> <span class="fu">scr_apply</span>(sc_risk, <span class="fu">head</span>(scr_demo, <span class="dv">5</span>), <span class="at">what =</span> <span class="st">&quot;points&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>var_pts <span class="ot">&lt;-</span> sc_new[, <span class="fu">paste0</span>(sc_risk<span class="sc">$</span>features, <span class="st">&quot;_points&quot;</span>), with <span class="ot">=</span> <span class="cn">FALSE</span>]</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>sc_new[, .(<span class="at">score =</span> <span class="fu">round</span>(score, <span class="dv">2</span>), score_points,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>           <span class="at">check =</span> sc_risk<span class="sc">$</span>base_points <span class="sc">+</span> <span class="fu">rowSums</span>(var_pts), <span class="at">diff =</span> <span class="fu">round</span>(score <span class="sc">-</span> score_points, <span class="dv">2</span>))]</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt;     score score_points check  diff</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt;        &lt;num&gt; &lt;num&gt; &lt;num&gt;</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; 1: 546.53          546   546  0.53</span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt; 2: 562.33          562   562  0.33</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; 3: 560.52          559   559  1.52</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; 4: 507.06          507   507  0.06</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; 5: 536.76          536   536  0.76</span></span></code></pre></div>
+</div>
+<div id="do-the-odds-double-every-pdo" class="section level2">
+<h2>5. Do the odds double every PDO?</h2>
+<p>The scale is a claim about odds: at 600 points 50:1, and twice the
+odds every 20 points. <code>scr_score_gains()</code> gives the observed
+odds (non-events per event) in each band of the score, the training
+deciles applied frozen to the hold-out, and the claim can be checked
+against them.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">scr_score_gains</span>(sc_risk)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>g[, scale_odds <span class="sc">:=</span> <span class="fu">exp</span>((mean_score <span class="sc">-</span> al<span class="sc">$</span>offset) <span class="sc">/</span> al<span class="sc">$</span>factor)]</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>g[sample <span class="sc">==</span> <span class="st">&quot;holdout&quot;</span>, .(band, n, events, <span class="at">mean_score =</span> <span class="fu">round</span>(mean_score, <span class="dv">1</span>),</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>                         <span class="at">odds =</span> <span class="fu">round</span>(odds, <span class="dv">2</span>), <span class="at">scale_odds =</span> <span class="fu">round</span>(scale_odds, <span class="dv">2</span>))]</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt;           band     n events mean_score  odds scale_odds</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt; &lt;int&gt;  &lt;int&gt;      &lt;num&gt; &lt;num&gt;      &lt;num&gt;</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt;  1: [-Inf,510]   127     45      495.2  1.81       1.32</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;  2:  (510,524]   128     35      517.0  2.63       2.81</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt;  3:  (524,533]   139     37      528.7  2.73       4.22</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt;  4:  (533,542]   149     26      537.7  4.66       5.77</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt;  5:  (542,550]   151     17      545.9  7.69       7.68</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="co">#&gt;  6:  (550,558]   148     18      554.0  7.05      10.15</span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="co">#&gt;  7:  (558,567]   149     11      562.4 12.04      13.59</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a><span class="co">#&gt;  8:  (567,577]   128      5      571.0 22.45      18.32</span></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="co">#&gt;  9:  (577,590]   124      4      583.0 26.78      27.74</span></span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="co">#&gt; 10: (590, Inf]   157      5      608.0 27.73      66.05</span></span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a>g[, .(<span class="at">pdo_implied =</span> <span class="fu">log</span>(<span class="dv">2</span>) <span class="sc">/</span> <span class="fu">coef</span>(stats<span class="sc">::</span><span class="fu">lm</span>(log_odds <span class="sc">~</span> mean_score, <span class="at">weights =</span> n))[[<span class="dv">2</span>]]), by <span class="ot">=</span> sample]</span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="co">#&gt;     sample pdo_implied</span></span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt;       &lt;num&gt;</span></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a><span class="co">#&gt; 1:   train    20.00000</span></span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="co">#&gt; 2: holdout    24.03442</span></span></code></pre></div>
+<p>On train the implied PDO is 20 by construction: the same deciles fed
+the alignment regression. On hold-out the odds double every 24 points or
+so, and the safest band is well short of the scale (odds near 28 against
+about 66 on the scale). The ranking holds, but the out-of-time
+population is less separated than the development one, and the top of
+the scale promises more than it delivers. This is the table to show
+before a cut-off is quoted in odds, and the one to recompute when
+monitoring.</p>
+</div>
+<div id="a-tree-challenger-on-the-same-scale" class="section level2">
+<h2>6. A tree challenger on the same scale</h2>
+<p>A gradient-boosted model can be fitted on the same WOE columns as the
+scorecard and aligned to the same scale by the same regression. That
+makes its output comparable point for point with the champion; it does
+<strong>not</strong> make it a scorecard. The object says so explicitly:
+no points, no reason codes, <code>supports_scorecard = FALSE</code>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>sc_x <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res_risk, <span class="at">challenger =</span> <span class="st">&quot;xgboost&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>sc_x<span class="sc">$</span>challenger<span class="sc">$</span>supports_scorecard</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>sc_x<span class="sc">$</span>challenger<span class="sc">$</span>points</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;NOT_APPLICABLE_ENGINE&quot;</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>sc_x<span class="sc">$</span>challenger<span class="sc">$</span>alignment</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 600 points at odds 50:1 (safe:event), PDO 20 | higher_is_safer</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt;   factor = 28.853901 | offset = 487.122876</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co">#&gt;   calibration: ln(odds) = -1.398883 + -1.883869 * raw  (adj. R2 = 0.9710, 10 bands)</span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co">#&gt;   score = 446.759642 + -54.356970 * raw</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="fu">rbind</span>(sc_x<span class="sc">$</span>challenger<span class="sc">$</span>metrics[, .(<span class="at">model =</span> <span class="st">&quot;xgboost challenger&quot;</span>, sample, auc, auc_lo, auc_hi, ks)],</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>      <span class="fu">scr_score_metrics</span>(sc_x)[sample <span class="sc">==</span> <span class="st">&quot;holdout&quot;</span>, .(<span class="at">model =</span> <span class="st">&quot;scorecard&quot;</span>, sample, auc, auc_lo, auc_hi, ks)])</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt;                 model  sample       auc    auc_lo    auc_hi        ks</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt;                &lt;char&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 1: xgboost challenger holdout 0.7340725 0.7021223 0.7720179 0.3574453</span></span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; 2:          scorecard holdout 0.7394060 0.7066284 0.7770357 0.3889033</span></span></code></pre></div>
+<p>The challenger’s alignment has its own intercept and slope: two
+engines, two raw scores, one declared scale. Here the slope is well
+above 1 in magnitude, which says the boosted logit is compressed (a few
+dozen rounds at a low learning rate leave it under-confident) and the
+alignment stretches it back to the empirical odds; the scorecard logit,
+by contrast, needed a slope close to 1. Its AUC interval overlaps the
+scorecard’s, which is the usual finding on a WOE feature set.</p>
+<div id="the-swap-set" class="section level3">
+<h3>The swap set</h3>
+<p>Aggregate AUCs hide where two models disagree. The swap-set table
+holds the <strong>approval rate</strong> fixed and asks which customers
+one model would approve and the other would not:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>sc_x<span class="sc">$</span>challenger<span class="sc">$</span>swapset</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="co">#&gt;    approval_rate n_swap_in n_swap_out event_rate_swap_in event_rate_swap_out</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co">#&gt;            &lt;num&gt;     &lt;int&gt;      &lt;int&gt;              &lt;num&gt;               &lt;num&gt;</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co">#&gt; 1:           0.5        96         96          0.1145833           0.1250000</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co">#&gt; 2:           0.7        75         75          0.1866667           0.1866667</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co">#&gt; 3:           0.9        36         36          0.4166667           0.3611111</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co">#&gt;    event_rate_champion event_rate_challenger</span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co">#&gt;                  &lt;num&gt;                 &lt;num&gt;</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="co">#&gt; 1:          0.06000000            0.05857143</span></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a><span class="co">#&gt; 2:          0.08367347            0.08367347</span></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="co">#&gt; 3:          0.12142857            0.12301587</span></span></code></pre></div>
+<p>How to read one row, say <code>approval_rate = 0.5</code>:</p>
+<ul>
+<li>both models approve the safest half of hold-out by their own
+score;</li>
+<li><code>n_swap_in</code> customers are approved by the challenger but
+not by the champion; <code>n_swap_out</code> the reverse. At a fixed
+rate the two counts are equal;</li>
+<li><code>event_rate_swap_in</code> versus
+<code>event_rate_swap_out</code> is the decision: the challenger is
+worth its complexity only if the customers it brings in are safer than
+the ones it sends out, by a margin that survives the sample size of the
+swap;</li>
+<li><code>event_rate_champion</code> and
+<code>event_rate_challenger</code> are the event rates of the two
+approved books.</li>
+</ul>
+<p>Because both scores sit on the same scale, the swap set can also be
+read in points: a customer swapped in at the 70% rate crossed the
+challenger’s cut-off and not the champion’s, and the two cut-offs are
+directly comparable numbers.</p>
+</div>
+</div>
+<div id="the-portfolio-view" class="section level2">
+<h2>7. The portfolio view</h2>
+<p>With several targets in flight, <code>scr_compare()</code> gives one
+row per target (funnel, best hold-out model of the selection stage,
+warning signs) and <code>scr_core()</code> the variables approved on
+more than one target.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>runs <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">default =</span> res_risk, <span class="at">churn =</span> res_prop)</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a><span class="fu">scr_compare</span>(runs)[, .(target, rows, event_rate, approved, best_model, auc, ks, relaxation)]</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="co">#&gt;     target  rows event_rate approved best_model    auc     ks</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt; &lt;int&gt;      &lt;num&gt;    &lt;int&gt;     &lt;char&gt;  &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="co">#&gt; 1: default  4200     0.1425       12    xgboost 0.7375 0.3695</span></span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a><span class="co">#&gt; 2:   churn  4200     0.2846        9     glmnet 0.7262 0.3288</span></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a><span class="co">#&gt;                relaxation</span></span>
+<span id="cb21-8"><a href="#cb21-8" tabindex="-1"></a><span class="co">#&gt;                    &lt;char&gt;</span></span>
+<span id="cb21-9"><a href="#cb21-9" tabindex="-1"></a><span class="co">#&gt; 1:                   none</span></span>
+<span id="cb21-10"><a href="#cb21-10" tabindex="-1"></a><span class="co">#&gt; 2: min_votes reduced to 1</span></span>
+<span id="cb21-11"><a href="#cb21-11" tabindex="-1"></a><span class="fu">scr_core</span>(runs, <span class="at">min_targets =</span> <span class="dv">2</span>)</span>
+<span id="cb21-12"><a href="#cb21-12" tabindex="-1"></a><span class="co">#&gt;        feature n_targets mean_rank        targets</span></span>
+<span id="cb21-13"><a href="#cb21-13" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;     &lt;int&gt;     &lt;num&gt;         &lt;char&gt;</span></span>
+<span id="cb21-14"><a href="#cb21-14" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_02         2       2.0 churn, default</span></span>
+<span id="cb21-15"><a href="#cb21-15" tabindex="-1"></a><span class="co">#&gt; 2: vl_score_04         2       3.5 churn, default</span></span>
+<span id="cb21-16"><a href="#cb21-16" tabindex="-1"></a><span class="co">#&gt; 3:   ds_region         2       6.0 churn, default</span></span>
+<span id="cb21-17"><a href="#cb21-17" tabindex="-1"></a><span class="co">#&gt; 4: vl_score_06         2       6.0 churn, default</span></span>
+<span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a><span class="co">#&gt; 5: vl_score_05         2       6.0 churn, default</span></span>
+<span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a><span class="co">#&gt; 6: vl_score_07         2       7.5 churn, default</span></span>
+<span id="cb21-20"><a href="#cb21-20" tabindex="-1"></a><span class="co">#&gt; 7:  vl_hist_04         2      10.0 churn, default</span></span></code></pre></div>
+<p>A variable approved on both targets is not an artefact of one target
+definition. <code>relaxation</code> records whether the consensus
+loosened its vote threshold to reach the minimum number of variables, as
+it did for <code>churn</code>. The AUC here is that of the
+selection-stage models; the scorecards’ own metrics are in
+<code>scr_score_metrics()</code>.</p>
+</div>
+<div id="rescaling-an-existing-scorecard" class="section level2">
+<h2>8. Rescaling an existing scorecard</h2>
+<p>A committee may ask for a different convention, say 700 points at
+30:1 with a PDO of 25. The model does not change: calling
+<code>scr_scorecard()</code> with the new scale refits the same
+regression on the same data, so the logit and the calibration regression
+come out identical and only the PDO map moves.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>sc_700 <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res_risk, <span class="at">base_score =</span> <span class="dv">700</span>, <span class="at">base_odds =</span> <span class="dv">30</span>, <span class="at">pdo =</span> <span class="dv">25</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>sc_700<span class="sc">$</span>alignment</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_align&gt; 700 points at odds 30:1 (safe:event), PDO 25 | higher_is_safer</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt;   factor = 36.067376 | offset = 577.327735</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co">#&gt;   calibration: ln(odds) = 0.141187 + -0.912143 * raw  (adj. R2 = 0.9668, 10 bands)</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt;   score = 582.419962 + -32.898614 * raw</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co"># the calibration is the same; only factor and offset change</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="fu">c</span>(<span class="at">intercept_600 =</span> sc_risk<span class="sc">$</span>alignment<span class="sc">$</span>calibration<span class="sc">$</span>intercept, <span class="at">intercept_700 =</span> sc_700<span class="sc">$</span>alignment<span class="sc">$</span>calibration<span class="sc">$</span>intercept,</span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>  <span class="at">slope_600 =</span> sc_risk<span class="sc">$</span>alignment<span class="sc">$</span>calibration<span class="sc">$</span>slope, <span class="at">slope_700 =</span> sc_700<span class="sc">$</span>alignment<span class="sc">$</span>calibration<span class="sc">$</span>slope)</span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="co">#&gt; intercept_600 intercept_700     slope_600     slope_700 </span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt;     0.1411865     0.1411865    -0.9121433    -0.9121433</span></span></code></pre></div>
+<p>Ranking metrics are invariant to a monotone transformation, so AUC,
+KS and Gini are identical to the last digit, while every point value
+moves.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">rbind</span>(<span class="fu">scr_score_metrics</span>(sc_risk)[, .(<span class="at">scale =</span> <span class="st">&quot;600/50/20&quot;</span>, sample, auc, ks, gini)],</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>      <span class="fu">scr_score_metrics</span>(sc_700)[, .(<span class="at">scale =</span> <span class="st">&quot;700/30/25&quot;</span>, sample, auc, ks, gini)])</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="co">#&gt;        scale  sample       auc        ks      gini</span></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="co">#&gt;       &lt;char&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="co">#&gt; 1: 600/50/20   train 0.7856428 0.4411466 0.5712856</span></span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a><span class="co">#&gt; 2: 600/50/20 holdout 0.7394060 0.3889033 0.4788120</span></span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; 3: 700/30/25   train 0.7856428 0.4411466 0.5712856</span></span>
+<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a><span class="co">#&gt; 4: 700/30/25 holdout 0.7394060 0.3889033 0.4788120</span></span>
+<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a><span class="fu">merge</span>(sc_risk<span class="sc">$</span>points[, .(variable, bin, <span class="at">points_600 =</span> points)],</span>
+<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a>      sc_700<span class="sc">$</span>points[, .(variable, bin, <span class="at">points_700 =</span> points)],</span>
+<span id="cb24-11"><a href="#cb24-11" tabindex="-1"></a>      <span class="at">by =</span> <span class="fu">c</span>(<span class="st">&quot;variable&quot;</span>, <span class="st">&quot;bin&quot;</span>))[<span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>]</span>
+<span id="cb24-12"><a href="#cb24-12" tabindex="-1"></a><span class="co">#&gt; Key: &lt;variable, bin&gt;</span></span>
+<span id="cb24-13"><a href="#cb24-13" tabindex="-1"></a><span class="co">#&gt;      variable    bin points_600 points_700</span></span>
+<span id="cb24-14"><a href="#cb24-14" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt; &lt;char&gt;      &lt;num&gt;      &lt;num&gt;</span></span>
+<span id="cb24-15"><a href="#cb24-15" tabindex="-1"></a><span class="co">#&gt; 1:    ds_band      A        -11        -14</span></span>
+<span id="cb24-16"><a href="#cb24-16" tabindex="-1"></a><span class="co">#&gt; 2:    ds_band      B          0         -1</span></span>
+<span id="cb24-17"><a href="#cb24-17" tabindex="-1"></a><span class="co">#&gt; 3:    ds_band      C          2          3</span></span>
+<span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a><span class="co">#&gt; 4:    ds_band      D         13         16</span></span>
+<span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="co">#&gt; 5: ds_channel    APP         -5         -6</span></span>
+<span id="cb24-20"><a href="#cb24-20" tabindex="-1"></a><span class="co">#&gt; 6: ds_channel  STORE          9         11</span></span></code></pre></div>
+<p>The two scores are the same log-odds seen through two maps, so one
+can be recovered from the other exactly:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>a600 <span class="ot">&lt;-</span> sc_risk<span class="sc">$</span>alignment; a700 <span class="ot">&lt;-</span> sc_700<span class="sc">$</span>alignment</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a>ln_odds <span class="ot">&lt;-</span> (sc_risk<span class="sc">$</span>samples<span class="sc">$</span>holdout<span class="sc">$</span>score <span class="sc">-</span> a600<span class="sc">$</span>offset) <span class="sc">/</span> a600<span class="sc">$</span>factor</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a><span class="fu">all.equal</span>(a700<span class="sc">$</span>offset <span class="sc">+</span> a700<span class="sc">$</span>factor <span class="sc">*</span> ln_odds, sc_700<span class="sc">$</span>samples<span class="sc">$</span>holdout<span class="sc">$</span>score)</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>That identity is what “comparable” means: two scorecards are on the
+same scale when the same log-odds gives the same points, and a scorecard
+is rescaled, not remodelled, when only <code>factor</code> and
+<code>offset</code> change.</p>
+</div>
+<div id="a-checklist-for-the-model-committee" class="section level2">
+<h2>9. A checklist for the model committee</h2>
+<p>Everything the committee needs to reproduce, compare and later
+monitor the scale is on the model card. Record it verbatim.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>mc <span class="ot">&lt;-</span> sc_risk<span class="sc">$</span>model_card</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>keys <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;target&quot;</span>, <span class="st">&quot;objective&quot;</span>, <span class="st">&quot;direction&quot;</span>, <span class="st">&quot;odds_orientation&quot;</span>,</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a>          <span class="st">&quot;base_score&quot;</span>, <span class="st">&quot;base_odds&quot;</span>, <span class="st">&quot;pdo&quot;</span>, <span class="st">&quot;factor&quot;</span>, <span class="st">&quot;offset&quot;</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a>          <span class="st">&quot;align_method&quot;</span>, <span class="st">&quot;align_intercept&quot;</span>, <span class="st">&quot;align_slope&quot;</span>, <span class="st">&quot;align_r2&quot;</span>,</span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a>          <span class="st">&quot;n_train&quot;</span>, <span class="st">&quot;event_rate_train&quot;</span>, <span class="st">&quot;split_method&quot;</span>, <span class="st">&quot;split_cutoff&quot;</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a>          <span class="st">&quot;challenger&quot;</span>, <span class="st">&quot;challenger_supports_scorecard&quot;</span>, <span class="st">&quot;auc_holdout&quot;</span>, <span class="st">&quot;ks_holdout&quot;</span>)</span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a><span class="fu">data.table</span>(<span class="at">field =</span> keys, <span class="at">value =</span> <span class="fu">vapply</span>(mc[keys], <span class="cf">function</span>(v) <span class="fu">format</span>(v, <span class="at">digits =</span> <span class="dv">6</span>), <span class="fu">character</span>(<span class="dv">1</span>)))</span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="co">#&gt;                             field           value</span></span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a><span class="co">#&gt;                            &lt;char&gt;          &lt;char&gt;</span></span>
+<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a><span class="co">#&gt;  1:                        target         default</span></span>
+<span id="cb26-11"><a href="#cb26-11" tabindex="-1"></a><span class="co">#&gt;  2:                     objective            risk</span></span>
+<span id="cb26-12"><a href="#cb26-12" tabindex="-1"></a><span class="co">#&gt;  3:                     direction higher_is_safer</span></span>
+<span id="cb26-13"><a href="#cb26-13" tabindex="-1"></a><span class="co">#&gt;  4:              odds_orientation      safe:event</span></span>
+<span id="cb26-14"><a href="#cb26-14" tabindex="-1"></a><span class="co">#&gt;  5:                    base_score             600</span></span>
+<span id="cb26-15"><a href="#cb26-15" tabindex="-1"></a><span class="co">#&gt;  6:                     base_odds              50</span></span>
+<span id="cb26-16"><a href="#cb26-16" tabindex="-1"></a><span class="co">#&gt;  7:                           pdo              20</span></span>
+<span id="cb26-17"><a href="#cb26-17" tabindex="-1"></a><span class="co">#&gt;  8:                        factor         28.8539</span></span>
+<span id="cb26-18"><a href="#cb26-18" tabindex="-1"></a><span class="co">#&gt;  9:                        offset         487.123</span></span>
+<span id="cb26-19"><a href="#cb26-19" tabindex="-1"></a><span class="co">#&gt; 10:                  align_method      regression</span></span>
+<span id="cb26-20"><a href="#cb26-20" tabindex="-1"></a><span class="co">#&gt; 11:               align_intercept        0.141187</span></span>
+<span id="cb26-21"><a href="#cb26-21" tabindex="-1"></a><span class="co">#&gt; 12:                   align_slope       -0.912143</span></span>
+<span id="cb26-22"><a href="#cb26-22" tabindex="-1"></a><span class="co">#&gt; 13:                      align_r2        0.966774</span></span>
+<span id="cb26-23"><a href="#cb26-23" tabindex="-1"></a><span class="co">#&gt; 14:                       n_train            2800</span></span>
+<span id="cb26-24"><a href="#cb26-24" tabindex="-1"></a><span class="co">#&gt; 15:              event_rate_train          0.1425</span></span>
+<span id="cb26-25"><a href="#cb26-25" tabindex="-1"></a><span class="co">#&gt; 16:                  split_method     out-of-time</span></span>
+<span id="cb26-26"><a href="#cb26-26" tabindex="-1"></a><span class="co">#&gt; 17:                  split_cutoff      2026-05-01</span></span>
+<span id="cb26-27"><a href="#cb26-27" tabindex="-1"></a><span class="co">#&gt; 18:                    challenger            none</span></span>
+<span id="cb26-28"><a href="#cb26-28" tabindex="-1"></a><span class="co">#&gt; 19: challenger_supports_scorecard              NA</span></span>
+<span id="cb26-29"><a href="#cb26-29" tabindex="-1"></a><span class="co">#&gt; 20:                   auc_holdout        0.739406</span></span>
+<span id="cb26-30"><a href="#cb26-30" tabindex="-1"></a><span class="co">#&gt; 21:                    ks_holdout        0.388903</span></span>
+<span id="cb26-31"><a href="#cb26-31" tabindex="-1"></a><span class="co">#&gt;                             field           value</span></span>
+<span id="cb26-32"><a href="#cb26-32" tabindex="-1"></a><span class="co">#&gt;                            &lt;char&gt;          &lt;char&gt;</span></span></code></pre></div>
+<p>What to write down, and why:</p>
+<ol style="list-style-type: decimal">
+<li><strong>The scale as one sentence</strong>: <code>base_score</code>,
+<code>base_odds</code>, <code>pdo</code>, and the derived
+<code>factor</code> and <code>offset</code>. Anyone with these five
+numbers can turn a log-odds into points and back.</li>
+<li><strong>The orientation</strong>: <code>objective</code>,
+<code>direction</code> and <code>odds_orientation</code>. Without them
+<code>base_odds = 50</code> is ambiguous; with them it is not.</li>
+<li><strong>The alignment method and its coefficients</strong>:
+<code>align_method</code>, <code>align_intercept</code>,
+<code>align_slope</code>, <code>align_r2</code>, and the number of
+bands. A <code>&quot;regression&quot;</code> alignment on one population is not
+the same map as a <code>&quot;regression&quot;</code> alignment on another; the
+coefficients are what make the two comparable, or show that they are
+not.</li>
+<li><strong>The population the alignment was fitted on</strong>:
+<code>n_train</code>, <code>event_rate_train</code>, the split method
+and cut-off. An alignment absorbs the base rate of that population; if
+the deployment population differs, the intercept will drift first.
+Calibration to a long-run default rate is a separate step, described in
+<a href="https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html">PD
+calibration and rating grades</a>.</li>
+<li><strong>The challenger’s status</strong>: engine,
+<code>supports_scorecard = FALSE</code>, and the swap-set table at the
+approval rates the business uses.</li>
+<li><strong>The invariants to check on every rescale</strong>:
+AUC/KS/Gini unchanged, calibration intercept and slope unchanged, only
+<code>factor</code> and <code>offset</code> moved.</li>
+</ol>
+<p>Two scorecards that share items 1 to 3 are comparable; two that share
+only item 1 are not, however similar their numbers look.</p>
+</div>
+<div id="reference" class="section level2">
+<h2>Reference</h2>
+<p>Siddiqi, N. (2017). <em>Intelligent Credit Scoring: Building and
+Implementing Better Credit Risk Scorecards</em>, 2nd edition. Wiley.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

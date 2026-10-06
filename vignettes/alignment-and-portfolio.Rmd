@@ -1,0 +1,501 @@
+---
+title: "Scaling, alignment and challengers"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Scaling, alignment and challengers}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+has_glmnet <- requireNamespace("glmnet", quietly = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+old_dt <- data.table::setDTthreads(2)
+```
+
+```{r setup, message = FALSE}
+library(scorecraft)
+library(data.table)
+```
+
+## 1. Why "700 points" means nothing on its own
+
+A points score is a linear function of a log-odds. Which log-odds, in
+which orientation, and through which map, is what gives the number its
+meaning. Two scorecards can both print "700" for a customer and disagree
+completely about that customer's risk unless both raw scores were taken to
+the **same scale** by the **same procedure**. That is the whole subject of
+this vignette.
+
+### The scale is one statement
+
+`base_score`, `base_odds` and `pdo` are not three independent knobs; they
+are a single sentence: *at `base_score` points the odds are `base_odds`,
+and every `pdo` points they double*. From that sentence follow two
+constants,
+
+$$
+\mathrm{factor} = \frac{\mathrm{pdo}}{\ln 2}, \qquad
+\mathrm{offset} = \mathrm{base\_score} - \mathrm{factor} \cdot \ln(\mathrm{base\_odds}),
+$$
+
+and the map from log-odds to points,
+$\mathrm{score} = \mathrm{offset} + \mathrm{factor} \cdot \ln(\mathrm{odds})$.
+The textbook example is 600 points at odds 50:1 with a PDO of 20
+(Siddiqi, 2017); it is an example, not a standard.
+
+```{r constants}
+factor <- 20 / log(2)
+offset <- 600 - factor * log(50)
+c(factor = factor, offset = offset)
+```
+
+### The orientation trap
+
+The word *odds* changes meaning between the two literatures. Under
+`objective = "risk"` the event is the bad case, more points are safer, and
+`base_odds` is **non-event:event** (`safe:event`). Under
+`objective = "propensity"` the event is the good case, more points mean a
+higher chance of the event, and `base_odds` is **event:non-event**
+(`event:safe`). Feeding the same number `50` to both conventions is the
+most common sign error in scorecard work, and it is silent: nothing fails,
+the points simply mean something else.
+
+`scr_align()` records `odds_orientation` on the object precisely so that
+this can never be implicit. Let us see the trap on a simulated,
+well-calibrated event logit.
+
+```{r simulate}
+set.seed(2026)
+n   <- 4000
+raw <- stats::rnorm(n, mean = stats::qlogis(0.12), sd = 1.2)   # event logit
+y   <- stats::rbinom(n, 1, stats::plogis(raw))                 # calibrated outcome
+```
+
+With `method = "direct"` the model is trusted as calibrated: the log-odds
+*is* the raw logit, in the orientation the direction implies (`S = -1`
+under `higher_is_safer`, `+1` under `higher_is_riskier`, `I = 0`).
+
+```{r direct}
+al_risk <- scr_align(raw, y, base_score = 600, base_odds = 50, pdo = 20,
+                     direction = "higher_is_safer", method = "direct")
+al_risk
+```
+
+The same `50`, passed under the propensity convention, states that at 600
+points the event is fifty times *more* likely than not. The equivalent
+statement in that orientation is `base_odds = 1/50`.
+
+```{r trap}
+al_prop_wrong <- scr_align(raw, y, base_score = 600, base_odds = 50, pdo = 20,
+                           direction = "higher_is_riskier", method = "direct")
+al_prop_right <- scr_align(raw, y, base_score = 600, base_odds = 1 / 50, pdo = 20,
+                           direction = "higher_is_riskier", method = "direct")
+
+# what does "600 points" mean under each object? Invert score = a + b * raw
+prob_at <- function(al, score) predict(al, (score - al$a) / al$b, type = "prob")
+data.table(
+  object      = c("risk 50 (safe:event)", "propensity 50 (event:safe)", "propensity 1/50 (event:safe)"),
+  orientation = c(al_risk$odds_orientation, al_prop_wrong$odds_orientation, al_prop_right$odds_orientation),
+  p_event_at_600 = round(c(prob_at(al_risk, 600), prob_at(al_prop_wrong, 600), prob_at(al_prop_right, 600)), 4)
+)
+```
+
+Under the correct pair of statements the two scales are mirror images of
+each other around 600, and both return the same event probability for the
+same customer; under the wrong pair, "600 points" is a 2% customer on one
+card and a 98% customer on the other.
+
+```{r mirror}
+head(data.table(
+  raw   = round(raw, 3),
+  p_true = round(stats::plogis(raw), 4),
+  score_risk = round(predict(al_risk, raw), 1),
+  score_prop = round(predict(al_prop_right, raw), 1),
+  p_risk = round(predict(al_risk, raw, type = "prob"), 4),
+  p_prop = round(predict(al_prop_right, raw, type = "prob"), 4)
+), 5)
+all.equal(predict(al_risk, raw) + predict(al_prop_right, raw), rep(1200, n))
+```
+
+Now the default, `method = "regression"`. On a calibrated logit it should
+recover an intercept near 0 and a slope near `-1` (the sign of the
+direction), and it does. The slope sits a little below 1 in magnitude
+because the regression runs on band means: averaging the logit inside a
+band is not the same as taking the logit of the band's event rate, and the
+difference attenuates the slope slightly. That is a property of any banded
+calibration, not a defect of this one.
+
+```{r regression}
+al_reg <- scr_align(raw, y, base_score = 600, base_odds = 50, pdo = 20,
+                    direction = "higher_is_safer")
+al_reg
+```
+
+## 2. The two-step regression alignment
+
+`method = "regression"` does not trust the raw score to be a log-odds. It
+measures how the raw score maps to the *empirical* log-odds and composes
+that map with the PDO map:
+
+1. band the raw score by quantiles on the reference data (`n_bands`,
+   default 10);
+2. in every band, compute the empirical log-odds with Laplace smoothing,
+   in the orientation the direction implies;
+3. regress the band log-odds on the band mean of the raw score, weighted by
+   band size: $\ln(\mathrm{odds}) = I + S \cdot \mathrm{raw}$;
+4. compose with the scale:
+   $\mathrm{score} = \mathrm{offset} + \mathrm{factor}\,(I + S \cdot \mathrm{raw}) = a + b \cdot \mathrm{raw}$.
+
+The bands are kept on the object, so the regression can be audited row by
+row.
+
+```{r bands}
+al_reg$calibration$bands
+c(intercept = al_reg$calibration$intercept, slope = al_reg$calibration$slope,
+  adj_r2 = al_reg$calibration$r2)
+```
+
+How to read the three numbers:
+
+* **intercept** $I$: the log-odds at `raw = 0`, in the scale's orientation.
+  A value away from 0 means the raw score is shifted relative to the
+  population it is being aligned on (a prior shift, a reweighted sample, a
+  model fitted on a different base rate).
+* **slope** $S$: how many log-odds units the empirical odds move per unit
+  of raw score. Its **sign** must agree with the direction (`-1` expected
+  under `higher_is_safer`, `+1` under `higher_is_riskier`); `scr_align()`
+  warns when it does not. Its **magnitude** measures over- or
+  under-confidence: $|S| < 1$ means the raw logit spreads more than the
+  data support, $|S| > 1$ that it is too timid.
+* **adj. R2**: how well a straight line explains the band log-odds. A low
+  value means the raw score is not linear in log-odds, and a linear
+  alignment will be systematically wrong in the tails; that is a signal to
+  inspect the bands, not to trust the map.
+
+Why not always use `"direct"`? Because raw scores are rarely calibrated on
+the population they are deployed to. Shrink and shift the simulated logit
+and compare the two methods:
+
+```{r miscalibrated}
+raw_bad <- 0.6 * raw - 1            # over-timid and shifted
+al_bad_direct <- scr_align(raw_bad, y, method = "direct")
+al_bad_reg    <- scr_align(raw_bad, y)
+al_bad_reg$calibration[c("intercept", "slope", "r2")]
+data.table(
+  method = c("direct", "regression"),
+  mean_predicted = c(mean(predict(al_bad_direct, raw_bad, type = "prob")),
+                     mean(predict(al_bad_reg,    raw_bad, type = "prob"))),
+  observed = mean(y)
+)
+```
+
+The true map is $\ln(\mathrm{odds}_{\mathrm{safe:event}}) = -(1 + \mathrm{raw\_bad}) / 0.6$,
+so intercept and slope should both be near $-1.67$. The regression lands at
+about $-1.4$ and $-1.5$, attenuated by the banding as above but in the
+right place, and its mean predicted probability matches the observed event
+rate; the direct map reports whatever the raw score claims, here a third
+too low. This is why `scr_scorecard()` always aligns and defaults to
+`"regression"`.
+
+The regression aligns the score to the event rate of the sample it is
+fitted on, a point-in-time rate. It is not a calibration to a long-run
+default rate with rating grades and margins of conservatism; that step is
+covered in
+[PD calibration and rating grades](https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html).
+
+## 3. Two targets, two conventions, one scale
+
+The bundled `scr_demo` table carries two binary targets: `default`, a risk
+target, and `churn`, which we shall treat as a propensity target (the
+campaign wants to reach customers who *will* churn). Each is selected with
+the other target dropped, so that neither becomes a candidate for the
+other.
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(eval = has_glmnet)
+```
+
+```{r select-two, results = "hide"}
+cfg_risk <- scr_config(objective = "risk", verbose = FALSE, nthread = 1, use_glmnet = TRUE,
+                       use_ranger = FALSE, use_lightgbm = FALSE, xgb_rounds = 60, n_boot = 20)
+cfg_prop <- scr_config(objective = "propensity", verbose = FALSE, nthread = 1, use_glmnet = TRUE,
+                       use_ranger = FALSE, use_lightgbm = FALSE, xgb_rounds = 60, n_boot = 20)
+
+res_risk <- scr_select(scr_demo, "default", config = cfg_risk, drop = c("id", "churn"),
+                       date_col = "ref_date")
+res_prop <- scr_select(scr_demo, "churn", config = cfg_prop, drop = c("id", "default"),
+                       date_col = "ref_date")
+
+sc_risk <- scr_scorecard(res_risk)
+sc_prop <- scr_scorecard(res_prop)
+```
+
+Both scorecards declare the same scale, 600/50/20, but the two alignment
+objects differ in direction and in odds orientation, and therefore in the
+sign of the map from logit to points.
+
+```{r two-alignments}
+sc_risk$alignment
+sc_prop$alignment
+c(risk = sc_risk$odds_orientation, propensity = sc_prop$odds_orientation)
+```
+
+`scr_score_metrics()` reports the AUC **in the direction of the scale**:
+above 0.5 whenever the score ranks correctly in its own convention. The
+`direction` column is carried on the table so the reader knows which way
+the score was read.
+
+```{r two-metrics}
+scr_score_metrics(sc_risk)[, .(sample, direction, auc, auc_lo, auc_hi, ks)]
+scr_score_metrics(sc_prop)[, .(sample, direction, auc, auc_lo, auc_hi, ks)]
+```
+
+Compare the mean score by outcome on hold-out. Under risk, events score
+lower; under propensity, events score higher. The same points scale, read
+the other way round.
+
+```{r mean-by-outcome}
+rbind(
+  sc_risk$samples$holdout[, .(scorecard = "default (risk)", n = .N, mean_score = round(mean(score), 1)), by = y],
+  sc_prop$samples$holdout[, .(scorecard = "churn (propensity)", n = .N, mean_score = round(mean(score), 1)), by = y]
+)[order(scorecard, y)]
+```
+
+Reading a risk score as if it were a propensity score is the same error in
+reverse: `scr_metrics()` with the wrong `higher_is_event` returns one
+minus the AUC.
+
+```{r wrong-way}
+s <- sc_risk$samples$holdout
+c(read_as_safer  = scr_metrics(s$score, s$y, higher_is_event = FALSE, ci = FALSE)$auc,
+  read_as_riskier = scr_metrics(s$score, s$y, higher_is_event = TRUE,  ci = FALSE)$auc)
+```
+
+## 4. From logit to points
+
+With `score = a + b * logit` and `logit = alpha + sum(beta_j * woe_ij)`, the
+score splits into a constant and one term per variable:
+
+$$
+\mathrm{base} = a + b\,\alpha, \qquad
+\mathrm{points}_{ij} = b\,\beta_j\,\mathrm{WOE}_{ij}.
+$$
+
+Under the default `points_style = "base_plus_deviation"` the constant is
+kept apart as `base_points` and each bin carries its deviation, so a bin
+with a WOE of 0 (the average risk) scores 0 points. `"distributed"`
+spreads the constant over the variables instead (Siddiqi, 2017), and no
+bin has a zero reference. The exact points are kept in `points_raw`; the
+published points are rounded.
+
+```{r points}
+al <- sc_risk$alignment
+c(a = al$a, b = al$b, alpha = unname(sc_risk$coef["(Intercept)"]),
+  base_exact = sc_risk$base_points_raw, base_points = sc_risk$base_points)
+sc_risk$points[variable == "vl_score_01", .(bin, woe, coef, points_raw = round(points_raw, 2), points)]
+```
+
+A risky bin has a positive WOE, the coefficient is positive and `b` is
+negative under `higher_is_safer`, so the riskiest bin of `vl_score_01`
+loses 30 points and the safest gains 61. `scr_apply()` returns both scores:
+`score` is exact, and `score_points` is `base_points` plus the rounded points
+of each bin, which is what a points table on paper gives. The two differ by
+the rounding of one constant and twelve bin points.
+
+```{r score-points}
+sc_new <- scr_apply(sc_risk, head(scr_demo, 5), what = "points")
+var_pts <- sc_new[, paste0(sc_risk$features, "_points"), with = FALSE]
+sc_new[, .(score = round(score, 2), score_points,
+           check = sc_risk$base_points + rowSums(var_pts), diff = round(score - score_points, 2))]
+```
+
+## 5. Do the odds double every PDO?
+
+The scale is a claim about odds: at 600 points 50:1, and twice the odds
+every 20 points. `scr_score_gains()` gives the observed odds (non-events
+per event) in each band of the score, the training deciles applied frozen
+to the hold-out, and the claim can be checked against them.
+
+```{r odds}
+g <- scr_score_gains(sc_risk)
+g[, scale_odds := exp((mean_score - al$offset) / al$factor)]
+g[sample == "holdout", .(band, n, events, mean_score = round(mean_score, 1),
+                         odds = round(odds, 2), scale_odds = round(scale_odds, 2))]
+g[, .(pdo_implied = log(2) / coef(stats::lm(log_odds ~ mean_score, weights = n))[[2]]), by = sample]
+```
+
+On train the implied PDO is 20 by construction: the same deciles fed the
+alignment regression. On hold-out the odds double every 24 points or so,
+and the safest band is well short of the scale (odds near 28 against about
+66 on the scale). The ranking holds, but the out-of-time population is less
+separated than the development one, and the top of the scale promises more
+than it delivers. This is the table to show before a cut-off is quoted in
+odds, and the one to recompute when monitoring.
+
+## 6. A tree challenger on the same scale
+
+A gradient-boosted model can be fitted on the same WOE columns as the
+scorecard and aligned to the same scale by the same regression. That makes
+its output comparable point for point with the champion; it does **not**
+make it a scorecard. The object says so explicitly: no points, no reason
+codes, `supports_scorecard = FALSE`.
+
+```{r challenger, results = "hide"}
+sc_x <- scr_scorecard(res_risk, challenger = "xgboost")
+```
+
+```{r challenger-show}
+sc_x$challenger$supports_scorecard
+sc_x$challenger$points
+sc_x$challenger$alignment
+rbind(sc_x$challenger$metrics[, .(model = "xgboost challenger", sample, auc, auc_lo, auc_hi, ks)],
+      scr_score_metrics(sc_x)[sample == "holdout", .(model = "scorecard", sample, auc, auc_lo, auc_hi, ks)])
+```
+
+The challenger's alignment has its own intercept and slope: two engines,
+two raw scores, one declared scale. Here the slope is well above 1 in
+magnitude, which says the boosted logit is compressed (a few dozen rounds
+at a low learning rate leave it under-confident) and the alignment
+stretches it back to the empirical odds; the scorecard logit, by contrast,
+needed a slope close to 1. Its AUC interval overlaps the scorecard's,
+which is the usual finding on a WOE feature set.
+
+### The swap set
+
+Aggregate AUCs hide where two models disagree. The swap-set table holds
+the **approval rate** fixed and asks which customers one model would
+approve and the other would not:
+
+```{r swapset}
+sc_x$challenger$swapset
+```
+
+How to read one row, say `approval_rate = 0.5`:
+
+* both models approve the safest half of hold-out by their own score;
+* `n_swap_in` customers are approved by the challenger but not by the
+  champion; `n_swap_out` the reverse. At a fixed rate the two counts are
+  equal;
+* `event_rate_swap_in` versus `event_rate_swap_out` is the decision: the
+  challenger is worth its complexity only if the customers it brings in are
+  safer than the ones it sends out, by a margin that survives the sample
+  size of the swap;
+* `event_rate_champion` and `event_rate_challenger` are the event rates of
+  the two approved books.
+
+Because both scores sit on the same scale, the swap set can also be read
+in points: a customer swapped in at the 70% rate crossed the challenger's
+cut-off and not the champion's, and the two cut-offs are directly
+comparable numbers.
+
+## 7. The portfolio view
+
+With several targets in flight, `scr_compare()` gives one row per target
+(funnel, best hold-out model of the selection stage, warning signs) and
+`scr_core()` the variables approved on more than one target.
+
+```{r portfolio}
+runs <- list(default = res_risk, churn = res_prop)
+scr_compare(runs)[, .(target, rows, event_rate, approved, best_model, auc, ks, relaxation)]
+scr_core(runs, min_targets = 2)
+```
+
+A variable approved on both targets is not an artefact of one target
+definition. `relaxation` records whether the consensus loosened its vote
+threshold to reach the minimum number of variables, as it did for `churn`.
+The AUC here is that of the selection-stage models; the scorecards' own
+metrics are in `scr_score_metrics()`.
+
+## 8. Rescaling an existing scorecard
+
+A committee may ask for a different convention, say 700 points at 30:1
+with a PDO of 25. The model does not change: calling `scr_scorecard()` with
+the new scale refits the same regression on the same data, so the logit and
+the calibration regression come out identical and only the PDO map moves.
+
+```{r rescale, results = "hide"}
+sc_700 <- scr_scorecard(res_risk, base_score = 700, base_odds = 30, pdo = 25)
+```
+
+```{r rescale-show}
+sc_700$alignment
+# the calibration is the same; only factor and offset change
+c(intercept_600 = sc_risk$alignment$calibration$intercept, intercept_700 = sc_700$alignment$calibration$intercept,
+  slope_600 = sc_risk$alignment$calibration$slope, slope_700 = sc_700$alignment$calibration$slope)
+```
+
+Ranking metrics are invariant to a monotone transformation, so AUC, KS and
+Gini are identical to the last digit, while every point value moves.
+
+```{r rescale-metrics}
+rbind(scr_score_metrics(sc_risk)[, .(scale = "600/50/20", sample, auc, ks, gini)],
+      scr_score_metrics(sc_700)[, .(scale = "700/30/25", sample, auc, ks, gini)])
+merge(sc_risk$points[, .(variable, bin, points_600 = points)],
+      sc_700$points[, .(variable, bin, points_700 = points)],
+      by = c("variable", "bin"))[1:6]
+```
+
+The two scores are the same log-odds seen through two maps, so one can be
+recovered from the other exactly:
+
+```{r rescale-identity}
+a600 <- sc_risk$alignment; a700 <- sc_700$alignment
+ln_odds <- (sc_risk$samples$holdout$score - a600$offset) / a600$factor
+all.equal(a700$offset + a700$factor * ln_odds, sc_700$samples$holdout$score)
+```
+
+That identity is what "comparable" means: two scorecards are on the same
+scale when the same log-odds gives the same points, and a scorecard is
+rescaled, not remodelled, when only `factor` and `offset` change.
+
+## 9. A checklist for the model committee
+
+Everything the committee needs to reproduce, compare and later monitor the
+scale is on the model card. Record it verbatim.
+
+```{r model-card}
+mc <- sc_risk$model_card
+keys <- c("target", "objective", "direction", "odds_orientation",
+          "base_score", "base_odds", "pdo", "factor", "offset",
+          "align_method", "align_intercept", "align_slope", "align_r2",
+          "n_train", "event_rate_train", "split_method", "split_cutoff",
+          "challenger", "challenger_supports_scorecard", "auc_holdout", "ks_holdout")
+data.table(field = keys, value = vapply(mc[keys], function(v) format(v, digits = 6), character(1)))
+```
+
+What to write down, and why:
+
+1. **The scale as one sentence**: `base_score`, `base_odds`, `pdo`, and the
+   derived `factor` and `offset`. Anyone with these five numbers can turn a
+   log-odds into points and back.
+2. **The orientation**: `objective`, `direction` and `odds_orientation`.
+   Without them `base_odds = 50` is ambiguous; with them it is not.
+3. **The alignment method and its coefficients**: `align_method`,
+   `align_intercept`, `align_slope`, `align_r2`, and the number of bands.
+   A `"regression"` alignment on one population is not the same map as a
+   `"regression"` alignment on another; the coefficients are what make the
+   two comparable, or show that they are not.
+4. **The population the alignment was fitted on**: `n_train`,
+   `event_rate_train`, the split method and cut-off. An alignment absorbs
+   the base rate of that population; if the deployment population differs,
+   the intercept will drift first. Calibration to a long-run default rate
+   is a separate step, described in
+   [PD calibration and rating grades](https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html).
+5. **The challenger's status**: engine, `supports_scorecard = FALSE`, and
+   the swap-set table at the approval rates the business uses.
+6. **The invariants to check on every rescale**: AUC/KS/Gini unchanged,
+   calibration intercept and slope unchanged, only `factor` and `offset`
+   moved.
+
+Two scorecards that share items 1 to 3 are comparable; two that share only
+item 1 are not, however similar their numbers look.
+
+## Reference
+
+Siddiqi, N. (2017). *Intelligent Credit Scoring: Building and Implementing
+Better Credit Risk Scorecards*, 2nd edition. Wiley.
+
+```{r, include = FALSE, eval = TRUE}
+data.table::setDTthreads(old_dt)
+```

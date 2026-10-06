@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>scorecraft: from raw table to production SQL and monitoring</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">scorecraft: from raw table to production
+SQL and monitoring</h1>
+
+
+
+<p>This vignette takes one target from a raw table to a scorecard, a
+cut-off policy, production SQL checked against R, a monitoring run and
+the deliverables. It runs on <code>scr_demo</code>, a synthetic table
+built with the defects real data has: the sentinel <code>-999</code>,
+missing values, constants, duplicates, a redundant pair, high
+cardinality, pure noise and a column (<code>vl_late</code>) that
+degrades in the last period only. Two companion vignettes go deeper:
+<code>vignette(&quot;coarse-classing&quot;, package = &quot;scorecraft&quot;)</code> on
+manual binning with an audit trail, and
+<code>vignette(&quot;alignment-and-portfolio&quot;, package = &quot;scorecraft&quot;)</code>
+on the points scale.</p>
+<div id="configuration" class="section level2">
+<h2>1. Configuration</h2>
+<p>One <code>scr_config()</code> object drives every stage. A preset
+fixes the admission rules of the funnel; <code>scr_presets()</code>
+lists them and <code>scr_config_keys()</code> documents every key.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(scorecraft)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">scr_presets</span>()[, <span class="fu">c</span>(<span class="st">&quot;preset&quot;</span>, <span class="st">&quot;target_max&quot;</span>, <span class="st">&quot;min_votes&quot;</span>, <span class="st">&quot;corr_cutoff&quot;</span>, <span class="st">&quot;iv_min&quot;</span>)]</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt;       preset target_max min_votes corr_cutoff iv_min</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; 1 aggressive         15         3         0.6   0.03</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; 2   moderate         25         2         0.7   0.02</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; 3       lazy         40         1         0.8   0.02</span></span></code></pre></div>
+<p>The overrides below only make the run light: one thread, two
+consensus voters (elastic net and xgboost), a short boosting schedule
+and twenty bootstrap resamples. A development run would keep the
+defaults.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>cfg <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="st">&quot;moderate&quot;</span>, <span class="at">objective =</span> <span class="st">&quot;risk&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>                  <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>, <span class="at">use_ranger =</span> <span class="cn">FALSE</span>, <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                  <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>cfg</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; &lt;scr_config&gt; preset &quot;moderate&quot; | objective &quot;risk&quot; | seed 2203 | threads 1</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Convention</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   target = 1             target = 1 is the BAD case</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;   points scale           more points = lower probability of the event (safer) [higher_is_safer]</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; Funnel</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;   variables at the end   10 to 25</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;   minimum votes          2</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;   admissible IV          [0.02, 1)  warning at 0.5</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;   correlation            0.7 (spearman)</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; Binning</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;   bins                   3 to 7, algorithm &quot;jedi&quot;</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;   monotonicity           numeric (weak)</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;   smallest bin           2.0%</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; Scorecard</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt;   scale                  600 points at odds 50:1, PDO 20</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt;   alignment              regression (10 bands)</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt;   challenger             none</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt;   bootstrap CI           20 resamples, 95%</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt; Data</span></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="co">#&gt;   sentinels              -999</span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="co">#&gt;   derived at the end     no (diagnostic only)</span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="co">#&gt;   hold-out               30.0%</span></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a><span class="co">#&gt; Models</span></span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="co">#&gt;   enabled                glmnet, xgboost</span></span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a><span class="co">#&gt;   row cap                200,000</span></span></code></pre></div>
+</div>
+<div id="selection-and-the-funnel" class="section level2">
+<h2>2. Selection and the funnel</h2>
+<p><code>scr_select()</code> chains the split, the triage, the optimal
+binning with screening and hold-out revalidation, the redundancy pruning
+and the consensus of the models. Each stage is also exported on its own
+(<code>scr_split()</code>, <code>scr_triage()</code>,
+<code>scr_bin()</code>, <code>scr_model()</code>). With
+<code>date_col</code> the split is out-of-time by whole periods: the
+last periods form the hold-out. The sibling target <code>churn</code> is
+dropped so that it cannot become a candidate.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;default&quot;</span>, <span class="at">config =</span> cfg, <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;churn&quot;</span>),</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>                  <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>res</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; &lt;scr_result&gt; target &quot;default&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   4,200 rows (train 2,800 / hold-out 1,400) | split out-of-time at 2026-05-01</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   event: 14.25% on train, 14.50% on hold-out | 0.5s</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   convention: risk (target=1 is the bad case)</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; Funnel</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;   candidates        37 ############################</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   1. triage         37 ############################</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   2. binning        37 ############################</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   3. screening      20 ###############</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   4. hold-out       16 ############</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   5. correlation    12 #########</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   6. consensus      12 #########</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; Approved: 12</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt;    1. vl_score_01                                  IV  0.346  KS 0.198</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt;    2. vl_score_02                                  IV  0.172  KS 0.156</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt;    3. vl_score_04                                  IV  0.124  KS 0.120</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt;    4. ds_band                                      IV  0.081  KS 0.110</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt;    5. vl_late                                      IV  0.071  KS 0.120</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt;   ... (+7) - scr_selected() for the list</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt; Models (hold-out)</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt;   glmnet    AUC 0.7345 [0.7028, 0.7723]  KS 0.3842</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="co">#&gt;   xgboost   AUC 0.7375 [0.7065, 0.7762]  KS 0.3695</span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a><span class="co">#&gt; Warnings</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="co">#&gt;   - 3 derived flag(s) outside the deliverable by policy (allow_derived_final)</span></span></code></pre></div>
+<p>Binning works on the weight of evidence. For bin <span class="math inline">\(i\)</span> of a variable, with <span class="math inline">\(e_i\)</span> events and <span class="math inline">\(n_i\)</span> non-events out of totals <span class="math inline">\(E\)</span> and <span class="math inline">\(N\)</span>,</p>
+<p><span class="math display">\[
+\mathrm{WOE}_i = \ln\frac{e_i / E}{n_i / N}, \qquad
+\mathrm{IV} = \sum_i \left(\frac{e_i}{E} -
+\frac{n_i}{N}\right)\mathrm{WOE}_i .
+\]</span></p>
+<p>The WOE is the log of the event share over the non-event share, so a
+bin riskier than average has a positive WOE. This is the opposite sign
+to the good-over-bad convention of Siddiqi (2017); under it the logistic
+coefficients on the WOE columns are expected to be positive, and the
+sign check of the scorecard tests exactly that. The preset admits an IV
+in <span class="math inline">\([0.02, 1)\)</span> and warns from 0.5,
+where leakage is more likely than signal.</p>
+<p>The funnel is the audit trail: every input column, the stage it left
+at and why. No candidate is dropped from the report.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">table</span>(<span class="fu">scr_funnel</span>(res, <span class="at">cols =</span> <span class="st">&quot;all&quot;</span>)<span class="sc">$</span>exit_stage)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;            00.config            01.triage         03.screening </span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;                    3                    7                   17 </span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;           04.holdout       05.correlation 05b.derived_excluded </span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;                    4                    1                    3 </span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;          07.approved </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;                   12</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">scr_funnel</span>(res, <span class="at">only_selected =</span> <span class="cn">TRUE</span>)[, .(feature, total_iv, iv_holdout, ks, psi, psi_flag_adjusted)])</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;        feature   total_iv iv_holdout        ks         psi psi_flag_adjusted</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;      &lt;num&gt;      &lt;num&gt;     &lt;num&gt;       &lt;num&gt;            &lt;char&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_01 0.34639015 0.28772640 0.1981484 0.006635574            stable</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; 2: vl_score_02 0.17206972 0.12336796 0.1564626 0.005346830            stable</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; 3: vl_score_04 0.12430307 0.11773607 0.1199427 0.003216554            stable</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; 4:     ds_band 0.08054551 0.07804157 0.1100565 0.001317467            stable</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; 5:     vl_late 0.07109472 0.06384879 0.1201400 0.104196466             shift</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; 6:   ds_region 0.08464808 0.09714339 0.1141337 0.006365199            stable</span></span></code></pre></div>
+<p><code>vl_late</code> is approved, but its PSI between train and
+hold-out is already flagged as a shift. Section 8 shows where that comes
+from.</p>
+</div>
+<div id="the-scorecard" class="section level2">
+<h2>3. The scorecard</h2>
+<p><code>scr_scorecard()</code> fits a logistic regression on the WOE
+columns of the shortlist, checks the signs and aligns the logit to the
+declared scale: 600 points at odds of 50:1 (non-event to event),
+doubling every 20 points. How the alignment and the points are computed
+is the subject of the alignment vignette.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>sc <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>sc</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_scorecard&gt; target &quot;default&quot; | 12 variables | higher_is_safer</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;   scale: 600 points at odds 50:1 (safe:event), PDO 20 | alignment regression</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   score = 491.1967 + -26.3189 * logit | base_points = 538</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   train    n 2,800   AUC 0.7856 [0.7662, 0.8070]  KS 0.4411  Gini 0.5713</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   holdout  n 1,400   AUC 0.7394 [0.7066, 0.7770]  KS 0.3889  Gini 0.4788</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   score PSI (hold-out): 0.0069 - fixed: stable | adjusted (0.0181): stable</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; Points (first rows)</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (-Inf;33.360000]             -2.063      61</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (33.360000;38.150000]        -0.731      22</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (38.150000;44.240000]        -0.658      20</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (44.240000;48.060000]        -0.523      16</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (48.060000;63.940000]         0.040      -1</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (63.940000;72.610000]         0.704     -21</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (72.610000;+Inf]              0.996     -30</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  (-Inf;40.880000]             -0.824      22</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt;   ... (+56 rows)</span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="fu">all</span>(sc<span class="sc">$</span>sign_check<span class="sc">$</span>coef <span class="sc">&gt;</span> <span class="dv">0</span>)</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="fu">scr_score_metrics</span>(sc)[, .(sample, auc, auc_lo, auc_hi, ks, gini)]</span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co">#&gt;     sample       auc    auc_lo    auc_hi        ks      gini</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co">#&gt; 1:   train 0.7856428 0.7662170 0.8069608 0.4411466 0.5712856</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#&gt; 2: holdout 0.7394060 0.7066284 0.7770357 0.3889033 0.4788120</span></span></code></pre></div>
+<p>Every discrimination figure carries a bootstrap interval. The
+hold-out figures, not the training ones, are the ones to quote.</p>
+</div>
+<div id="cut-off-and-strategy" class="section level2">
+<h2>4. Cut-off and strategy</h2>
+<div id="the-sweep" class="section level3">
+<h3>The sweep</h3>
+<p><code>scr_cutoff()</code> takes candidate cuts at quantiles of the
+score <strong>on train</strong> and applies them <strong>frozen</strong>
+to the hold-out, so both samples answer the same question at the same
+score.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>ct <span class="ot">&lt;-</span> <span class="fu">scr_cutoff</span>(sc, <span class="at">n_cuts =</span> <span class="dv">8</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>ct</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_cutoff&gt; target &quot;default&quot; | 8 cuts frozen on train | safe side: high score</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;        cut     %safe    ev.safe   ev.risky   ev.avoid       KS</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;      511.6     90.2%     12.19%     35.77%      24.1%    0.168</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;      525.6     80.0%     10.27%     31.43%      43.3%    0.273</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;      536.6     68.0%      8.09%     28.12%      62.1%    0.352</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;      546.0     55.6%      6.68%     24.32%      74.4%    0.351</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;      554.1     45.3%      5.21%     22.19%      83.7%    0.340</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;      563.8     32.6%      3.28%     19.94%      92.6%    0.295</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;      573.8     22.0%      3.57%     17.58%      94.6%    0.194</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;      588.0     12.1%      2.96%     16.08%      97.5%    0.112</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>ct<span class="sc">$</span>table[cut <span class="sc">==</span> ct<span class="sc">$</span>cuts[<span class="dv">4</span>], .(sample, cut, pct_safe, event_rate_safe, events_avoided_pct, ks_at_cut)]</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;     sample   cut  pct_safe event_rate_safe events_avoided_pct ks_at_cut</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt; &lt;num&gt;     &lt;num&gt;           &lt;num&gt;              &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; 1:   train   546 0.5560714      0.04881182          0.8095238 0.4263501</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; 2: holdout   546 0.5564286      0.06675225          0.7438424 0.3511941</span></span></code></pre></div>
+<p><code>%safe</code> is the approval rate, <code>ev.safe</code> and
+<code>ev.risky</code> the event rates on each side, and
+<code>ev.avoid</code> the share of all events that fall on the risky
+side, the events the cut would decline. <code>KS</code> at the cut is
+the distance between that share and the share of non-events declined
+with them. The cut with the largest KS separates the populations best;
+it is not the cut the business should necessarily choose.</p>
+</div>
+<div id="the-strategy-table" class="section level3">
+<h3>The strategy table</h3>
+<p><code>scr_strategy()</code> gives each score band (the training
+deciles, frozen) an expected profit per account, <span class="math inline">\(EP = (1 - p)\,\text{revenue\_good} -
+p\,\text{loss\_bad}\)</span>, with break-even event rate
+<code>revenue_good / (revenue_good + loss_bad)</code>. With 1,080 per
+good account and 4,500 per bad one, break-even is 19.35%. A band below
+break-even is approved, one up to 25% above it goes to review, and the
+rest is declined; <code>decisions</code> imposes a policy by hand.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>st <span class="ot">&lt;-</span> <span class="fu">scr_strategy</span>(sc, <span class="at">revenue_good =</span> <span class="dv">1080</span>, <span class="at">loss_bad =</span> <span class="dv">4500</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>st</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_strategy&gt; target &quot;default&quot; | sample holdout | break-even event rate: 19.35% (revenue 1080, loss 4500)</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   band                       vol%    event decision     EP/acct       profit</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   (590, Inf]                11.2%    3.18% approve       902.29       141660</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   (577,590]                  8.9%    3.23% approve       900.00       111600</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;   (567,577]                  9.1%    3.91% approve       862.03       110340</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;   (558,567]                 10.6%    7.38% approve       668.05        99540</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;   (550,558]                 10.6%   12.16% approve       401.35        59400</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;   (542,550]                 10.8%   11.26% approve       451.79        68220</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;   (533,542]                 10.6%   17.45% approve       106.31        15840</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;   (524,533]                  9.9%   26.62% decline      -405.32       -56340</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;   (510,524]                  9.1%   27.34% decline      -445.78       -57060</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;   [-Inf,510]                 9.1%   35.43% decline      -897.17      -113940</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>st<span class="sc">$</span>table[, .(band, <span class="at">event_rate =</span> <span class="fu">round</span>(event_rate, <span class="dv">4</span>), decision, <span class="at">cum_pct =</span> <span class="fu">round</span>(cum_pct, <span class="dv">3</span>), cum_profit)]</span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt;           band event_rate decision cum_pct cum_profit</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;      &lt;num&gt;   &lt;char&gt;   &lt;num&gt;      &lt;num&gt;</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;  1: (590, Inf]     0.0318  approve   0.112     141660</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt;  2:  (577,590]     0.0323  approve   0.201     253260</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt;  3:  (567,577]     0.0391  approve   0.292     363600</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt;  4:  (558,567]     0.0738  approve   0.399     463140</span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co">#&gt;  5:  (550,558]     0.1216  approve   0.504     522540</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="co">#&gt;  6:  (542,550]     0.1126  approve   0.612     590760</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co">#&gt;  7:  (533,542]     0.1745  approve   0.719     606600</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt;  8:  (524,533]     0.2662  decline   0.818     550260</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt;  9:  (510,524]     0.2734  decline   0.909     493200</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt; 10: [-Inf,510]     0.3543  decline   1.000     379260</span></span></code></pre></div>
+<p>The lowest approved band has an event rate of 17.4%, above the
+portfolio rate of 14.5%, yet a positive expected profit: declining it
+would look prudent and lose money. The cumulative profit peaks at that
+band. <code>loss_bad</code> is a flat loss per bad account here; in an
+IRB setting it is the product of the exposure at default and the loss
+given default, modelled in the article on <a href="https://evandeilton.github.io/scorecraft/articles/lgd-and-ead-under-irb.html">LGD
+and EAD</a> and combined in <a href="https://evandeilton.github.io/scorecraft/articles/expected-loss-and-capital.html">expected
+loss and capital</a>.</p>
+</div>
+</div>
+<div id="reject-inference" class="section level2">
+<h2>5. Reject inference</h2>
+<p>The scorecard is fitted on accounts that were accepted and therefore
+have an outcome. Classical reject inference (parcelling, augmentation,
+extrapolation) assigns outcomes to the declined applicants, and it
+cannot be validated on the data at hand: every method rests on an
+assumption about the rejects that the accepts cannot test (Hand and
+Henley, 1993). <code>scr_reject()</code> therefore makes no such
+assignment. It states the population scope, measures the coverage of
+each score band and reports a sensitivity band: the event rate each band
+would have if the applicants without an outcome were 2, 4 or 8 times
+worse than the accepted ones in the same band.</p>
+<p>To see the coverage problem, the hold-out vintages play the booked
+accounts and an old policy is simulated on the training rows: an older
+score (the new one plus noise) declined its lowest 30%, and policy rules
+declined a further 5% above that cut (high-side overrides). The declined
+rows form the applicants without an outcome. The booked accounts also
+contain applicants below the old cut (low-side overrides), which is why
+the lowest bands keep some outcomes.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">11</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>train <span class="ot">&lt;-</span> scr_demo[res<span class="sc">$</span>split<span class="sc">$</span>train_idx, ]</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>old_score <span class="ot">&lt;-</span> <span class="fu">scr_apply</span>(sc, train)<span class="sc">$</span>score <span class="sc">+</span> stats<span class="sc">::</span><span class="fu">rnorm</span>(<span class="fu">nrow</span>(train), <span class="at">sd =</span> <span class="dv">20</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>declined <span class="ot">&lt;-</span> old_score <span class="sc">&lt;</span> stats<span class="sc">::</span><span class="fu">quantile</span>(old_score, <span class="fl">0.30</span>) <span class="sc">|</span> stats<span class="sc">::</span><span class="fu">runif</span>(<span class="fu">nrow</span>(train)) <span class="sc">&lt;</span> <span class="fl">0.05</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>ttd <span class="ot">&lt;-</span> <span class="fu">rbind</span>(scr_demo[res<span class="sc">$</span>split<span class="sc">$</span>holdout_idx, ], train[declined, ])</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>booked <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="cn">TRUE</span>, <span class="cn">FALSE</span>), <span class="fu">c</span>(<span class="fu">length</span>(res<span class="sc">$</span>split<span class="sc">$</span>holdout_idx), <span class="fu">sum</span>(declined)))</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>rj <span class="ot">&lt;-</span> <span class="fu">scr_reject</span>(sc, <span class="at">population =</span> ttd, <span class="at">accepted =</span> booked)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>rj</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; &lt;scr_reject&gt; target &quot;default&quot; | multipliers 2x, 4x, 8x</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;   The full population has 2,323 rows, of which 1,400 (60.3%) have an observed outcome. The rest enter only the sensitivity band, under declared multipliers.</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   observed event rate: 14.50%</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;   implied rate if the population without outcome is 2x worse: 28.28%</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;   implied rate if the population without outcome is 4x worse: 41.84%</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;   implied rate if the population without outcome is 8x worse: 46.29%</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;   bands with weak coverage: (590, Inf] (few_events), (577,590] (few_events), (567,577] (few_events), (558,567] (few_events), (550,558] (few_events), (542,550] (few_events), (533,542] (few_events)</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>rj<span class="sc">$</span>coverage[, .(band, n_dev, n_unknown, <span class="at">coverage =</span> <span class="fu">round</span>(coverage, <span class="dv">2</span>), coverage_flag)]</span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;           band n_dev n_unknown coverage coverage_flag</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt; &lt;int&gt;     &lt;int&gt;    &lt;num&gt;        &lt;char&gt;</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt;  1: (590, Inf]   157        12     0.93    few_events</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;  2:  (577,590]   124        13     0.91    few_events</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;  3:  (567,577]   128        15     0.90    few_events</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;  4:  (558,567]   149        32     0.82    few_events</span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="co">#&gt;  5:  (550,558]   148        49     0.75    few_events</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co">#&gt;  6:  (542,550]   151        73     0.67    few_events</span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="co">#&gt;  7:  (533,542]   149       105     0.59    few_events</span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co">#&gt;  8:  (524,533]   139       149     0.48            ok</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="co">#&gt;  9:  (510,524]   128       213     0.38            ok</span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="co">#&gt; 10: [-Inf,510]   127       262     0.33            ok</span></span></code></pre></div>
+<p>Coverage falls from the safest band to the riskiest, which is where
+the rejects sit. <code>few_events</code> marks bands with fewer than 30
+events, where the observed rate is itself fragile, and
+<code>no_outcome</code> bands with none. The <code>TOTAL</code> rows of
+<code>rj$sensitivity</code> are the headline: the observed rate and what
+it becomes under each declared multiplier. The analyst states the
+multiplier the business is prepared to defend; the package does not
+choose it.</p>
+</div>
+<div id="scoring-and-reasons" class="section level2">
+<h2>6. Scoring and reasons</h2>
+<p><code>scr_apply()</code> reproduces in R what the production SQL
+does: the frozen pre-processing (training median for missing and
+sentinel values, <code>&quot;MISSING&quot;</code> for absent categories), the
+frozen bins and the points. Nothing is refitted.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>new <span class="ot">&lt;-</span> <span class="fu">head</span>(scr_demo, <span class="dv">5</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">scr_apply</span>(sc, new, <span class="at">what =</span> <span class="st">&quot;all&quot;</span>)[, .(<span class="at">prob =</span> <span class="fu">round</span>(prob, <span class="dv">4</span>), <span class="at">score =</span> <span class="fu">round</span>(score, <span class="dv">2</span>), score_points,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                                     <span class="at">vl_score_01_woe =</span> <span class="fu">round</span>(vl_score_01_woe, <span class="dv">3</span>), vl_score_01_points)]</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt;      prob  score score_points vl_score_01_woe vl_score_01_points</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt;  &lt;num&gt;        &lt;num&gt;           &lt;num&gt;              &lt;num&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; 1: 0.1089 546.53          546           0.704                -21</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; 2: 0.0628 562.33          562          -0.658                 20</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt; 3: 0.0670 560.52          559           0.040                 -1</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; 4: 0.3537 507.06          507           0.040                 -1</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; 5: 0.1504 536.76          536           0.040                 -1</span></span></code></pre></div>
+<p><code>score</code> is exact (<code>a + b * logit</code>);
+<code>score_points</code> is the sum of the whole points of each bin,
+which is what a points table on paper gives. <code>scr_reasons()</code>
+returns the decline reasons: the variables whose points fall furthest
+below a reference, the mean points on the training population by default
+(<code>reference = &quot;max&quot;</code> uses the best bin).</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">scr_reasons</span>(sc, new, <span class="at">k =</span> <span class="dv">2</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt;       reason_1 shortfall_1    reason_2 shortfall_2</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;       &lt;num&gt;      &lt;char&gt;       &lt;num&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_01   25.197857 vl_score_02   17.828571</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 2: vl_score_04    9.052857     vl_late    5.716071</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 3:     vl_late   13.716071 vl_score_07    7.605357</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 4:   ds_region   13.807143     ds_band   11.932500</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 5: vl_score_02   17.828571 vl_score_05    9.054286</span></span></code></pre></div>
+</div>
+<div id="production-sql" class="section level2">
+<h2>7. Production SQL</h2>
+<p><code>scr_sql()</code> on a scorecard emits three blocks: a CTE with
+the pre-processing frozen on train, a CTE with the WOE and bin index
+from the cut points at full precision, and the final <code>SELECT</code>
+with the exact score, the points per variable and the whole-points
+score. <code>what = &quot;all&quot;</code> adds the bin label and the WOE of every
+variable next to its points, and <code>keep_columns</code> carries key
+columns through untransformed, so the output can be joined back to the
+customer. Fourteen dialects are supported; <code>file</code> writes the
+script.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">scr_sql</span>(sc, <span class="at">table =</span> <span class="st">&quot;prd.customers&quot;</span>, <span class="at">dialect =</span> <span class="st">&quot;databricks&quot;</span>,</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>               <span class="at">what =</span> <span class="st">&quot;all&quot;</span>, <span class="at">keep_columns =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;ref_date&quot;</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">length</span>(sql)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; [1] 441</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">grep</span>(<span class="st">&quot;^-- (Scale|score =)&quot;</span>, sql, <span class="at">value =</span> <span class="cn">TRUE</span>), <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt; -- Scale: 600 points at odds 50:1 (safe:event), PDO 20 | higher_is_safer</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; -- score = 491.19665800103655 + -26.318891476654574 * logit | base_points = 538</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>i <span class="ot">&lt;-</span> <span class="fu">max</span>(<span class="fu">which</span>(sql <span class="sc">==</span> <span class="st">&quot;SELECT&quot;</span>))</span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="fu">cat</span>(sql[i<span class="sc">:</span>(i <span class="sc">+</span> <span class="dv">6</span>)], <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; SELECT</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt;     id,</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt;     ref_date,</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt;     538.30012744760336</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt;       + -29.701043763446282 * vl_score_01_woe</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt;       + -27.130718819754311 * vl_score_02_woe</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;       + -26.649286859941228 * vl_score_04_woe</span></span></code></pre></div>
+<p>The claim that R and SQL agree is tested in the package; here it is
+also demonstrated. DuckDB runs in-process and executes the
+<code>duckdb</code> dialect on <code>scr_demo</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>con <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(duckdb<span class="sc">::</span><span class="fu">duckdb</span>(), <span class="at">config =</span> <span class="fu">list</span>(<span class="at">threads =</span> <span class="st">&quot;1&quot;</span>))</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(con, <span class="st">&quot;scr_demo&quot;</span>, scr_demo)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>got <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbGetQuery</span>(con, <span class="fu">paste</span>(<span class="fu">scr_sql</span>(sc, <span class="at">table =</span> <span class="st">&quot;scr_demo&quot;</span>, <span class="at">dialect =</span> <span class="st">&quot;duckdb&quot;</span>, <span class="at">what =</span> <span class="st">&quot;all&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>                                          <span class="at">keep_columns =</span> <span class="st">&quot;id&quot;</span>), <span class="at">collapse =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>))</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con, <span class="at">shutdown =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>got <span class="ot">&lt;-</span> got[<span class="fu">order</span>(got<span class="sc">$</span>id), ]</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>exp <span class="ot">&lt;-</span> <span class="fu">scr_apply</span>(sc, scr_demo, <span class="at">what =</span> <span class="st">&quot;all&quot;</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="fu">all.equal</span>(got<span class="sc">$</span>score, exp<span class="sc">$</span>score)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">as.numeric</span>(got<span class="sc">$</span>score_points), <span class="fu">as.numeric</span>(exp<span class="sc">$</span>score_points))</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="fu">all</span>(<span class="fu">vapply</span>(sc<span class="sc">$</span>features, <span class="cf">function</span>(f) <span class="fu">isTRUE</span>(<span class="fu">all.equal</span>(got[[<span class="fu">paste0</span>(f, <span class="st">&quot;_points&quot;</span>)]], exp[[<span class="fu">paste0</span>(f, <span class="st">&quot;_points&quot;</span>)]])) <span class="sc">&amp;&amp;</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>             <span class="fu">isTRUE</span>(<span class="fu">all.equal</span>(got[[<span class="fu">paste0</span>(f, <span class="st">&quot;_woe&quot;</span>)]], exp[[<span class="fu">paste0</span>(f, <span class="st">&quot;_woe&quot;</span>)]])), <span class="fu">logical</span>(<span class="dv">1</span>)))</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The exact score agrees to floating-point precision; the whole points
+and the WOE of every variable agree for every row.</p>
+</div>
+<div id="monitoring" class="section level2">
+<h2>8. Monitoring</h2>
+<p><code>scr_monitor()</code> scores a new table with the frozen
+scorecard and recomputes, per period of <code>date_col</code>, the score
+PSI against the training distribution on frozen bands, the CSI of every
+variable with the signed points shift and, when the target is present,
+the performance by vintage. It schedules nothing. Here the new data are
+<code>scr_demo</code> itself: the first four periods are the training
+vintages, the last two the hold-out.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>mo <span class="ot">&lt;-</span> <span class="fu">scr_monitor</span>(sc, scr_demo, <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>, <span class="at">target =</span> <span class="st">&quot;default&quot;</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>mo</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_monitor&gt; target &quot;default&quot; | 6 period(s) | plan: PSI 0.1/0.25, CSI 0.1/0.25, alpha 0.05, min events 100</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;   period              n      score      PSI fixed      critical adj.    </span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   2026-01-01        700      549.8   0.0083 stable       0.0302 stable  </span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt;   2026-02-01        700      550.3   0.0071 stable       0.0302 stable  </span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt;   2026-03-01        700      550.4   0.0084 stable       0.0302 stable  </span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt;   2026-04-01        700      550.7   0.0125 stable       0.0302 stable  </span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt;   2026-05-01        700      550.2   0.0284 stable       0.0302 stable  </span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt;   2026-06-01        700      552.3   0.0129 stable       0.0302 stable  </span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt;   largest points shifts (variable @ period):</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt;     vl_late                      2026-06-01   CSI 0.4141  shift +1.89 pts</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt;     vl_score_01                  2026-02-01   CSI 0.0039  shift -1.01 pts</span></span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="co">#&gt;     vl_score_04                  2026-02-01   CSI 0.0189  shift +0.80 pts</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="co">#&gt;     vl_score_01                  2026-06-01   CSI 0.0209  shift -0.61 pts</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="co">#&gt;     vl_hist_04                   2026-05-01   CSI 0.0183  shift +0.60 pts</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="co">#&gt;   performance by vintage:</span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="co">#&gt;     2026-01-01   n 700     event  14.14%  AUC 0.8152 [0.7928, 0.8508]  KS 0.5069  (insufficient events)</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="co">#&gt;     2026-02-01   n 700     event  14.57%  AUC 0.7997 [0.7587, 0.8363]  KS 0.4708</span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a><span class="co">#&gt;     2026-03-01   n 700     event  13.71%  AUC 0.7605 [0.7049, 0.7906]  KS 0.4487  (insufficient events)</span></span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a><span class="co">#&gt;     2026-04-01   n 700     event  14.57%  AUC 0.7644 [0.7097, 0.8061]  KS 0.4094</span></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="co">#&gt;     2026-05-01   n 700     event  14.00%  AUC 0.7500 [0.7008, 0.7908]  KS 0.3904  (insufficient events)</span></span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a><span class="co">#&gt;     2026-06-01   n 700     event  15.00%  AUC 0.7318 [0.6903, 0.7583]  KS 0.3950</span></span></code></pre></div>
+<p>Every PSI carries two thresholds. <code>fixed</code> is the rule of
+thumb of 0.10 for a moderate shift and 0.25 for action (Siddiqi, 2017),
+which has no statistical derivation and ignores how many rows produced
+the number. <code>critical</code> is the sample-size-adjusted value at
+level <code>alpha</code>: with no shift, the PSI over <span class="math inline">\(B\)</span> bands from <span class="math inline">\(n\)</span> base and <span class="math inline">\(m\)</span> comparison rows behaves like <span class="math inline">\((1/n + 1/m)\,\chi^2_{B-1}\)</span> (Yurdakul and
+Naranjo, 2020). With 2,800 training rows, 700 rows per period and ten
+bands the critical value is about 0.03, so the fixed 0.10 would let a
+real shift pass unflagged.</p>
+<p>The CSI applies the same statistic to each variable’s bins. It is
+unsigned; the <code>points_shift</code> gives the direction: the change
+in bin shares weighted by the points of each bin, the amount by which
+the variable moved the mean score. <code>vl_late</code> is stable for
+five periods and then shifts far above both thresholds:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>mo<span class="sc">$</span>csi[variable <span class="sc">==</span> <span class="st">&quot;vl_late&quot;</span>, .(period, <span class="at">csi =</span> <span class="fu">round</span>(csi, <span class="dv">4</span>), flag_fixed, flag_adjusted,</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>                                <span class="at">points_shift =</span> <span class="fu">round</span>(points_shift, <span class="dv">2</span>))]</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt;        period    csi flag_fixed flag_adjusted points_shift</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt;  &lt;num&gt;     &lt;char&gt;        &lt;char&gt;        &lt;num&gt;</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; 1: 2026-01-01 0.0089     stable        stable         0.48</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; 2: 2026-02-01 0.0118     stable        stable        -0.19</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; 3: 2026-03-01 0.0035     stable        stable        -0.01</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; 4: 2026-04-01 0.0034     stable        stable        -0.28</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; 5: 2026-05-01 0.0136     stable        stable        -0.34</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt; 6: 2026-06-01 0.4141      shift         shift         1.89</span></span></code></pre></div>
+<p>A vintage with fewer events than the plan’s minimum (100) is marked
+<code>insufficient events</code>: its AUC is shown but no verdict is
+drawn from it. The first four vintages were used for training, so their
+higher AUC is expected; the comparison that matters is between
+successive production periods and the scorecard’s own hold-out interval.
+For grade migration and the traffic lights of a PD model, see <a href="https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html">PD
+calibration and rating grades</a>.</p>
+<div id="the-monitoring-plan" class="section level3">
+<h3>The monitoring plan</h3>
+<p>The thresholds are a contract, not a default buried in code.
+<code>scr_scorecard()</code> stores it as
+<code>sc$monitoring_plan</code>, <code>scr_export()</code> writes it to
+the <code>Monitoring_Plan</code> sheet, and
+<code>scr_monitor(plan = )</code> reads it back, from the table or from
+the workbook. Edit the plan and the flags follow it:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>plan <span class="ot">&lt;-</span> sc<span class="sc">$</span>monitoring_plan</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>plan[plan<span class="sc">$</span>item <span class="sc">!=</span> <span class="st">&quot;threshold_source&quot;</span>, ]</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt;                          item</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt; 1    psi_score_fixed_moderate</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; 2      psi_score_fixed_action</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; 3          psi_adjusted_alpha</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt; 4 csi_variable_fixed_moderate</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt; 5   csi_variable_fixed_action</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt; 6                 score_bands</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; 7       min_events_per_period</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt;                                                                          value</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; 1                                                                         0.10</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; 2                                                                         0.25</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; 3                                                                         0.05</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt; 4                                                                         0.10</span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; 5                                                                         0.25</span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt; 6 509.91 | 523.5 | 533.38 | 542.1 | 550.36 | 557.76 | 566.55 | 576.51 | 590.28</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; 7                                                                          100</span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a>plan<span class="sc">$</span>value[plan<span class="sc">$</span>item <span class="sc">==</span> <span class="st">&quot;min_events_per_period&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;90&quot;</span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a>mo2 <span class="ot">&lt;-</span> <span class="fu">scr_monitor</span>(sc, scr_demo, <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>, <span class="at">target =</span> <span class="st">&quot;default&quot;</span>, <span class="at">n_boot =</span> <span class="dv">20</span>, <span class="at">plan =</span> plan)</span>
+<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a><span class="fu">data.table</span>(<span class="at">period =</span> mo<span class="sc">$</span>vintage<span class="sc">$</span>period, <span class="at">events =</span> mo<span class="sc">$</span>vintage<span class="sc">$</span>events,</span>
+<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a>           <span class="at">status_default =</span> mo<span class="sc">$</span>vintage<span class="sc">$</span>status, <span class="at">status_edited =</span> mo2<span class="sc">$</span>vintage<span class="sc">$</span>status)</span>
+<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a><span class="co">#&gt;        period events status_default status_edited</span></span>
+<span id="cb15-24"><a href="#cb15-24" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt;  &lt;int&gt;         &lt;char&gt;        &lt;char&gt;</span></span>
+<span id="cb15-25"><a href="#cb15-25" tabindex="-1"></a><span class="co">#&gt; 1: 2026-01-01     99   insufficient            ok</span></span>
+<span id="cb15-26"><a href="#cb15-26" tabindex="-1"></a><span class="co">#&gt; 2: 2026-02-01    102             ok            ok</span></span>
+<span id="cb15-27"><a href="#cb15-27" tabindex="-1"></a><span class="co">#&gt; 3: 2026-03-01     96   insufficient            ok</span></span>
+<span id="cb15-28"><a href="#cb15-28" tabindex="-1"></a><span class="co">#&gt; 4: 2026-04-01    102             ok            ok</span></span>
+<span id="cb15-29"><a href="#cb15-29" tabindex="-1"></a><span class="co">#&gt; 5: 2026-05-01     98   insufficient            ok</span></span>
+<span id="cb15-30"><a href="#cb15-30" tabindex="-1"></a><span class="co">#&gt; 6: 2026-06-01    105             ok            ok</span></span></code></pre></div>
+<p>With the minimum lowered to 90 events, the three vintages that were
+marked insufficient now receive a verdict. The change lives in the plan,
+where a validator can see it, not in the code.</p>
+</div>
+</div>
+<div id="deliverables" class="section level2">
+<h2>9. Deliverables</h2>
+<p><code>scr_export()</code> writes the selection workbook, the SQL and
+a Markdown summary for an <code>scr_result</code>, and the scorecard,
+validation and strategy workbooks plus the SQL for an
+<code>scr_scorecard</code>. The objects computed above can be passed in,
+so the workbooks carry what was read in this session.
+<code>stamp = TRUE</code> (the default) writes into a new timestamped
+directory, so an earlier run is never overwritten.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>out <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;scorecraft-get-started&quot;</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>files_res <span class="ot">&lt;-</span> <span class="fu">scr_export</span>(res, out, <span class="at">stamp =</span> <span class="cn">FALSE</span>)<span class="sc">$</span>files</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>files_sc  <span class="ot">&lt;-</span> <span class="fu">scr_export</span>(sc, out, <span class="at">stamp =</span> <span class="cn">FALSE</span>, <span class="at">cutoff =</span> ct, <span class="at">strategy =</span> st, <span class="at">reject =</span> rj,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>                        <span class="at">monitor =</span> mo)<span class="sc">$</span>files</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="fu">basename</span>(<span class="fu">unlist</span>(<span class="fu">c</span>(files_res, files_sc)))</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; [1] &quot;selection_default.xlsx&quot;  &quot;sql_woe_default.sql&quot;    </span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; [3] &quot;summary_default.md&quot;      &quot;scorecard_default.xlsx&quot; </span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt; [5] &quot;validation_default.xlsx&quot; &quot;strategy_default.xlsx&quot;  </span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; [7] &quot;sql_score_default.sql&quot;   &quot;sql_woe_default.sql&quot;</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a>mo3 <span class="ot">&lt;-</span> <span class="fu">scr_monitor</span>(sc, scr_demo, <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>, <span class="at">target =</span> <span class="st">&quot;default&quot;</span>, <span class="at">n_boot =</span> <span class="dv">20</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a>                   <span class="at">plan =</span> files_sc<span class="sc">$</span>strategy)</span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="fu">identical</span>(mo3<span class="sc">$</span>psi<span class="sc">$</span>flag_adjusted, mo<span class="sc">$</span>psi<span class="sc">$</span>flag_adjusted)</span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Every sheet is sanitised before it is written (a cell starting with
+<code>=</code>, <code>+</code>, <code>-</code> or <code>@</code> cannot
+become a formula), and each workbook is verified after writing.
+<code>?scr_export</code> lists the sheets.</p>
+</div>
+<div id="before-go-live" class="section level2">
+<h2>10. Before go-live</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Split and figures.</strong> The split is out-of-time and the
+hold-out figures, with their intervals, are the ones quoted.</li>
+<li><strong>Policy.</strong> The cut-off and the bands come from
+<code>scr_cutoff()</code> and <code>scr_strategy()</code> with revenue
+and loss figures the business signed off, and the reject coverage and
+multiplier are written down with them.</li>
+<li><strong>SQL.</strong> The script in production is the exported one,
+with <code>table</code> and <code>keep_columns</code> set, and its
+output was compared with <code>scr_apply()</code> on the same rows after
+deployment.</li>
+<li><strong>Reasons.</strong> <code>scr_reasons()</code> is the source
+of decline reasons, with the reference stated in the policy.</li>
+<li><strong>Monitoring.</strong> The monitoring plan is filed with the
+deliverables, and <code>scr_monitor(plan = )</code> runs on every new
+period.</li>
+</ol>
+</div>
+<div id="appendix-from-a-database" class="section level2">
+<h2>Appendix: from a database</h2>
+<p>In production the table lives in a warehouse.
+<code>scr_connect()</code> opens a DBI connection: with a
+<code>dsn</code> through ODBC (forcing <code>bigint = &quot;numeric&quot;</code>,
+so a BIGINT is not read as a high-cardinality categorical), with a
+<code>driver</code> through any DBI driver. SQLite stands in for the
+warehouse here. It has no date type, so <code>ref_date</code> is stored
+as text, which the split reads as a date.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">scr_connect</span>(<span class="at">driver =</span> RSQLite<span class="sc">::</span><span class="fu">SQLite</span>(), <span class="at">dbname =</span> <span class="st">&quot;:memory:&quot;</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>d <span class="ot">&lt;-</span> scr_demo</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>d<span class="sc">$</span>ref_date <span class="ot">&lt;-</span> <span class="fu">as.character</span>(d<span class="sc">$</span>ref_date)</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbWriteTable</span>(con, <span class="st">&quot;dtm&quot;</span>, d)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">scr_fetch</span>(con, <span class="st">&quot;dtm&quot;</span>, <span class="at">sample_frac =</span> <span class="fl">0.5</span>, <span class="at">seed =</span> <span class="dv">42</span>))</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt; SQL: select * from dtm where ((abs(random()) % 1000000) / 1000000.0) &lt;= 0.5</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="co">#&gt; [1] 2033</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">scr_fetch</span>(con, <span class="st">&quot;dtm&quot;</span>, <span class="at">max_rows =</span> <span class="dv">1000</span>))</span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt;   cap of 1,000 rows: fraction reduced from 1.0000 to 0.2381 (table has 4,200)</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt; SQL: select * from dtm where ((abs(random()) % 1000000) / 1000000.0) &lt;= 0.23809523809523808</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; [1] 995</span></span></code></pre></div>
+<p><code>scr_fetch()</code> samples <strong>on the server</strong>: the
+fraction becomes a <code>WHERE</code> clause on a random expression
+chosen by the connection class, and <code>max_rows</code> lowers the
+fraction so that the expected count fits under the cap. The query is
+echoed while <code>scr_verbose()</code> is on.</p>
+<p><code>scr_run()</code> chains fetch and selection over several
+targets, dropping each sibling target from the candidates and recording
+a failure on one target without stopping the others. With
+<code>date_col</code> the split is out-of-time, as in section 2, and the
+table name is recorded for the SQL.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>rs <span class="ot">&lt;-</span> <span class="fu">scr_run</span>(con, <span class="st">&quot;dtm&quot;</span>, <span class="at">targets =</span> <span class="fu">c</span>(<span class="st">&quot;default&quot;</span>, <span class="st">&quot;churn&quot;</span>), <span class="at">config =</span> cfg, <span class="at">drop =</span> <span class="st">&quot;id&quot;</span>,</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a>              <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>rs</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt; &lt;scr_runset&gt; 2 target(s): 2 succeeded, 0 failed</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">#&gt;   target           rows approved      AUC       KS</span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#&gt;   default         4,200       12   0.7375   0.3695</span></span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a><span class="co">#&gt;   churn           4,200        9   0.7262   0.3288</span></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a><span class="fu">c</span>(<span class="at">split =</span> rs<span class="sc">$</span>default<span class="sc">$</span>split<span class="sc">$</span>method, <span class="at">cutoff =</span> rs<span class="sc">$</span>default<span class="sc">$</span>split<span class="sc">$</span>cutoff,</span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a>  <span class="at">table =</span> rs<span class="sc">$</span>default<span class="sc">$</span>config<span class="sc">$</span>sql_table)</span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="co">#&gt;         split        cutoff         table </span></span>
+<span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a><span class="co">#&gt; &quot;out-of-time&quot;  &quot;2026-05-01&quot;         &quot;dtm&quot;</span></span>
+<span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con)</span></code></pre></div>
+</div>
+<div id="next-steps" class="section level2">
+<h2>Next steps</h2>
+<ul>
+<li><code>vignette(&quot;coarse-classing&quot;, package = &quot;scorecraft&quot;)</code>:
+replacing optimal bins by business bands, with every decision in a
+ledger.</li>
+<li><code>vignette(&quot;alignment-and-portfolio&quot;, package = &quot;scorecraft&quot;)</code>:
+the points scale, odds orientation, challengers and rescaling.</li>
+<li>From the scorecard to IRB risk parameters: <a href="https://evandeilton.github.io/scorecraft/articles/pd-calibration-and-grades.html">PD
+calibration and rating grades</a>, <a href="https://evandeilton.github.io/scorecraft/articles/lgd-and-ead-under-irb.html">LGD
+and EAD</a> and <a href="https://evandeilton.github.io/scorecraft/articles/expected-loss-and-capital.html">expected
+loss and capital</a>.</li>
+</ul>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Hand, D. J. and Henley, W. E. (1993). Can reject inference ever work?
+<em>IMA Journal of Mathematics Applied in Business and Industry</em>,
+5(1), 45-55.</p>
+<p>Siddiqi, N. (2017). <em>Intelligent Credit Scoring: Building and
+Implementing Better Credit Risk Scorecards</em>, 2nd edition. Wiley.</p>
+<p>Yurdakul, B. and Naranjo, J. (2020). Statistical properties of the
+population stability index. <em>Journal of Risk Model Validation</em>,
+14(4), 89-100.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>scorecraft cheat sheet</title>
+<meta name="description" content="Cheat sheet of the scorecraft R package: variable selection, points scorecards, scale alignment, cut-off strategy, production SQL, monitoring and IRB risk parameters.">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Roboto+Mono:wght@400;500;700&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0b1220;
+  --sky: #38bdf8;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --rule: #cbd5e1;
+  --paper: #ffffff;
+  --c-config: #0369a1;
+  --c-select: #0284c7;
+  --c-read: #0e7490;
+  --c-score: #0d9488;
+  --c-decide: #15803d;
+  --c-lab: #4d7c0f;
+  --c-metric: #0f766e;
+  --c-prod: #0284c7;
+  --c-monitor: #0d9488;
+  --c-db: #475569;
+  --c-default: #b45309;
+  --c-pd: #c2410c;
+  --c-lgd: #e11d48;
+  --c-ead: #9f1239;
+  --c-cap: #1e3a8a;
+  --mono: "Roboto Mono", "DejaVu Sans Mono", monospace;
+  --sans: "Source Sans 3", "Inter", "Roboto", sans-serif;
+  --head: "Montserrat", "Inter", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: #e2e8f0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 7pt;
+  line-height: 1.24;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ---- page frame ---------------------------------------------------- */
+.page {
+  background: var(--paper);
+  width: 297mm;
+  height: 210mm;
+  margin: 0 auto;
+  padding: 0 7mm 0 7mm;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.page + .page { page-break-before: always; break-before: page; }
+
+header.band {
+  background: var(--navy);
+  color: #f8fafc;
+  margin: 0 -7mm;
+  padding: 0 7mm;
+  height: 20mm;
+  display: flex;
+  align-items: center;
+  gap: 5mm;
+  position: relative;
+  border-bottom: 1.2mm solid var(--sky);
+  flex: none;
+}
+header.band.slim { height: 12mm; }
+header.band .logo {
+  height: 18mm;
+  margin-top: 0;
+}
+header.band.slim .logo { height: 10.5mm; margin-top: 0; }
+header.band h1 {
+  font-family: var(--head);
+  font-weight: 800;
+  font-size: 21pt;
+  letter-spacing: -0.2pt;
+  margin: 0;
+  white-space: nowrap;
+}
+header.band.slim h1 { font-size: 15pt; }
+header.band h1 .pkg { color: var(--sky); }
+header.band h1 .sep { color: #7dd3fc; font-weight: 600; margin: 0 1.5mm; }
+header.band h1 .kind { font-weight: 600; font-size: 0.72em; letter-spacing: 0.6pt; color: #e2e8f0; }
+header.band .tagline {
+  margin-left: auto;
+  text-align: right;
+  font-size: 7.6pt;
+  color: #cbd5e1;
+  max-width: 105mm;
+  line-height: 1.3;
+}
+header.band .tagline b { color: #f8fafc; }
+
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  column-gap: 4.5mm;
+  padding-top: 2.6mm;
+  min-height: 0;
+}
+.grid.first { padding-top: 3mm; }
+.col { display: flex; flex-direction: column; gap: 2mm; min-width: 0; }
+
+footer.foot {
+  flex: none;
+  height: 5.5mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 0.3mm solid var(--rule);
+  font-size: 6.4pt;
+  color: var(--muted);
+}
+footer.foot b { color: var(--ink); font-weight: 600; }
+footer.foot .dot { margin: 0 1.4mm; color: var(--rule); }
+
+/* ---- sections ------------------------------------------------------ */
+section { --c: var(--c-select); }
+section > h2 {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 9.2pt;
+  color: var(--c);
+  margin: 0 0 1mm 0;
+  padding-bottom: 0.6mm;
+  border-bottom: 0.55mm solid var(--c);
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+}
+section > h2 small {
+  margin-left: auto;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 6.4pt;
+  color: var(--muted);
+  letter-spacing: 0.2pt;
+  text-transform: uppercase;
+}
+section > h3 {
+  font-family: var(--head);
+  font-weight: 700;
+  font-size: 7.2pt;
+  color: var(--c);
+  margin: 1.4mm 0 0.6mm 0;
+  text-transform: uppercase;
+  letter-spacing: 0.35pt;
+}
+p { margin: 0 0 0.9mm 0; }
+.lead { color: #334155; }
+.fn { margin: 0 0 0.8mm 0; padding-left: 2.2mm; text-indent: -2.2mm; }
+.fn code, .inl {
+  font-family: var(--mono);
+  font-size: 6.1pt;
+  color: #475569;
+}
+.fn code b { color: var(--c); font-weight: 700; }
+.inl { color: var(--ink); background: #f1f5f9; padding: 0 0.5mm; border-radius: 0.5mm; white-space: nowrap; }
+pre.code {
+  font-family: var(--mono);
+  font-size: 5.9pt;
+  line-height: 1.3;
+  margin: 0.4mm 0 1.2mm 0;
+  padding: 1mm 1.4mm;
+  background: #f8fafc;
+  border-left: 0.7mm solid var(--c);
+  border-radius: 0 0.8mm 0.8mm 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #0f172a;
+}
+pre.code .cm { color: #64748b; font-style: italic; }
+pre.code .st { color: #b45309; }
+pre.code .fx { color: var(--c); font-weight: 700; }
+.note {
+  font-size: 6.7pt;
+  color: #475569;
+  background: #f8fafc;
+  border: 0.25mm dashed var(--rule);
+  border-radius: 1mm;
+  padding: 0.9mm 1.4mm;
+  margin: 0.6mm 0 1.2mm 0;
+}
+.note b { color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.7mm; margin: 0.4mm 0 1.2mm 0; }
+.chips span {
+  font-family: var(--mono);
+  font-size: 5.5pt;
+  padding: 0.1mm 0.9mm;
+  border-radius: 0.8mm;
+  background: color-mix(in srgb, var(--c) 12%, white);
+  color: color-mix(in srgb, var(--c) 80%, black);
+  border: 0.2mm solid color-mix(in srgb, var(--c) 35%, white);
+  white-space: nowrap;
+}
+.fig { display: block; width: 100%; height: auto; margin: 0.5mm 0 1.3mm 0; }
+.fig text { font-family: var(--sans); }
+.fig .mono { font-family: var(--mono); }
+.eq {
+  font-family: var(--mono);
+  font-size: 5.9pt;
+  text-align: center;
+  color: #0f172a;
+  background: color-mix(in srgb, var(--c) 7%, white);
+  border-radius: 0.8mm;
+  padding: 0.7mm 1mm;
+  margin: 0.4mm 0 1.2mm 0;
+}
+table.tb {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6.3pt;
+  margin: 0.5mm 0 1.2mm 0;
+}
+table.tb th {
+  text-align: left;
+  font-weight: 700;
+  color: var(--c);
+  border-bottom: 0.35mm solid var(--c);
+  padding: 0.35mm 0.8mm;
+}
+table.tb td { padding: 0.3mm 0.8mm; border-bottom: 0.2mm solid #e2e8f0; vertical-align: top; }
+table.tb td code { font-family: var(--mono); font-size: 6pt; }
+table.tb .c { text-align: center; }
+.yes { display: inline-block; width: 1.9mm; height: 1.9mm; border-radius: 50%; background: var(--c); }
+.no { display: inline-block; width: 1.9mm; height: 0.35mm; background: var(--rule); vertical-align: middle; }
+
+table.tb.pts td { padding: 0.15mm 0.8mm; }
+table.tb.pts td:last-child { width: 30%; }
+.bar { display: inline-block; height: 1.6mm; background: var(--c-score); vertical-align: middle; border-radius: 0 0.4mm 0.4mm 0; }
+.bar.neg { background: #f43f5e; }
+.cap { font-size: 6.4pt; color: var(--muted); margin-top: -0.4mm; }
+/* pipeline list */
+ol.pipe { list-style: none; margin: 0.4mm 0 1.2mm 0; padding: 0; position: relative; }
+ol.pipe li {
+  display: grid;
+  grid-template-columns: 4mm 20.5mm 1fr;
+  align-items: center;
+  column-gap: 1.2mm;
+  padding: 0.12mm 0;
+  position: relative;
+}
+ol.pipe li::before {
+  content: "";
+  position: absolute;
+  left: 1.95mm;
+  top: 50%;
+  height: 100%;
+  border-left: 0.35mm solid var(--rule);
+  z-index: 0;
+}
+ol.pipe li:last-child::before { display: none; }
+ol.pipe .n {
+  width: 4mm; height: 4mm; border-radius: 50%;
+  background: var(--c); color: #fff;
+  font-family: var(--head); font-weight: 700; font-size: 5.8pt;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+}
+ol.pipe code { font-family: var(--mono); font-size: 6pt; font-weight: 700; color: var(--ink); }
+ol.pipe span.d { font-size: 6.6pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #475569; line-height: 1.2; }
+ol.pipe li.grp { padding-left: 0; }
+.bracket {
+  display: flex; gap: 1mm; font-size: 6.3pt; color: var(--muted); margin: -0.2mm 0 1.2mm 0;
+}
+.bracket span { border: 0.25mm solid var(--rule); border-radius: 0.8mm; padding: 0.2mm 1mm; }
+.bracket code { font-family: var(--mono); font-size: 6.1pt; color: var(--c); font-weight: 700; }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4mm; margin: 0.4mm 0 1.2mm 0; }
+.two > div {
+  border-radius: 1mm;
+  padding: 0.9mm 1.2mm;
+  background: color-mix(in srgb, var(--c) 7%, white);
+  border: 0.2mm solid color-mix(in srgb, var(--c) 30%, white);
+  font-size: 6.6pt;
+}
+.two > div b { color: var(--c); font-family: var(--mono); font-size: 6.3pt; }
+
+/* ---- screen only --------------------------------------------------- */
+.toolbar { display: none; }
+@media screen {
+  body { padding: 0 0 8mm 0; }
+  .toolbar {
+    display: flex; align-items: center; gap: 12px;
+    max-width: 297mm; margin: 0 auto; padding: 14px 4px;
+    font-family: var(--sans); font-size: 15px;
+  }
+  .toolbar a {
+    color: var(--navy); text-decoration: none; font-weight: 600;
+    padding: 6px 12px; border-radius: 6px; background: #fff; border: 1px solid var(--rule);
+  }
+  .toolbar a.primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .toolbar a:hover { border-color: var(--sky); }
+  .toolbar .sp { flex: 1; }
+  .page { box-shadow: 0 2px 14px rgba(15, 23, 42, 0.18); margin-bottom: 8mm; }
+}
+@media screen and (max-width: 1160px) {
+  body { font-size: 10.5px; }
+  .toolbar { padding: 12px 16px; flex-wrap: wrap; }
+  .page { width: auto; height: auto; overflow: visible; margin: 0 0 16px 0; padding: 0 16px; }
+  header.band { margin: 0 -16px; padding: 10px 16px; height: auto; flex-wrap: wrap; }
+  header.band.slim { height: auto; }
+  header.band .logo, header.band.slim .logo { height: 70px; margin-top: 0; }
+  header.band h1 { font-size: 22px; white-space: normal; }
+  header.band.slim h1 { font-size: 18px; }
+  header.band .tagline { margin-left: 0; text-align: left; max-width: none; font-size: 12px; }
+  .grid, .grid.first { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; padding-top: 14px; }
+  .fn code, .inl, pre.code, ol.pipe code, table.tb td code { font-size: 10px; }
+  pre.code { font-size: 9.6px; }
+  .eq, table.tb, ol.pipe span.d, .cap, .note, .two > div, .two > div b { font-size: 10px; }
+  .chips span, section > h2 small { font-size: 9px; }
+  section > h2 { font-size: 15px; }
+  section > h3 { font-size: 11px; }
+  footer.foot .inl { white-space: normal; }
+  footer.foot { height: auto; padding: 8px 0; flex-wrap: wrap; gap: 4px; font-size: 10px; }
+}
+@media screen and (max-width: 700px) {
+  .grid, .grid.first { grid-template-columns: minmax(0, 1fr); }
+  ol.pipe li { grid-template-columns: 18px 34% 1fr; }
+  ol.pipe .n { width: 18px; height: 18px; font-size: 9px; }
+}
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  body { background: #fff; }
+  .page { margin: 0; box-shadow: none; }
+}
+</style>
+</head>
+<body>
+<!--
+  Source of the scorecraft cheat sheet. The same file is the page of the
+  pkgdown site (pkgdown/assets/cheatsheet.html) and, printed to PDF by
+  headless Chrome, inst/cheatsheet/scorecraft-cheatsheet.pdf:
+
+    google-chrome --headless --no-pdf-header-footer --virtual-time-budget=20000 \
+      --print-to-pdf=scorecraft-cheatsheet.pdf cheatsheet.html
+
+  with the hex logo next to it as logo.png. For a compact PDF, point the
+  Google Fonts link to the static (non-variable) cuts of the same three
+  families: Chrome then embeds TrueType subsets instead of Type 3 glyphs.
+-->
+
+<nav class="toolbar">
+  <a href="index.html">&larr; scorecraft</a>
+  <a href="reference/index.html">Reference</a>
+  <span class="sp"></span>
+  <a class="primary" href="https://github.com/evandeilton/scorecraft/raw/main/inst/cheatsheet/scorecraft-cheatsheet.pdf">Download PDF</a>
+</nav>
+
+<!-- ================================================================ -->
+<!-- PAGE 1: scorecard development                                     -->
+<!-- ================================================================ -->
+<div class="page">
+<header class="band">
+  <img class="logo" src="logo.png" alt="scorecraft hex logo">
+  <h1>Credit scorecards with <span class="pkg">scorecraft</span><span class="sep">::</span><span class="kind">CHEAT SHEET</span></h1>
+  <div class="tagline">Points scorecards for binary targets (credit risk, fraud, propensity) on the optimal binning and WOE engine of <b>OptimalBinningWoE</b>, with explicit scale alignment, production SQL and IRB risk parameters.</div>
+</header>
+
+<div class="grid first">
+
+<!-- ---------------- column 1 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-config)">
+  <h2>The pipeline <small>every stage is a function</small></h2>
+  <p class="lead">Each stage returns an object that prints; every decision goes to a ledger. Two shortcuts chain the stages.</p>
+  <ol class="pipe">
+    <li><span class="n">0</span><code>scr_split()</code><span class="d">type columns, split the sample</span></li>
+    <li><span class="n">1</span><code>scr_triage()</code><span class="d">profile, sentinels, early failures</span></li>
+    <li><span class="n">2</span><code>scr_bin()</code><span class="d">optimal bins and three gates</span></li>
+    <li><span class="n">3</span><code>scr_model()</code><span class="d">model votes and consensus</span></li>
+    <li><span class="n">4</span><code>scr_scorecard()</code><span class="d">logistic fit on WOE, points</span></li>
+    <li><span class="n">5</span><code>scr_align()</code><span class="d">raw score to the declared scale</span></li>
+    <li><span class="n">6</span><code>scr_cutoff()</code><span class="d">cut-off, strategy, rejects</span></li>
+    <li><span class="n">7</span><code>scr_sql()</code><span class="d">scoring in R and in SQL</span></li>
+  </ol>
+  <div class="bracket"><span><code>scr_select()</code> = 0 to 3</span><span><code>scr_scorecard()</code> = 4 and 5</span></div>
+</section>
+
+<section style="--c: var(--c-config)">
+  <h2>Configure</h2>
+  <p class="fn"><code><b>scr_config</b>(preset = "moderate", ...)</code> Every knob of every stage in one object. The preset sets how tight the funnel is; override any key by name.</p>
+<pre class="code">cfg &lt;- <span class="fx">scr_config</span>(<span class="st">"moderate"</span>, nthread = 4)</pre>
+  <table class="tb">
+    <tr><th>preset</th><th>variables</th><th>min votes</th><th>corr cut</th><th>IV floor</th></tr>
+    <tr><td><code>aggressive</code></td><td>10 to 15</td><td class="c">3</td><td class="c">0.6</td><td class="c">0.03</td></tr>
+    <tr><td><code>moderate</code></td><td>10 to 25</td><td class="c">2</td><td class="c">0.7</td><td class="c">0.02</td></tr>
+    <tr><td><code>lazy</code></td><td>10 to 40</td><td class="c">1</td><td class="c">0.8</td><td class="c">0.02</td></tr>
+  </table>
+
+  <p class="fn"><code><b>scr_config_keys</b>(stage = NULL)</code> Every key with its stage (0 to 12), default and meaning.</p>
+  <p class="fn"><code><b>scr_presets</b>()</code> This table. <code><b>scr_verbose</b>(on)</code> Progress messages on or off.</p>
+</section>
+
+<section style="--c: var(--c-config)">
+  <h2>Reading conventions</h2>
+  <div class="two">
+    <div><b>objective = "risk"</b><br>target 1 is bad; more points are safer (<code class="inl">higher_is_safer</code>, odds <code class="inl">safe:event</code>).</div>
+    <div><b>objective = "propensity"</b><br>target 1 is good; more points, more likely (<code class="inl">higher_is_riskier</code>, <code class="inl">event:safe</code>).</div>
+  </div>
+  <p><code class="inl">objective</code> never changes the selection; <code class="inl">event_level</code> decides which target value is the event.</p>
+  <h3>Points per bin: sc$points</h3>
+  <table class="tb pts">
+    <tr><th>vl_score_01</th><th class="c">WOE</th><th class="c">points</th><th></th></tr>
+    <tr><td><code>(-Inf; 33.36]</code></td><td class="c">-2.06</td><td class="c">61</td><td><span class="bar" style="width:61%"></span></td></tr>
+    <tr><td><code>(33.36; 38.15]</code></td><td class="c">-0.73</td><td class="c">22</td><td><span class="bar" style="width:22%"></span></td></tr>
+    <tr><td><code>(38.15; 44.24]</code></td><td class="c">-0.66</td><td class="c">20</td><td><span class="bar" style="width:20%"></span></td></tr>
+    <tr><td><code>(44.24; 48.06]</code></td><td class="c">-0.52</td><td class="c">16</td><td><span class="bar" style="width:16%"></span></td></tr>
+    <tr><td><code>(48.06; 63.94]</code></td><td class="c">0.04</td><td class="c">-1</td><td><span class="bar neg" style="width:1%"></span></td></tr>
+    <tr><td><code>(63.94; 72.61]</code></td><td class="c">0.70</td><td class="c">-21</td><td><span class="bar neg" style="width:21%"></span></td></tr>
+    <tr><td><code>(72.61; +Inf]</code></td><td class="c">1.00</td><td class="c">-30</td><td><span class="bar neg" style="width:30%"></span></td></tr>
+  </table>
+  <p class="cap">On <code class="inl">scr_demo</code>: score = 538 + points of 12 variables.</p>
+</section>
+
+
+</div>
+
+<!-- ---------------- column 2 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-select)">
+  <h2>Select variables <small>stages 0 to 3</small></h2>
+<pre class="code">res &lt;- <span class="fx">scr_select</span>(scr_demo, <span class="st">"default"</span>, cfg,
+         drop = c(<span class="st">"id"</span>, <span class="st">"churn"</span>),
+         date_col = <span class="st">"ref_date"</span>)</pre>
+  <p class="fn"><code><b>scr_select</b>(data, target, config, drop, date_col, event_level, export)</code> Split, triage, binning and consensus in one call. With <code class="inl">date_col</code> the hold-out is out of time; without it, a stratified random 30%.</p>
+
+  <svg class="fig" viewBox="0 0 250 58" style="max-height:19mm" role="img" aria-label="Selection funnel: the number of variables shrinks at each gate">
+    <g fill="#bae6fd">
+      <rect x="4" y="4" width="29" height="40"/><rect x="39" y="10" width="29" height="34"/>
+      <rect x="74" y="15" width="29" height="29"/><rect x="109" y="22" width="29" height="22"/>
+      <rect x="144" y="26" width="29" height="18"/><rect x="179" y="31" width="29" height="13"/>
+    </g>
+    <rect x="214" y="33" width="29" height="11" fill="#0284c7"/>
+    <g font-size="7.5" fill="#475569" text-anchor="middle">
+      <text x="18.5" y="54">input</text><text x="53.5" y="54">triage</text><text x="88.5" y="54">binning</text>
+      <text x="123.5" y="54">screen</text><text x="158.5" y="54">hold-out</text><text x="193.5" y="54">corr.</text>
+      <text x="228.5" y="54" fill="#0284c7" font-weight="700">approved</text>
+    </g>
+  </svg>
+  <p class="cap">No candidate leaves the report: each one keeps the stage it failed at, and why.</p>
+
+  <h3>Stage by stage</h3>
+  <p class="fn"><code><b>scr_split</b>(data, target, date_col = NULL, ratio = 0.3)</code> Type the columns and split train and hold-out.</p>
+  <p class="fn"><code><b>scr_triage</b>(split, config)</code> Profile on train only. Fails <code class="inl">CONSTANT</code>, <code class="inl">NEAR_CONSTANT</code>, <code class="inl">TOO_MANY_MISSING</code>, <code class="inl">HIGH_CARDINALITY</code>, <code class="inl">NO_SIGNAL</code>, <code class="inl">DUPLICATE_OF</code>. A sentinel (<code class="inl">-999</code>) with mass and signal becomes a flag column <code class="inl">x__sp</code>.</p>
+  <p class="fn"><code><b>scr_bin</b>(triage, config)</code> Optimal bins on train, in parallel by column, then three gates: the eight admission rules below; hold-out revalidation with <b>frozen bins</b> (IV ratio, PSI); redundancy pruning by rank correlation on the WOE space.</p>
+  <div class="chips"><span>IV_BELOW_MIN</span><span>IV_SUSPICIOUS</span><span>NOT_MONOTONIC</span><span>TOO_FEW_BINS</span><span>TOO_MANY_BINS</span><span>SMALL_BIN</span><span>DEGENERATE_BIN</span><span>BINNING_ERROR</span></div>
+  <p class="fn"><code><b>scr_model</b>(bins, config)</code> <b>glmnet</b>, <b>xgboost</b>, <b>lightgbm</b> and <b>ranger</b> vote; the consensus is weighted by each model's hold-out Gini and the shortlist stays in <code class="inl">[target_min, target_max]</code>.</p>
+</section>
+
+<section style="--c: var(--c-read)">
+  <h2>Read the result</h2>
+  <p class="fn"><code><b>scr_selected</b>(res, which = "final")</code> The shortlist; also <code class="inl">"consensus"</code>, <code class="inl">"manual"</code>.</p>
+  <p class="fn"><code><b>scr_funnel</b>(res, only_selected = FALSE)</code> Every input column, its IV, KS, PSI and the reason it stopped.</p>
+  <p class="fn"><code><b>scr_gains</b>(res)</code> Bin-level gains of the approved variables.</p>
+  <p class="fn"><code><b>scr_leakage</b>(res, threshold = NULL)</code> Suspicious IV and degenerate bins.</p>
+  <p class="fn"><code><b>scr_score_metrics</b>(sc)</code> AUC, KS and Gini per sample, with bootstrap CI.</p>
+  <p class="fn"><code><b>scr_score_gains</b>(sc, sample = "holdout")</code> Gains per score band frozen on train.</p>
+  <p class="fn"><code><b>summary</b>(res)</code>, <code><b>plot</b>(res)</code>, <code><b>as.data.frame</b>(res)</code> Executive summary, funnel bar chart, funnel table.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 3 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-score)">
+  <h2>Build the scorecard <small>stages 4 and 5</small></h2>
+<pre class="code">sc &lt;- <span class="fx">scr_scorecard</span>(res, base_score = 600,
+        base_odds = 50, pdo = 20,
+        challenger = <span class="st">"xgboost"</span>)
+sc$alignment   <span class="cm"># the fitted scale map</span></pre>
+  <p class="fn"><code><b>scr_scorecard</b>(x, features, base_score, base_odds, pdo, direction, challenger, points_style)</code> Logistic regression on the WOE columns with a <b>sign check</b> (a non-positive coefficient leaves, one at a time), points per bin, bootstrap CI, bands frozen on train, PSI and CSI.</p>
+
+  <svg class="fig" viewBox="0 0 250 84" role="img" aria-label="Alignment: every pdo points the odds double">
+    <line x1="30" y1="64" x2="150" y2="64" stroke="#94a3b8" stroke-width="0.8"/>
+    <line x1="30" y1="64" x2="30" y2="4" stroke="#94a3b8" stroke-width="0.8"/>
+    <line x1="34" y1="60" x2="146" y2="8" stroke="#0d9488" stroke-width="2"/>
+    <g stroke="#0d9488" stroke-dasharray="2 2" stroke-width="0.7">
+      <line x1="30" y1="34" x2="90" y2="34"/><line x1="90" y1="64" x2="90" y2="34"/>
+      <line x1="30" y1="20" x2="120" y2="20"/><line x1="120" y1="64" x2="120" y2="20"/>
+    </g>
+    <circle cx="90" cy="34" r="2.3" fill="#0d9488"/><circle cx="120" cy="20" r="2.3" fill="#0d9488"/>
+    <g font-size="7.5" fill="#475569">
+      <text x="26" y="36.5" text-anchor="end">600</text><text x="26" y="22.5" text-anchor="end">620</text>
+      <text x="90" y="73" text-anchor="middle">50:1</text><text x="120" y="73" text-anchor="middle">100:1</text>
+      <text x="90" y="82" text-anchor="middle" fill="#64748b">odds (log scale)</text>
+      <text x="26" y="8" text-anchor="end">score</text>
+    </g>
+    <g font-size="8" fill="#0f172a">
+      <text x="160" y="14" font-weight="700" fill="#0d9488">The scale</text>
+      <text x="160" y="26">600 points</text>
+      <text x="160" y="36">at odds 50:1;</text>
+      <text x="160" y="46">+ 20 points (pdo)</text>
+      <text x="160" y="56">doubles the odds</text>
+    </g>
+  </svg>
+  <div class="eq">ln(odds) = I + S&middot;logit &rarr; score = a + b&middot;logit<br>factor = pdo / ln 2<br>offset = base_score &minus; factor&middot;ln(base_odds)</div>
+  <p class="fn"><code><b>scr_align</b>(raw, y, base_score, base_odds, pdo, direction, method = "regression")</code> Align the raw score of <b>any</b> engine: empirical log-odds regressed on score bands, composed with the PDO map. Two scorecards aligned this way compare point for point.</p>
+  <p class="fn"><code><b>predict</b>(align, raw, type = "score")</code> Points, or <code class="inl">type = "prob"</code> for the implied probability.</p>
+  <p class="note"><b>Challenger</b> (<code class="inl">"xgboost"</code>, <code class="inl">"lightgbm"</code>): aligned to the same scale for comparison, with <code class="inl">supports_scorecard = FALSE</code>: no points, no reason codes. <b>Points style</b>: <code class="inl">"base_plus_deviation"</code> or <code class="inl">"distributed"</code>.</p>
+</section>
+
+<section style="--c: var(--c-decide)">
+  <h2>Decide <small>stage 6</small></h2>
+  <p class="fn"><code><b>scr_cutoff</b>(sc, n_cuts = NULL, cuts = NULL)</code> Approval, event rate on each side, events avoided and KS at each cut. Cuts are train quantiles applied frozen to the hold-out.</p>
+  <p class="fn"><code><b>scr_strategy</b>(sc, revenue_good = 1080, loss_bad = 4500)</code> Bands with volume, event rate, decision and expected profit per account:</p>
+  <div class="eq">EP = (1 &minus; p)&middot;revenue_good &minus; p&middot;loss_bad<br>p* = revenue_good / (revenue_good + loss_bad)</div>
+  <svg class="fig" viewBox="0 0 250 46" role="img" aria-label="Strategy bands: approve below break-even, review up to 25 percent above, decline the rest">
+    <g>
+      <rect x="4" y="38" width="16" height="6" fill="#16a34a"/><rect x="23" y="36" width="16" height="8" fill="#16a34a"/>
+      <rect x="42" y="33" width="16" height="11" fill="#16a34a"/><rect x="61" y="30" width="16" height="14" fill="#16a34a"/>
+      <rect x="80" y="26" width="16" height="18" fill="#16a34a"/><rect x="99" y="20" width="16" height="24" fill="#f59e0b"/>
+      <rect x="118" y="13" width="16" height="31" fill="#dc2626"/><rect x="137" y="4" width="16" height="40" fill="#dc2626"/>
+    </g>
+    <line x1="1" y1="23" x2="157" y2="23" stroke="#0f172a" stroke-width="0.7" stroke-dasharray="3 2"/>
+    <g font-size="7.8">
+      <text x="162" y="11" fill="#0f172a">- - break-even p*</text>
+      <text x="162" y="22" fill="#15803d" font-weight="700">approve</text>
+      <text x="162" y="32" fill="#b45309" font-weight="700">review, &le; 1.25 p*</text>
+      <text x="162" y="42" fill="#b91c1c" font-weight="700">decline</text>
+    </g>
+  </svg>
+  <p class="fn"><code><b>scr_reject</b>(sc, population = NULL, accepted = NULL)</code> Honest reject inference: population scope, outcome coverage per band and a <b>sensitivity band</b> (the rejects 2, 4 or 8 times worse), never a single invented multiplier.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 4 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-lab)">
+  <h2>Coarse classing lab <small>manual bins</small></h2>
+  <p class="lead">Manual bins and manual variable choice, each with a reason, benchmarked against the optimal bins on train and hold-out.</p>
+  <svg class="fig" viewBox="0 0 250 58" role="img" aria-label="Lab cycle: open, propose, verdict, accept or discard, choose, apply">
+    <defs><marker id="ah" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#4d7c0f"/></marker></defs>
+    <g font-size="8" text-anchor="middle" fill="#0f172a">
+      <rect x="2" y="3" width="54" height="18" rx="3" fill="#ecfccb" stroke="#4d7c0f" stroke-width="0.6"/><text x="29" y="14.8">open lab</text>
+      <rect x="66" y="3" width="54" height="18" rx="3" fill="#ecfccb" stroke="#4d7c0f" stroke-width="0.6"/><text x="93" y="14.8">propose</text>
+      <rect x="130" y="3" width="54" height="18" rx="3" fill="#fff" stroke="#4d7c0f" stroke-width="0.6"/><text x="157" y="14.8">verdict</text>
+      <rect x="194" y="3" width="54" height="18" rx="3" fill="#ecfccb" stroke="#4d7c0f" stroke-width="0.6"/><text x="221" y="11.2" font-size="7.5">accept</text><text x="221" y="18.4" font-size="7.5">or discard</text>
+      <rect x="130" y="37" width="54" height="18" rx="3" fill="#ecfccb" stroke="#4d7c0f" stroke-width="0.6"/><text x="157" y="48.8">choose</text>
+      <rect x="194" y="37" width="54" height="18" rx="3" fill="#4d7c0f" stroke="#4d7c0f" stroke-width="0.6"/><text x="221" y="48.8" fill="#fff" font-weight="700">apply</text>
+    </g>
+    <g stroke="#4d7c0f" stroke-width="0.8" fill="none" marker-end="url(#ah)">
+      <path d="M56,12 L64,12"/><path d="M120,12 L128,12"/><path d="M184,12 L192,12"/>
+      <path d="M221,21 L221,29 L93,29 L93,23"/><path d="M184,46 L192,46"/>
+    </g>
+    <text x="98" y="37" font-size="7.5" fill="#4d7c0f">next variable</text>
+  </svg>
+  <p class="cap">Verdict: ACCEPTABLE, REVIEW or BLOCKED. The reason is mandatory and the ledger is append-only.</p>
+<pre class="code">lab &lt;- <span class="fx">scr_coarse_classing</span>(res)
+p &lt;- <span class="fx">scr_classing_propose</span>(lab, <span class="st">"ds_region"</span>,
+  groups = list(edge = c(<span class="st">"NORTH"</span>, <span class="st">"SOUTH"</span>),
+    core = c(<span class="st">"EAST"</span>, <span class="st">"WEST"</span>, <span class="st">"CENTRE"</span>)))
+lab &lt;- <span class="fx">scr_classing_accept</span>(lab, p,
+  reason = <span class="st">"edge/core is what pricing uses"</span>)
+lab &lt;- <span class="fx">scr_classing_choose</span>(lab,
+  drop = <span class="st">"vl_score_10"</span>,
+  reason = <span class="st">"not available at decision time"</span>)
+res2 &lt;- <span class="fx">scr_classing_apply</span>(lab)  <span class="cm"># scr_result</span>
+sc2 &lt;- <span class="fx">scr_scorecard</span>(res2)</pre>
+  <p class="fn"><code><b>scr_coarse_classing</b>(x, features = NULL, max_iv_loss = NULL)</code> Open the lab on every variable that reached binning.</p>
+  <p class="fn"><code><b>scr_classing_view</b>(lab, variable)</code> Current bins, train and hold-out IV.</p>
+  <p class="fn"><code><b>scr_classing_propose</b>(lab, variable, ...)</code> One instruction per call:</p>
+  <div class="chips"><span>breaks = c(20, 45)</span><span>groups = list(...)</span><span>merge = c(2, 3)</span><span>split = c(id, at)</span><span>missing_to</span><span>other_to</span><span>reset = TRUE</span></div>
+  <p class="fn"><code><b>scr_classing_accept</b>(lab, proposal, reason, override = FALSE)</code> and <code><b>scr_classing_discard</b>(lab, proposal, reason)</code> Record the decision; <code class="inl">override</code> accepts a <code class="inl">BLOCKED</code> one.</p>
+  <p class="fn"><code><b>scr_classing_choose</b>(lab, keep, drop, force, reason)</code> The final variable list by hand.</p>
+  <p class="fn"><code><b>scr_classing_apply</b>(lab)</code> Commit; the scorecard, the R scoring and the SQL follow unchanged.</p>
+  <p class="fn"><code><b>scr_classing_spec</b>(lab, file)</code>, <code><b>scr_classing_read</b>(file)</code>, <code><b>scr_classing_import</b>(lab, file)</code> Specification round trip through CSV or xlsx, for a business reviewer.</p>
+  <p class="fn"><code><b>scr_decisions</b>(x)</code> The decision ledger of a lab, result or scorecard.</p>
+</section>
+
+<section style="--c: var(--c-metric)">
+  <h2>Metrics on any vector</h2>
+  <p class="fn"><code><b>scr_metrics</b>(score, y, higher_is_event = TRUE, n_boot = 200)</code> AUC, KS and Gini with a bootstrap CI.</p>
+  <p class="fn"><code><b>scr_psi</b>(base, compare, n_groups = 10, alpha = 0.05)</code> PSI with the fixed thresholds and the sample-size-adjusted critical value.</p>
+  <p class="fn"><code><b>scr_iv</b>(g, y, laplace = 0.5)</code> Information value of any grouping.</p>
+</section>
+
+
+</div>
+</div>
+
+<footer class="foot">
+  <span><b>scorecraft</b> 0.2.0<span class="dot">|</span>MIT licence<span class="dot">|</span>Jose Evandeilton Lopes</span>
+  <span>Learn more at <b>evandeilton.github.io/scorecraft</b><span class="dot">|</span><code class="inl">help(package = "scorecraft")</code></span>
+  <span>Updated: 2026-09<span class="dot">|</span>1 / 2</span>
+</footer>
+</div>
+
+<!-- ================================================================ -->
+<!-- PAGE 2: production, monitoring and IRB risk parameters            -->
+<!-- ================================================================ -->
+<div class="page">
+<header class="band slim">
+  <img class="logo" src="logo.png" alt="">
+  <h1>Production, monitoring and <span class="pkg">IRB risk parameters</span></h1>
+  <div class="tagline">Every regime-specific number is a table selected by a preset: <b>the functions read the tables, never the law</b>.</div>
+</header>
+
+<div class="grid">
+
+<!-- ---------------- column 1 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-prod)">
+  <h2>Score in production <small>stage 7</small></h2>
+<pre class="code"><span class="fx">scr_apply</span>(sc, newdata)     <span class="cm"># score, points</span>
+<span class="fx">scr_reasons</span>(sc, newdata, k = 4)
+<span class="fx">scr_sql</span>(sc, table = <span class="st">"prd.customers"</span>,
+        dialect = <span class="st">"databricks"</span>,
+        file = <span class="st">"score.sql"</span>)
+<span class="fx">scr_export</span>(sc, <span class="st">"output"</span>)</pre>
+  <p class="fn"><code><b>scr_apply</b>(sc, newdata, what = "score")</code> The frozen pre-processing, bins and points; nothing is refitted. <code class="inl">what</code>: <code class="inl">"score"</code>, <code class="inl">"points"</code>, <code class="inl">"woe"</code>, <code class="inl">"all"</code>. On a selection: <code class="inl">scr_apply(res, newdata, what = "both")</code> gives WOE and bin labels.</p>
+  <p class="fn"><code><b>scr_reasons</b>(sc, newdata, k = 4, reference = "mean")</code> Reason codes: the variables that took the most points from each row.</p>
+  <p class="fn"><code><b>scr_sql</b>(x, table, dialect, file)</code> Production SQL in blocks: pre-processing CTE, WOE/BIN from the authoritative cut points, then the score (<code class="inl">what = "score"</code>, <code class="inl">"woe"</code>, <code class="inl">"all"</code>). <b>R and SQL agree</b>, verified by test.</p>
+  <div class="chips"><span>ansi</span><span>databricks</span><span>spark</span><span>hive</span><span>mysql</span><span>mariadb</span><span>sqlserver</span><span>bigquery</span><span>postgres</span><span>oracle</span><span>snowflake</span><span>redshift</span><span>duckdb</span><span>sqlite</span></div>
+  <p class="fn"><code><b>scr_export</b>(x, dir, stamp = TRUE)</code> Deliverables in a timestamped folder: for a scorecard, <code class="inl">scorecard_</code>, <code class="inl">validation_</code> and <code class="inl">strategy_</code> workbooks plus the SQL; for a selection, the selection workbook, the WOE SQL and a Markdown summary.</p>
+</section>
+
+<section style="--c: var(--c-monitor)">
+  <h2>Monitor</h2>
+  <p class="fn"><code><b>scr_monitor</b>(sc, newdata, date_col, target)</code> Per period: score PSI with frozen bands, CSI of every variable with the signed points shift and, with a target, AUC/KS/Gini by vintage.</p>
+  <p class="fn"><code><b>scr_monitoring_plan</b>(sc)</code> The thresholds contract; edit the <code class="inl">Monitoring_Plan</code> sheet and pass it back as <code class="inl">plan</code>.</p>
+  <svg class="fig" viewBox="0 0 250 26" role="img" aria-label="PSI thresholds: stable below 0.10, moderate to 0.25, shift above">
+    <rect x="4" y="2" width="80" height="12" fill="#16a34a"/><rect x="84" y="2" width="80" height="12" fill="#f59e0b"/><rect x="164" y="2" width="82" height="12" fill="#dc2626"/>
+    <g font-size="8" fill="#fff" font-weight="700" text-anchor="middle"><text x="44" y="11">stable</text><text x="124" y="11">moderate</text><text x="205" y="11">shift</text></g>
+    <g font-size="7.5" fill="#475569" text-anchor="middle"><text x="6" y="23" text-anchor="start">0</text><text x="84" y="23">0.10</text><text x="164" y="23">0.25</text></g>
+  </svg>
+  <p class="cap">Next to it, the n-adjusted critical value: 0.034 at n = m = 1000 with 10 bins.</p>
+</section>
+
+<section style="--c: var(--c-db)">
+  <h2>Database and many targets</h2>
+<pre class="code">con &lt;- <span class="fx">scr_connect</span>(dsn = <span class="st">"DW"</span>)
+rs &lt;- <span class="fx">scr_run</span>(con, <span class="st">"dtm"</span>, config = cfg,
+        targets = c(<span class="st">"default"</span>, <span class="st">"churn"</span>))
+<span class="fx">scr_compare</span>(rs); <span class="fx">scr_core</span>(rs, min_targets = 2)</pre>
+  <p class="fn"><code><b>scr_connect</b>(dsn, driver)</code> ODBC with BIGINT read as numeric, or any DBI driver.</p>
+  <p class="fn"><code><b>scr_fetch</b>(con, table, sample_frac, seed)</code> Reproducible server-side sampling.</p>
+  <p class="fn"><code><b>scr_run</b>()</code>, <code><b>scr_compare</b>()</code>, <code><b>scr_core</b>()</code> One selection per target, a comparison table, the variables that cross targets.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 2 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-default)">
+  <h2>Parameters and default</h2>
+  <p class="fn"><code><b>scr_irb_params</b>(framework)</code> Editable tables: PD and LGD floors, supervisory LGD, CCFs, correlations, maturity, output floor, standardised weights.</p>
+  <div class="chips"><span>"bcb"</span><span>"basel3_final"</span><span>"crr3"</span></div>
+  <p class="fn"><code><b>scr_default</b>(data, id, date, dpd, arrears, exposure, utp, restructured, obligor)</code> Default flag from a monthly panel: 90 days past due with material arrears, or unlikeliness to pay; probation 3 months (12 if restructured); obligor pulling effect.</p>
+  <p class="fn"><code><b>scr_default_rate</b>(x, horizon = 12, by = "quarter")</code> One-year default rates by cohort and the long-run average; <code class="inl">lra_adjusted</code> is benchmarked, never applied.</p>
+</section>
+
+<section style="--c: var(--c-pd)">
+  <h2>PD: calibration and grades</h2>
+<pre class="code">params &lt;- <span class="fx">scr_irb_params</span>(<span class="st">"bcb"</span>)
+d &lt;- <span class="fx">scr_default</span>(scr_demo_panel, id = <span class="st">"id"</span>,
+       date = <span class="st">"ref_date"</span>, dpd = <span class="st">"dpd"</span>)
+dr &lt;- <span class="fx">scr_default_rate</span>(d, by = <span class="st">"quarter"</span>)
+cal &lt;- <span class="fx">scr_calibrate</span>(sc, target = dr)
+gr &lt;- <span class="fx">scr_grades</span>(sc, calibration = cal,
+        n_grades = 8)
+gr &lt;- <span class="fx">scr_moc</span>(gr, <span class="st">"C"</span>, method = <span class="st">"ci_binomial"</span>)
+pd &lt;- <span class="fx">scr_pd</span>(gr, params = params,
+        asset_class = <span class="st">"retail_other"</span>)</pre>
+  <svg class="fig" viewBox="0 0 250 57" role="img" aria-label="Grade PD: best estimate plus margins of conservatism, then the floor">
+    <rect x="6" y="26" width="34" height="22" fill="#fed7aa"/><rect x="6" y="19" width="34" height="7" fill="#fdba74"/>
+    <rect x="6" y="12" width="34" height="7" fill="#fb923c"/><rect x="6" y="5" width="34" height="7" fill="#ea580c"/>
+    <g font-size="7.5" fill="#0f172a"><text x="44" y="39">pd_be</text><text x="44" y="25">+ MoC A</text><text x="44" y="18">+ MoC B</text><text x="44" y="11">+ MoC C</text></g>
+    <text x="23" y="56" font-size="7.5" text-anchor="middle" fill="#475569">pd_moc</text>
+    <text x="80" y="30" font-size="11" fill="#475569">&rarr;</text>
+    <rect x="100" y="5" width="34" height="43" fill="#c2410c"/>
+    <line x1="94" y1="34" x2="140" y2="34" stroke="#0f172a" stroke-width="0.8" stroke-dasharray="3 2"/>
+    <text x="143" y="36.5" font-size="7.5" fill="#0f172a">floor</text>
+    <text x="117" y="56" font-size="7.5" text-anchor="middle" fill="#475569">pd_final</text>
+    <g font-size="7.5" fill="#0f172a" font-family="Roboto Mono, monospace"><text x="172" y="18">pd_final =</text><text x="172" y="28">max(pd_moc,</text><text x="178" y="38">floor)</text></g>
+  </svg>
+  <p class="fn"><code><b>scr_calibrate</b>(x, target, method)</code> Re-anchor the PD to the central tendency; the points stay. Methods:</p>
+  <div class="chips"><span>"intercept"</span><span>"logodds_ab"</span><span>"scaling"</span><span>"qmm"</span></div>
+  <p class="fn"><code><b>scr_master_scale</b>(pd_min, pd_max, n_grades)</code> Geometric master scale.</p>
+  <p class="fn"><code><b>scr_grades</b>(x, calibration, n_grades, method)</code> Score cut points with monotone grade PDs (<code class="inl">"geometric"</code>, <code class="inl">"quantile"</code>, <code class="inl">"supplied"</code>); small grades merged and logged.</p>
+  <p class="fn"><code><b>scr_moc</b>(x, category, method, value, reason)</code> Margin of conservatism: <b>C</b> estimation error is computed (<code class="inl">"ci_timeseries"</code>, <code class="inl">"ci_binomial"</code>, <code class="inl">"bootstrap"</code>); <b>A</b> and <b>B</b> need a value and a reason.</p>
+  <p class="fn"><code><b>scr_pd</b>(grades, params, asset_class, philosophy = "ttc")</code> Final grade table with floor.</p>
+  <p class="fn"><code><b>predict</b>(pd, score = s, type = "pd_final")</code> Grade, PD or final PD of new scores.</p>
+  <p class="fn"><code><b>scr_pd_validate</b>(x, newdata, id, date, default, score)</code> Jeffreys, binomial, normal, Hosmer-Lemeshow, multi-period, AUC, concentration, PSI and migration, with traffic lights.</p>
+  <p class="fn"><code><b>scr_migration</b>(grade_t0, grade_t1)</code> Migration matrix and bandwidths.</p>
+  <p class="fn"><code><b>scr_pd_pit_ttc</b>(pd, z, rho, to = "pit")</code> One-factor PIT/TTC bridge.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 3 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-lgd)">
+  <h2>LGD: workout and two stages</h2>
+  <svg class="fig" viewBox="0 0 250 56" role="img" aria-label="Two-stage LGD: cure probability times cure LGD plus non-cure probability times severity">
+    <rect x="2" y="19" width="44" height="18" rx="3" fill="#ffe4e6" stroke="#e11d48" stroke-width="0.6"/>
+    <text x="24" y="30.8" font-size="8" text-anchor="middle" fill="#0f172a">default</text>
+    <g stroke="#e11d48" stroke-width="0.8" fill="none"><path d="M46,28 L78,11"/><path d="M46,28 L78,45"/></g>
+    <text x="42" y="11" font-size="7.5" fill="#9f1239">P(cure)</text>
+    <text x="36" y="54" font-size="7.5" fill="#9f1239">1 &minus; P(cure)</text>
+    <rect x="80" y="3" width="76" height="16" rx="3" fill="#fff" stroke="#e11d48" stroke-width="0.6"/>
+    <text x="118" y="13.8" font-size="8" text-anchor="middle">cure: mean LGD</text>
+    <rect x="80" y="37" width="76" height="16" rx="3" fill="#fff" stroke="#e11d48" stroke-width="0.6"/>
+    <text x="118" y="47.8" font-size="8" text-anchor="middle">severity model</text>
+    <g font-size="7.3" fill="#475569">
+      <text x="162" y="9">logistic on WOE,</text><text x="162" y="18">sign check</text>
+      <text x="162" y="43">fractional logit</text><text x="162" y="52">or beta regression</text>
+    </g>
+  </svg>
+<pre class="code">wo &lt;- <span class="fx">scr_workout</span>(scr_demo_lgd,
+        scr_demo_lgd_cashflows,
+        rates = scr_demo_rates)
+lgd &lt;- <span class="fx">scr_lgd</span>(wo, drivers = c(<span class="st">"product"</span>,
+         <span class="st">"ltv"</span>, <span class="st">"months_on_book"</span>))
+lgd &lt;- <span class="fx">scr_lgd_downturn</span>(lgd, periods = dt,
+         reason = <span class="st">"rates above 13% in 2022-23"</span>)
+lgd &lt;- <span class="fx">scr_lgd_floor</span>(lgd, params = params)
+<span class="cm"># dt: data.frame(start, end) of downturn dates</span></pre>
+  <p class="fn"><code><b>scr_workout</b>(defaults, cashflows, rates)</code> Realised LGD per default: recoveries, direct costs and drawings discounted to the default date.</p>
+  <p class="fn"><code><b>scr_lgd</b>(x, drivers, holdout = 0.3)</code> Cure &times; severity on cohort split, then pools.</p>
+  <p class="fn"><code><b>scr_lgd_pools</b>(x, n_pools)</code> Re-pool the predicted LGD.</p>
+  <p class="fn"><code><b>scr_lgd_downturn</b>(x, periods, method, reason)</code> Downturn per pool: <code class="inl">"type1"</code> observed impact, <code class="inl">"type3"</code> add-on, <code class="inl">"none"</code>.</p>
+  <p class="fn"><code><b>scr_lgd_floor</b>(x, params, asset_class, secured_share)</code> Input floors by collateral.</p>
+  <p class="fn"><code><b>scr_lgd_validate</b>(x)</code> Calibration, discrimination (generalised AUC) and stability battery.</p>
+  <p class="fn"><code><b>scr_elbe</b>(x, grid = c(0, 6, 12, 24, 36))</code> ELBE and in-default LGD by months since default.</p>
+  <p class="fn"><code><b>scr_bin_continuous</b>(data, target, features)</code> Monotone bins against a continuous target.</p>
+</section>
+
+<section style="--c: var(--c-ead)">
+  <h2>EAD: conversion factors</h2>
+  <svg class="fig" viewBox="0 0 250 36" role="img" aria-label="EAD equals drawn plus CCF times the undrawn limit">
+    <rect x="4" y="2" width="92" height="14" fill="#9f1239"/><rect x="96" y="2" width="62" height="14" fill="#fda4af"/>
+    <rect x="158" y="2" width="88" height="14" fill="#fff" stroke="#9f1239" stroke-width="0.6" stroke-dasharray="2 1.5"/>
+    <g font-size="7.8" text-anchor="middle">
+      <text x="50" y="11.8" fill="#fff" font-weight="700">drawn</text>
+      <text x="127" y="11.8" fill="#0f172a">CCF &times; undrawn</text>
+      <text x="202" y="11.8" fill="#9f1239">rest of the limit</text>
+    </g>
+    <path d="M4,19 L4,22 L158,22 L158,19" stroke="#0f172a" stroke-width="0.6" fill="none"/>
+    <text x="4" y="32" font-size="8" fill="#0f172a">EAD = drawn + CCF &middot; (limit &minus; drawn)</text>
+  </svg>
+<pre class="code">rds &lt;- <span class="fx">scr_ead_data</span>(scr_demo_ead,
+         facility_id = <span class="st">"facility_id"</span>,
+         date_col = <span class="st">"ref_date"</span>, limit = <span class="st">"limit"</span>,
+         drawn = <span class="st">"drawn"</span>, defaulted = <span class="st">"defaulted"</span>,
+         drivers = c(<span class="st">"product"</span>, <span class="st">"months_on_book"</span>))
+ead &lt;- <span class="fx">scr_ead</span>(rds, drivers = c(<span class="st">"product"</span>,
+         <span class="st">"utilisation_ref"</span>, <span class="st">"months_on_book"</span>))</pre>
+  <p class="fn"><code><b>scr_ead_data</b>(snapshots, facility_id, date_col, limit, drawn, defaulted, drivers)</code> Realised CCF from monthly facility snapshots.</p>
+  <p class="fn"><code><b>scr_ead</b>(x, drivers, holdout = 0.3)</code> Driver admission (<code class="inl">TOO_FEW_DEFAULTS</code>, <code class="inl">NO_SEPARATION</code>, <code class="inl">NOT_MONOTONIC</code>, <code class="inl">UNSTABLE_HOLDOUT</code>) and CCF pools with MoC and the standardised floor.</p>
+  <p class="fn"><code><b>scr_ead_downturn</b>(x, periods, method, reason)</code> Downturn CCF per pool.</p>
+  <p class="fn"><code><b>scr_ead_validate</b>(x, newdata)</code> Calibration, discrimination, back-testing, stability.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 4 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-cap)">
+  <h2>EL, capital and ECL</h2>
+  <p class="fn"><code><b>scr_el</b>(pd, lgd, ead, defaulted, elbe)</code> Expected loss per exposure, PD &times; LGD &times; EAD (ELBE when defaulted).</p>
+  <p class="fn"><code><b>scr_irb_rw</b>(pd, lgd, ead, m, asset_class, approach = "airb")</code> IRB risk weight of the one-factor model, with floors, correlation and maturity adjustment.</p>
+  <div class="eq">K = LGD&middot;(scr_pd_stress(PD, R, 0.999) &minus; PD)&middot;MA<br>RWA = 12.5&middot;K&middot;EAD</div>
+  <div class="chips"><span>corporate</span><span>corporate_sme</span><span>bank</span><span>sovereign</span><span>hvcre</span><span>retail_mortgage</span><span>qrre_revolver</span><span>qrre_transactor</span><span>retail_other</span></div>
+  <p class="fn"><code><b>scr_sa_rw</b>(asset_class, ltv, rating, ...)</code> Standardised risk weight.</p>
+  <p class="fn"><code><b>scr_pd_stress</b>(pd, rho, q = 0.999)</code> Conditional PD of the one-factor model.</p>
+<pre class="code">cap &lt;- <span class="fx">scr_capital</span>(scr_demo_portfolio,
+         segment = <span class="st">"segment"</span>,
+         asset_class = <span class="st">"asset_class"</span>,
+         provisions = <span class="st">"provision"</span>,
+         params = params)
+cap$totals; cap$segments</pre>
+  <p class="fn"><code><b>scr_capital</b>(x, pd, lgd, ead, segment, asset_class, provisions, params)</code> RWA under IRB and the standardised approach, output floor, EL against provisions, floor impact, sensitivity and concentration.</p>
+  <p class="fn"><code><b>scr_ecl</b>(pd_term, lgd, ead, eir, stage, dpd, pd_orig, scenarios, weights)</code> Expected credit loss from monthly hazards, discounted at the EIR, with weighted scenarios:</p>
+  <div class="eq">ECL = &Sigma;<sub>t</sub> S(t&minus;1)&middot;h<sub>t</sub>&middot;LGD<sub>t</sub>&middot;EAD<sub>t</sub>&middot;(1 + r)<sup>&minus;t/12</sup></div>
+  <svg class="fig" viewBox="0 0 250 33" role="img" aria-label="Stage 1 twelve-month loss, stages 2 and 3 lifetime loss">
+    <rect x="1" y="1" width="80" height="31" rx="3" fill="#dbeafe" stroke="#1e3a8a" stroke-width="0.5"/>
+    <rect x="85" y="1" width="80" height="31" rx="3" fill="#bfdbfe" stroke="#1e3a8a" stroke-width="0.5"/>
+    <rect x="169" y="1" width="80" height="31" rx="3" fill="#1e3a8a"/>
+    <g font-size="8.2" text-anchor="middle" font-weight="700">
+      <text x="41" y="10.5" fill="#1e3a8a">Stage 1</text><text x="125" y="10.5" fill="#1e3a8a">Stage 2</text><text x="209" y="10.5" fill="#fff">Stage 3</text>
+    </g>
+    <g font-size="7.4" text-anchor="middle">
+      <text x="41" y="19.5" fill="#0f172a">12-month ECL</text><text x="41" y="28" fill="#475569">performing</text>
+      <text x="125" y="19.5" fill="#0f172a">lifetime ECL</text><text x="125" y="28" fill="#475569">&ge; 30 dpd or 2 &times; PD</text>
+      <text x="209" y="19.5" fill="#fff">lifetime ECL</text><text x="209" y="28" fill="#bfdbfe">&ge; 90 dpd, impaired</text>
+    </g>
+  </svg>
+</section>
+
+<section style="--c: var(--c-cap)">
+  <h2>One contract for every model</h2>
+  <table class="tb">
+    <tr><th>object from</th><th class="c">scr_apply</th><th class="c">scr_sql</th><th class="c">scr_export</th></tr>
+    <tr><td><code>scr_select()</code></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_scorecard()</code></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_coarse_classing()</code></td><td class="c"><span class="no"></span></td><td class="c"><span class="no"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_pd()</code></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_lgd()</code></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_ead()</code></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+    <tr><td><code>scr_capital()</code></td><td class="c"><span class="no"></span></td><td class="c"><span class="yes"></span></td><td class="c"><span class="yes"></span></td></tr>
+  </table>
+</section>
+
+<section style="--c: var(--c-db)">
+  <h2>Demo data <small>synthetic</small></h2>
+  <table class="tb">
+    <tr><td><code>scr_demo</code></td><td>4,200 applications, two targets</td></tr>
+    <tr><td><code>scr_demo_panel</code></td><td>monthly panel for the default flag</td></tr>
+    <tr><td><code>scr_demo_lgd</code></td><td>defaults, <code>_cashflows</code>, <code>scr_demo_rates</code></td></tr>
+    <tr><td><code>scr_demo_ead</code></td><td>monthly facility snapshots</td></tr>
+    <tr><td><code>scr_demo_portfolio</code></td><td>exposures for EL, capital and ECL</td></tr>
+  </table>
+</section>
+
+</div>
+</div>
+
+<footer class="foot">
+  <span><b>scorecraft</b> 0.2.0<span class="dot">|</span>MIT licence<span class="dot">|</span>Jose Evandeilton Lopes</span>
+  <span>Learn more at <b>evandeilton.github.io/scorecraft</b><span class="dot">|</span><code class="inl">help(package = "scorecraft")</code></span>
+  <span>Updated: 2026-09<span class="dot">|</span>2 / 2</span>
+</footer>
+</div>
+
+</body>
+</html>

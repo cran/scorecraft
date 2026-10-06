@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Coarse classing with an audit trail</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Coarse classing with an audit trail</h1>
+
+
+
+<div id="why-manual-coarse-classing-still-matters" class="section level2">
+<h2>Why manual coarse classing still matters</h2>
+<p>Optimal binning does one job well: it finds the cut points and the
+groupings that maximise the information value of a variable subject to
+the admission rules (minimum bin size, monotonicity, hold-out
+stability). What it cannot know is how the business reads the variable.
+A bureau score is communicated to underwriters in policy bands; a region
+is priced as edge and core, not as five regions; an age is quoted in
+decades. A scorecard whose bins cut at 33.36 and 48.06 is correct, but
+nobody in the credit committee can explain it, and a bin nobody can
+explain is a bin nobody will defend when the model is challenged.</p>
+<p>There is also a stability argument. The optimal cut points are
+estimated on one training window, and a handful of them sit on thin
+slices of the distribution. Coarser, rounder bands lose a little
+information value on train and often lose nothing on hold-out, while
+being far less likely to drift when the population shifts. The lab in
+<code>scorecraft</code> lets the analyst make exactly that trade, and
+shows the price of it on train and hold-out before anything is
+committed.</p>
+<p>What the lab refuses to do is let a manual decision enter silently.
+Every proposal is compared against the optimal bins, every acceptance
+carries a reason, every override of a blocking rule is a row in an
+append-only ledger, and the automatic artefacts are frozen alongside the
+manual ones. The scorecard, the R scoring function and the production
+SQL consume the manual bins through the very same code path as the
+optimal ones, so there is no second implementation to keep in step.</p>
+</div>
+<div id="a-fast-selection-run" class="section level2">
+<h2>A fast selection run</h2>
+<p>The lab opens on an <code>scr_select()</code> result. The
+configuration below is a light one: a single thread, two consensus
+voters (elastic net and xgboost) and a short bootstrap. The selection
+itself is described in
+<code>vignette(&quot;scorecraft&quot;, package = &quot;scorecraft&quot;)</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(scorecraft)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>cfg <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>, <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>, <span class="at">use_ranger =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                  <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>, <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;default&quot;</span>, <span class="at">config =</span> cfg,</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>                  <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;churn&quot;</span>), <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">scr_selected</span>(res)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;vl_score_01&quot; &quot;vl_score_02&quot; &quot;vl_score_04&quot; &quot;ds_band&quot;     &quot;vl_late&quot;    </span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;ds_region&quot;   &quot;vl_score_06&quot; &quot;vl_score_07&quot; &quot;vl_score_05&quot; &quot;ds_channel&quot; </span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; [11] &quot;vl_hist_04&quot;  &quot;vl_score_10&quot;</span></span></code></pre></div>
+</div>
+<div id="opening-the-lab" class="section level2">
+<h2>Opening the lab</h2>
+<p><code>scr_coarse_classing()</code> covers every variable that reached
+binning, not only the consensus shortlist, so a variable failed by
+screening can be rebinned and forced in later with a reason.
+<code>author</code> is free text recorded in the ledger; it defaults to
+the system user.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_coarse_classing</span>(res, <span class="at">author =</span> <span class="st">&quot;analyst&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>lab</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-09-25 19:47 by analyst | 37 variables | 0 proposals: 0 accepted, 0 discarded</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   final choice: 12 variables | consensus 12 | force: (none) | drop: (none)</span></span></code></pre></div>
+<p>Without a variable, <code>scr_classing_view()</code> prints one line
+per variable: its current source (optimal or manual), the number of
+bins, the train and hold-out IV, the PSI and a verdict computed with the
+same rules a proposal will face. The last column says whether the
+variable is currently in the final shortlist (<code>yes</code>, or
+<code>-</code>).</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>ov <span class="ot">&lt;-</span> <span class="fu">scr_classing_view</span>(lab)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | 37 variables</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   variable                     source    bins  IV train   IV hold     PSI verdict     shortlist</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  optimal      7    0.3464    0.2877  0.0066 ACCEPTABLE  yes</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  optimal      7    0.1721    0.1234  0.0053 ACCEPTABLE  yes</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   vl_score_03                  optimal      3    0.0576    0.0517  0.0003 REVIEW      -</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   vl_score_04                  optimal      7    0.1243    0.1177  0.0032 ACCEPTABLE  yes</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;   vl_score_05                  optimal      5    0.0363    0.0289  0.0024 ACCEPTABLE  yes</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   vl_score_06                  optimal      7    0.0483    0.0794  0.0049 ACCEPTABLE  yes</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;   vl_score_07                  optimal      6    0.0505    0.0705  0.0071 ACCEPTABLE  yes</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   vl_score_08                  optimal      3    0.0149    0.0055  0.0026 REVIEW      -</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   vl_score_09                  optimal      3    0.0072    0.0001  0.0012 REVIEW      -</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   vl_score_10                  optimal      3    0.0282    0.0432  0.0024 ACCEPTABLE  yes</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   vl_score_11                  optimal      6    0.0781    0.0177  0.0064 REVIEW      -</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   vl_score_12                  optimal      6    0.0717    0.0321  0.0061 REVIEW      -</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   vl_hist_01                   optimal      3    0.0029    0.0158  0.0012 REVIEW      -</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;   vl_hist_01__sp               optimal      2    0.0315    0.0069  0.0017 REVIEW      -</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;   vl_hist_02                   optimal      5    0.0075    0.0730  0.0033 REVIEW      -</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt;   vl_hist_02__sp               optimal      2    0.0296    0.0464  0.0000 ACCEPTABLE  -</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt;   vl_hist_03                   optimal      3    0.0205    0.0092  0.0013 REVIEW      -</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt;   vl_hist_03__sp               optimal      2    0.0357    0.0764  0.0006 ACCEPTABLE  -</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt;   vl_hist_04                   optimal      3    0.0332    0.0809  0.0047 ACCEPTABLE  yes</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt;   vl_hist_04__sp               optimal      2    0.0642    0.1053  0.0058 ACCEPTABLE  -</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt;   vl_partial_01                optimal      5    0.0045    0.0144  0.0051 REVIEW      -</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt;   vl_partial_01__sp            optimal      2    0.0020    0.0036  0.0002 REVIEW      -</span></span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a><span class="co">#&gt;   vl_partial_02                optimal      4    0.0036    0.0111  0.0013 REVIEW      -</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a><span class="co">#&gt;   vl_partial_02__sp            optimal      2    0.0031    0.0062  0.0002 REVIEW      -</span></span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a><span class="co">#&gt;   vl_late                      optimal      7    0.0711    0.0638  0.1042 ACCEPTABLE  yes</span></span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="co">#&gt;   vl_noise_01                  optimal      3    0.0031    0.0079  0.0015 REVIEW      -</span></span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a><span class="co">#&gt;   vl_noise_02                  optimal      6    0.0084    0.0231  0.0062 REVIEW      -</span></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a><span class="co">#&gt;   vl_noise_03                  optimal      5    0.0188    0.0173  0.0039 REVIEW      -</span></span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a><span class="co">#&gt;   vl_noise_04                  optimal      3    0.0053    0.0192  0.0004 REVIEW      -</span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a><span class="co">#&gt;   vl_noise_05                  optimal      3    0.0018    0.0020  0.0050 REVIEW      -</span></span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a><span class="co">#&gt;   vl_noise_06                  optimal      6    0.0024    0.0501  0.0032 REVIEW      -</span></span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a><span class="co">#&gt;   vl_redundant                 optimal      7    0.1743    0.1071  0.0065 ACCEPTABLE  -</span></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a><span class="co">#&gt;   ds_region                    optimal      5    0.0846    0.0971  0.0064 ACCEPTABLE  yes</span></span>
+<span id="cb3-37"><a href="#cb3-37" tabindex="-1"></a><span class="co">#&gt;   ds_band                      optimal      4    0.0805    0.0780  0.0013 ACCEPTABLE  yes</span></span>
+<span id="cb3-38"><a href="#cb3-38" tabindex="-1"></a><span class="co">#&gt;   ds_channel                   optimal      3    0.0279    0.0438  0.0003 ACCEPTABLE  yes</span></span>
+<span id="cb3-39"><a href="#cb3-39" tabindex="-1"></a><span class="co">#&gt;   ds_optin                     optimal      3    0.0065    0.0032  0.0019 REVIEW      -</span></span>
+<span id="cb3-40"><a href="#cb3-40" tabindex="-1"></a><span class="co">#&gt;   vl_hist_05__sp               optimal      2    0.0191    0.0428  0.0006 REVIEW      -</span></span></code></pre></div>
+<p>With a variable, the view is the bin table with train and hold-out
+side by side, plus a text bar chart of the event rate.
+<code>vl_score_01</code> is a numeric with seven optimal bins;
+<code>ds_region</code> is a categorical with one bin per state.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">scr_classing_view</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; vl_score_01 (numerical) | current: optimal (jedi) | 7 bins | train IV 0.3464, hold-out IV 0.2877 (ratio 0.86)</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;   monotone: yes | min bin 5.2% | PSI 0.0066 (stable) | KS 0.198 | degenerate bins: 0 | verdict: ACCEPTABLE</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;    id  bin                                  n      %  events   rate      WOE      IV |  n.hold      %    rate WOE.hold</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;     1  (-Inf;33.360000]                   145   5.2%       3   2.1%   -2.063   0.106 |      69   4.9%    4.3%   -1.317</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;     2  (33.360000;38.150000]              162   5.8%      12   7.4%   -0.731   0.024 |      76   5.4%    3.9%   -1.417</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;     3  (38.150000;44.240000]              366  13.1%      29   7.9%   -0.658   0.045 |     171  12.2%    7.6%   -0.723</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;     4  (44.240000;48.060000]              301  10.8%      27   9.0%   -0.523   0.024 |     158  11.3%   10.8%   -0.341</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;     5  (48.060000;63.940000]            1,343  48.0%     198  14.7%    0.040   0.001 |     664  47.4%   15.2%    0.056</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;     6  (63.940000;72.610000]              338  12.1%      85  25.1%    0.704   0.076 |     201  14.4%   22.4%    0.531</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;     7  (72.610000;+Inf]                   145   5.2%      45  31.0%    0.996   0.071 |      61   4.4%   34.4%    1.130</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;   event rate by bin (train | hold-out)</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;     1  #                    2.1% | ##                   4.3%</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;     2  ####                 7.4% | ##                   3.9%</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;     3  ####                 7.9% | ####                 7.6%</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;     4  #####                9.0% | ######              10.8%</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;     5  ########            14.7% | ########            15.2%</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;     6  #############       25.1% | ############        22.4%</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt;     7  ################    31.0% | ##################  34.4%</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">scr_classing_view</span>(lab, <span class="st">&quot;ds_region&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; ds_region (categorical) | current: optimal (jedi) | 5 bins | train IV 0.0846, hold-out IV 0.0971 (ratio 1.14)</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;   monotone: yes | min bin 7.9% | PSI 0.0064 (stable) | KS 0.114 | degenerate bins: 0 | verdict: ACCEPTABLE</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;    id  bin                                  n      %  events   rate      WOE      IV |  n.hold      %    rate WOE.hold</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;     1  CENTRE                             539  19.2%      57  10.6%   -0.341   0.020 |     301  21.5%   13.0%   -0.130</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;     2  EAST                             1,139  40.7%     144  12.6%   -0.139   0.008 |     551  39.4%   13.8%   -0.058</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;     3  WEST                               582  20.8%      82  14.1%   -0.014   0.000 |     269  19.2%   10.0%   -0.419</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;     4  NORTH                              318  11.4%      66  20.8%    0.453   0.027 |     178  12.7%   23.6%    0.599</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;     5  SOUTH                              222   7.9%      50  22.5%    0.557   0.030 |     101   7.2%   18.8%    0.312</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt;   event rate by bin (train | hold-out)</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt;     1  ########            10.6% | ##########          13.0%</span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt;     2  ##########          12.6% | ###########         13.8%</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt;     3  ###########         14.1% | ########            10.0%</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt;     4  ################    20.8% | ##################  23.6%</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt;     5  #################   22.5% | ##############      18.8%</span></span></code></pre></div>
+</div>
+<div id="proposing-bins" class="section level2">
+<h2>Proposing bins</h2>
+<p><code>scr_classing_propose()</code> takes exactly one instruction per
+call. For a numeric variable the instruction is <code>breaks</code>
+(absolute interior cut points), <code>merge</code> (adjacent bin ids) or
+<code>split</code> (<code>c(id, at)</code>). For a categorical it is
+<code>groups</code> (a list of character vectors, optionally named),
+<code>merge</code> (bin ids), <code>missing_to</code> (which bin
+receives the <code>&quot;MISSING&quot;</code> category) or <code>other_to</code>
+(the catch-all bin for every training category not listed). A proposal
+is a value: nothing changes in the lab until it is accepted.</p>
+<div id="numeric-breaks-merge-split" class="section level3">
+<h3>Numeric: breaks, merge, split</h3>
+<p>Suppose underwriting quotes <code>vl_score_01</code> in the bands
+below 40, 40 to 55, 55 to 70 and above 70.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>p_breaks <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">40</span>, <span class="dv">55</span>, <span class="dv">70</span>))</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>p_breaks</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P001 vl_score_01 | breaks = c(40, 55, 70) | 2026-09-25 19:47</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          4         -3</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.2993    -0.0471</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;   iv_holdout             0.2877     0.2740    -0.0137</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;   iv_ratio               0.8649     0.9236     0.0587</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;   ks                     0.1981     0.2472     0.0490</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt;   psi                    0.0066     0.0032    -0.0034</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt;   min_bin_pct            0.0518     0.0786     0.0268</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;   largest_bin_pct        0.4796     0.4307    -0.0489</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt;   n_degenerate                0          0          0</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;   monotonic                   1          1          0</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;   manual bins (train | hold-out)</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt;     1  (-Inf;40.000000]                   405  14.5%   5.9%  -0.970 |     193  13.8%   5.2%  -1.133</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt;     2  (40.000000;55.000000]            1,206  43.1%  10.0%  -0.399 |     588  42.0%  11.4%  -0.277</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;     3  (55.000000;70.000000]              969  34.6%  19.6%   0.384 |     520  37.1%  18.1%   0.263</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;     4  (70.000000;+Inf]                   220   7.9%  29.1%   0.904 |      99   7.1%  32.3%   1.035</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;   Verdict: ACCEPTABLE - no warning raised.</span></span></code></pre></div>
+<p>The header repeats the instruction. The comparison table has one row
+per metric and three columns: the optimal bins, the proposal and the
+difference. Here the four policy bands cost about 0.05 of IV on train
+and about 0.014 on hold-out, while the IV ratio (hold-out over train),
+the KS and the smallest bin all improve, and the PSI halves. Below the
+table are the manual bins themselves with count, share, event rate and
+WOE on train and on hold-out. No warning was raised, so the verdict is
+<code>ACCEPTABLE</code>.</p>
+<p><code>merge</code> and <code>split</code> are relative to the
+<em>current</em> bins of the variable and resolve to absolute cut
+points, which is what the header shows.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>p_merge <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>, <span class="at">merge =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>p_merge<span class="sc">$</span>entry<span class="sc">$</span>cutpoints</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; [1] 38.15 44.24 48.06 63.94 72.61</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>p_split <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>                                <span class="at">split =</span> <span class="fu">c</span>(<span class="dv">1</span>, res<span class="sc">$</span>fit<span class="sc">$</span>results<span class="sc">$</span>vl_score_01<span class="sc">$</span>cutpoints[<span class="dv">1</span>] <span class="sc">-</span> <span class="dv">5</span>))</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>p_split</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P003 vl_score_01 | split = c(1, 28.36) | 2026-09-25 19:47</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          8          1</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.3561     0.0098</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;   iv_holdout             0.2877     0.2895     0.0018</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;   iv_ratio               0.8649     0.8745     0.0097</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;   ks                     0.1981     0.1981     0.0000</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;   psi                    0.0066     0.0067     0.0001</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt;   min_bin_pct            0.0518     0.0211    -0.0307</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt;   largest_bin_pct        0.4796     0.4796     0.0000</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt;   n_degenerate                0          0          0</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;   monotonic                   1          0         -1</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt;   manual bins (train | hold-out)</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt;     1  (-Inf;28.360000]                    59   2.1%   3.4%  -1.555 |      27   1.9%   7.4%  -0.751</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt;     2  (28.360000;33.360000]               86   3.1%   1.2%  -2.648 |      42   3.0%   2.4%  -1.939</span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co">#&gt;     3  (33.360000;38.150000]              162   5.8%   7.4%  -0.731 |      76   5.4%   3.9%  -1.417</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="co">#&gt;     4  (38.150000;44.240000]              366  13.1%   7.9%  -0.658 |     171  12.2%   7.6%  -0.723</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co">#&gt;     5  (44.240000;48.060000]              301  10.8%   9.0%  -0.523 |     158  11.3%  10.8%  -0.341</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt;     6  (48.060000;63.940000]            1,343  48.0%  14.7%   0.040 |     664  47.4%  15.2%   0.056</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt;     7  (63.940000;72.610000]              338  12.1%  25.1%   0.704 |     201  14.4%  22.4%   0.531</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt;     8  (72.610000;+Inf]                   145   5.2%  31.0%   0.996 |      61   4.4%  34.4%   1.130</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt;   Warnings</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt;     - NOT_MONOTONIC</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt;     - TOO_MANY_BINS</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt;   Verdict: REVIEW - advisory warnings only; accept with a reason or discard.</span></span></code></pre></div>
+<p>The split proposal is a <code>REVIEW</code> on two counts: the new
+first bin holds 2% of the training rows and breaks the monotone pattern
+of the event rate (<code>NOT_MONOTONIC</code>), and eight bins exceed
+the configured maximum of seven (<code>TOO_MANY_BINS</code>). A
+<code>REVIEW</code> verdict is advisory: the proposal can be accepted
+with a reason or discarded. Every proposal takes the next id from the
+lab’s counter (<code>P001</code>, <code>P002</code>, …), whether or not
+it is later acted on, so the ids in a session count the proposals made,
+not the decisions taken. A proposal is a value and can be kept for as
+long as the lab is open; the lab only refuses a proposal that has
+already been accepted or discarded.</p>
+</div>
+<div id="categorical-groups-other_to-missing_to" class="section level3">
+<h3>Categorical: groups, other_to, missing_to</h3>
+<p>Pricing works with two regions. Names given to the groups are display
+labels; the bin label stored in the entry is the categories joined by
+the configuration’s separator, exactly as the binning engine writes
+it.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>p_groups <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;ds_region&quot;</span>,</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                                 <span class="at">groups =</span> <span class="fu">list</span>(<span class="at">edge =</span> <span class="fu">c</span>(<span class="st">&quot;NORTH&quot;</span>, <span class="st">&quot;SOUTH&quot;</span>),</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                                               <span class="at">core =</span> <span class="fu">c</span>(<span class="st">&quot;EAST&quot;</span>, <span class="st">&quot;WEST&quot;</span>, <span class="st">&quot;CENTRE&quot;</span>)))</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>p_groups</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P004 ds_region | groups = list(edge = c(&quot;NORTH&quot;, &quot;SOUTH&quot;), core = c(&quot;EAST&quot;, &quot;WEST&quot;, &quot;CENTRE&quot;)) | 2026-09-25 19:47</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;   n_bins                      5          2         -3</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.0846     0.0739    -0.0107</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;   iv_holdout             0.0971     0.0786    -0.0186</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;   iv_ratio               1.1432     1.0568    -0.0864</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   ks                     0.1141     0.1141     0.0000</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;   psi                    0.0064     0.0003    -0.0061</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;   min_bin_pct            0.0793     0.1929     0.1136</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;   largest_bin_pct        0.4068     0.8071     0.4004</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;   n_degenerate                0          0          0</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt;   monotonic                   1          1          0</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;   manual bins (train | hold-out)</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt;     1  NORTH | SOUTH                      540  19.3%  21.5%   0.499 |     279  19.9%  21.9%   0.501</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt;     2  EAST | WEST | CENTRE             2,260  80.7%  12.5%  -0.149 |   1,121  80.1%  12.7%  -0.156</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt;   Warnings</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="co">#&gt;     - IV_LOSS_VS_OPTIMAL</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="co">#&gt;   Verdict: REVIEW - advisory warnings only; accept with a reason or discard.</span></span></code></pre></div>
+<p>Every training category must land somewhere. Listing them all is one
+option; the other is to name a catch-all bin with <code>other_to</code>,
+which is also how a reviewer says “everything else goes here”. The
+result is the same grouping, and the entry records that the second bin
+is the catch-all (<code>is_other</code>).</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>p_other <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;ds_region&quot;</span>,</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>                                <span class="at">groups =</span> <span class="fu">list</span>(<span class="at">edge =</span> <span class="fu">c</span>(<span class="st">&quot;NORTH&quot;</span>, <span class="st">&quot;SOUTH&quot;</span>), <span class="at">rest =</span> <span class="st">&quot;EAST&quot;</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                                <span class="at">other_to =</span> <span class="st">&quot;rest&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>p_other<span class="sc">$</span>entry<span class="sc">$</span>bin</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;NORTH%;%SOUTH&quot;        &quot;EAST%;%WEST%;%CENTRE&quot;</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>p_other<span class="sc">$</span>entry<span class="sc">$</span>manual<span class="sc">$</span>is_other</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; [1] FALSE  TRUE</span></span></code></pre></div>
+<p><code>ds_optin</code> carries a <code>&quot;MISSING&quot;</code> category,
+which the optimal binning kept on its own. <code>missing_to</code> folds
+it into another bin.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>p_missing <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;ds_optin&quot;</span>, <span class="at">missing_to =</span> <span class="dv">1</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>p_missing<span class="sc">$</span>entry<span class="sc">$</span>bin</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;YES%;%MISSING&quot; &quot;NO&quot;</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>p_missing<span class="sc">$</span>verdict</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;REVIEW&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>p_missing<span class="sc">$</span>warnings</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; [1] &quot;IV_BELOW_MIN&quot;       &quot;IV_LOW_ON_HOLDOUT&quot;  &quot;IV_LOSS_VS_OPTIMAL&quot;</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; [4] &quot;IV_RATIO_UNSTABLE&quot;</span></span></code></pre></div>
+<p>The optimal bins of <code>ds_optin</code> carried a training IV of
+0.0065 (see the overview); folding <code>&quot;MISSING&quot;</code> into
+<code>YES</code> leaves almost none, below the admission minimum, and
+loses more than the lab allows on hold-out. With a training IV that
+close to zero, the hold-out/train IV ratio says nothing either, hence
+<code>IV_RATIO_UNSTABLE</code>.</p>
+</div>
+<div id="reading-the-warnings-and-the-verdict" class="section level3">
+<h3>Reading the warnings and the verdict</h3>
+<p>Every proposal is screened with the eight engine rules on train,
+revalidated on hold-out with the bins frozen, and checked against a few
+lab-specific rules. Codes fall into two tiers.</p>
+<ul>
+<li><strong>Warnings</strong> (advisory) give a <code>REVIEW</code>
+verdict: the engine screening codes (<code>NOT_MONOTONIC</code>,
+<code>SMALL_BIN</code>, <code>IV_BELOW_MIN</code>,
+<code>IV_SUSPECT</code>, …), the hold-out codes
+(<code>IV_DROPS_ON_HOLDOUT</code>, <code>IV_LOW_ON_HOLDOUT</code>,
+<code>PSI_UNSTABLE</code>, …), <code>IV_LOSS_VS_OPTIMAL</code>, raised
+when the hold-out IV falls more than <code>lab_max_iv_loss</code> (10%
+by default) below the optimal one, and <code>IV_RATIO_UNSTABLE</code>,
+raised when the train IV is below <code>iv_min</code> and the
+hold-out/train IV ratio therefore carries little information. The
+<code>ds_region</code> grouping is a <code>REVIEW</code> for
+<code>IV_LOSS_VS_OPTIMAL</code> alone: two regions lose about a fifth of
+the hold-out IV of five states.</li>
+<li><strong>Blocking</strong> codes give a <code>BLOCKED</code> verdict:
+an empty bin, a degenerate bin (no events or no non-events, unless the
+lab was opened with <code>laplace &gt; 0</code>), a bin below
+<code>lab_min_bin_pct_hard</code> (0.5%) and a manual IV crossing
+<code>iv_max</code>, the leakage ceiling. The lab must not be the place
+where leakage is manufactured.</li>
+</ul>
+<p><code>ACCEPTABLE</code> means no code at all. The verdict, the codes
+and the reason travel with the decision into the ledger.</p>
+</div>
+</div>
+<div id="accepting-discarding-and-the-blocked-path" class="section level2">
+<h2>Accepting, discarding and the blocked path</h2>
+<p><code>reason</code> is mandatory, at least five characters, and it is
+the audit trail: write what a reviewer would need to read a year from
+now. Both verbs return the updated lab, so the idiom is to reassign.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_classing_accept</span>(lab, p_breaks, <span class="at">reason =</span> <span class="st">&quot;policy bands 40/55/70 used by underwriting&quot;</span>)</span></code></pre></div>
+<p>The grouping proposed in the previous section is still valid and is
+accepted in turn.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_classing_accept</span>(lab, p_groups, <span class="at">reason =</span> <span class="st">&quot;edge/core is what pricing uses&quot;</span>)</span></code></pre></div>
+<p>The <code>ds_optin</code> proposal erased what little signal the
+variable had, so it is discarded, with a reason, and the variable keeps
+its optimal bins. A discarded proposal is a ledger row too.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_classing_discard</span>(lab, p_missing, <span class="at">reason =</span> <span class="st">&quot;folding MISSING into YES erases the signal&quot;</span>)</span></code></pre></div>
+<p>A blocking rule cannot be accepted through the normal path. A break
+at -5000 on <code>vl_score_04</code>, whose minimum is above 16, leaves
+the first bin empty:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>p_blocked <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_04&quot;</span>, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">5000</span>, <span class="dv">50</span>))</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>p_blocked<span class="sc">$</span>verdict</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;BLOCKED&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>p_blocked<span class="sc">$</span>blocking</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;EMPTY_BIN&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">scr_classing_accept</span>(lab, p_blocked, <span class="at">reason =</span> <span class="st">&quot;we need this band for the policy&quot;</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt; ! scr_classing_accept(): proposal P007 is BLOCKED (EMPTY_BIN). Pass override = TRUE to accept it anyway; the override is recorded.</span></span></code></pre></div>
+<p>The override path is <code>override = TRUE</code>. It exists because
+there are legitimate reasons to carry a band the training data does not
+populate (a policy floor that will bind on a future population, for
+example), but it is never silent: the ledger receives an
+<code>override</code> row naming the blocking codes, followed by the
+<code>accept</code> row. Here it is exercised on a copy of the lab so
+that the session carries on without the empty bin.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>lab_override <span class="ot">&lt;-</span> <span class="fu">scr_classing_accept</span>(lab, p_blocked, <span class="at">reason =</span> <span class="st">&quot;deliberate policy floor at -5000&quot;</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>                                    <span class="at">override =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="fu">scr_decisions</span>(lab_override)[variable <span class="sc">==</span> <span class="st">&quot;vl_score_04&quot;</span>, .(seq, action, proposal_id, verdict, warnings, reason)]</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">#&gt;      seq   action proposal_id verdict</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;   &lt;char&gt;      &lt;char&gt;  &lt;char&gt;</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; 1:     4 override        P007 BLOCKED</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; 2:     5   accept        P007 BLOCKED</span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt;                                                                            warnings</span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt;                                                                              &lt;char&gt;</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; 1:                                                                        EMPTY_BIN</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; 2: NOT_MONOTONIC;SMALL_BIN;IV_DROPS_ON_HOLDOUT;IV_LOW_ON_HOLDOUT;IV_LOSS_VS_OPTIMAL</span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt;                              reason</span></span>
+<span id="cb16-13"><a href="#cb16-13" tabindex="-1"></a><span class="co">#&gt;                              &lt;char&gt;</span></span>
+<span id="cb16-14"><a href="#cb16-14" tabindex="-1"></a><span class="co">#&gt; 1: deliberate policy floor at -5000</span></span>
+<span id="cb16-15"><a href="#cb16-15" tabindex="-1"></a><span class="co">#&gt; 2: deliberate policy floor at -5000</span></span></code></pre></div>
+</div>
+<div id="choosing-the-variables" class="section level2">
+<h2>Choosing the variables</h2>
+<p><code>scr_classing_choose()</code> builds the final list as
+<code>(consensus shortlist + force) - drop</code>, optionally
+intersected with <code>keep</code>. <code>force</code> is allowed for
+any variable that reached binning, with two exceptions that need
+<code>override = TRUE</code>: a variable failed for
+<code>IV_SUSPICIOUS</code> (the leakage ceiling) and a derived
+<code>__sp</code> flag when <code>allow_derived_final = FALSE</code>.
+<code>reason</code> is one string for every variable named, or a
+character vector named by variable.</p>
+<p><code>vl_score_10</code> is in the consensus shortlist but will not
+be available at decision time; <code>vl_score_03</code> was failed by
+screening for <code>NOT_MONOTONIC</code> but policy requires it on the
+card.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">scr_funnel</span>(res, <span class="at">cols =</span> <span class="st">&quot;all&quot;</span>)[feature <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;vl_score_10&quot;</span>, <span class="st">&quot;vl_score_03&quot;</span>),</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>                              .(feature, exit_stage, screen_reason)]</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="co">#&gt;        feature   exit_stage screen_reason</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;       &lt;char&gt;        &lt;char&gt;</span></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_10  07.approved            OK</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="co">#&gt; 2: vl_score_03 03.screening NOT_MONOTONIC</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_classing_choose</span>(lab, <span class="at">drop =</span> <span class="st">&quot;vl_score_10&quot;</span>, <span class="at">force =</span> <span class="st">&quot;vl_score_03&quot;</span>,</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a>                           <span class="at">reason =</span> <span class="fu">c</span>(<span class="at">vl_score_10 =</span> <span class="st">&quot;not available at decision time&quot;</span>,</span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>                                      <span class="at">vl_score_03 =</span> <span class="st">&quot;policy: bureau band must be scored&quot;</span>))</span></code></pre></div>
+</div>
+<div id="the-session-summary-and-the-ledger" class="section level2">
+<h2>The session summary and the ledger</h2>
+<p>Printing the lab summarises the session: the variables touched with
+bins and IV before and after, the verdicts, the reasons, the discards
+and the final choice.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>lab</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-09-25 19:47 by analyst | 37 variables | 7 proposals: 2 accepted, 1 discarded</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">#&gt;   variable                   action      bins          IV train       IV hold-out verdict     reason</span></span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                accepted  7-&gt;4     0.3464-&gt;0.2993     0.2877-&gt;0.2740   ACCEPTABLE  policy bands 40/55/70 used by underwriti</span></span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt;   ds_region                  accepted  5-&gt;2     0.0846-&gt;0.0739     0.0971-&gt;0.0786   REVIEW      edge/core is what pricing uses</span></span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a><span class="co">#&gt;   ds_optin                   discard  P006: folding MISSING into YES erases the sign</span></span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a><span class="co">#&gt;   final choice: 12 variables | consensus 12 | force: vl_score_03 | drop: vl_score_10</span></span></code></pre></div>
+<p><code>scr_decisions()</code> returns the ledger: one row per
+decision, append-only, with the author, the timestamp, the instruction,
+the metrics before and after, the verdict, the codes and the reason. The
+same function reads the ledger from the committed result and from the
+scorecard fitted on it.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="fu">scr_decisions</span>(lab)[, .(seq, variable, action, proposal_id, verdict, reason)]</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt;      seq    variable  action proposal_id    verdict</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;      &lt;char&gt;  &lt;char&gt;      &lt;char&gt;     &lt;char&gt;</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt; 1:     1 vl_score_01  accept        P001 ACCEPTABLE</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt; 2:     2   ds_region  accept        P004     REVIEW</span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co">#&gt; 3:     3    ds_optin discard        P006     REVIEW</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt; 4:     4 vl_score_03   force        &lt;NA&gt;       &lt;NA&gt;</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co">#&gt; 5:     5 vl_score_10    drop        &lt;NA&gt;       &lt;NA&gt;</span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co">#&gt;                                        reason</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="co">#&gt;                                        &lt;char&gt;</span></span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt; 1: policy bands 40/55/70 used by underwriting</span></span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; 2:             edge/core is what pricing uses</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; 3: folding MISSING into YES erases the signal</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 4:         policy: bureau band must be scored</span></span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; 5:             not available at decision time</span></span></code></pre></div>
+</div>
+<div id="the-spec-round-trip-a-reviewer-edits-in-a-spreadsheet" class="section level2">
+<h2>The spec round trip: a reviewer edits in a spreadsheet</h2>
+<p>Not every reviewer works in R. <code>scr_classing_spec()</code>
+writes the classing as a long table, one row per bin of every variable,
+optimal and manual. The authoritative columns a reviewer may edit are
+<code>lower</code> and <code>upper</code> for numerics,
+<code>categories</code> and <code>is_other</code> for categoricals, and
+<code>reason</code>; everything else (counts, rates, WOE) is context and
+is regenerated on read. Open ends are written as empty cells. A
+<code>.xlsx</code> path writes a workbook through openxlsx; a
+<code>.csv</code> path needs nothing.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>spec <span class="ot">&lt;-</span> <span class="fu">scr_classing_spec</span>(lab)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>spec</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_spec&gt; 149 bins | 37 variables (2 manual)</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a><span class="co">#&gt;     variable    type bin_id             bin_label lower upper categories</span></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co">#&gt;  vl_score_01 numeric      1      (-Inf;40.000000]    NA 40.00       &lt;NA&gt;</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="co">#&gt;  vl_score_01 numeric      2 (40.000000;55.000000] 40.00 55.00       &lt;NA&gt;</span></span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a><span class="co">#&gt;  vl_score_01 numeric      3 (55.000000;70.000000] 55.00 70.00       &lt;NA&gt;</span></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co">#&gt;  vl_score_01 numeric      4      (70.000000;+Inf] 70.00    NA       &lt;NA&gt;</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      1      (-Inf;40.880000]    NA 40.88       &lt;NA&gt;</span></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      2 (40.880000;42.700000] 40.88 42.70       &lt;NA&gt;</span></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      3 (42.700000;48.660000] 42.70 48.66       &lt;NA&gt;</span></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      4 (48.660000;64.440000] 48.66 64.44       &lt;NA&gt;</span></span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      5 (64.440000;70.580000] 64.44 70.58       &lt;NA&gt;</span></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      6 (70.580000;75.170000] 70.58 75.17       &lt;NA&gt;</span></span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="co">#&gt;  vl_score_02 numeric      7      (75.170000;+Inf] 75.17    NA       &lt;NA&gt;</span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a><span class="co">#&gt;  vl_score_03 numeric      1      (-Inf;73.310000]    NA 73.31       &lt;NA&gt;</span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co">#&gt;  is_other  source                                     reason</span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a><span class="co">#&gt;     FALSE  manual policy bands 40/55/70 used by underwriting</span></span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a><span class="co">#&gt;     FALSE  manual policy bands 40/55/70 used by underwriting</span></span>
+<span id="cb20-20"><a href="#cb20-20" tabindex="-1"></a><span class="co">#&gt;     FALSE  manual policy bands 40/55/70 used by underwriting</span></span>
+<span id="cb20-21"><a href="#cb20-21" tabindex="-1"></a><span class="co">#&gt;     FALSE  manual policy bands 40/55/70 used by underwriting</span></span>
+<span id="cb20-22"><a href="#cb20-22" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-23"><a href="#cb20-23" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-24"><a href="#cb20-24" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-25"><a href="#cb20-25" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-26"><a href="#cb20-26" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-27"><a href="#cb20-27" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-28"><a href="#cb20-28" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-29"><a href="#cb20-29" tabindex="-1"></a><span class="co">#&gt;     FALSE optimal                                       &lt;NA&gt;</span></span>
+<span id="cb20-30"><a href="#cb20-30" tabindex="-1"></a><span class="co">#&gt;   ... (+137 rows)</span></span>
+<span id="cb20-31"><a href="#cb20-31" tabindex="-1"></a>spec_file <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;classing_default.csv&quot;</span>)</span>
+<span id="cb20-32"><a href="#cb20-32" tabindex="-1"></a><span class="fu">scr_classing_spec</span>(lab, <span class="at">file =</span> spec_file)</span></code></pre></div>
+<p>A reviewer opens the file, moves the first cut of
+<code>vl_score_01</code> from 40 to 42 and writes why in
+<code>reason</code>. Done in R, as it would be done in a spreadsheet
+cell by cell:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>sheet <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(spec_file, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>i1 <span class="ot">&lt;-</span> sheet<span class="sc">$</span>variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span> <span class="sc">&amp;</span> sheet<span class="sc">$</span>bin_id <span class="sc">==</span> <span class="dv">1</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>sheet<span class="sc">$</span>upper[i1]  <span class="ot">&lt;-</span> <span class="dv">42</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>sheet<span class="sc">$</span>reason[sheet<span class="sc">$</span>variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span>] <span class="ot">&lt;-</span> <span class="st">&quot;reviewer: first cut moved to 42 to match the bureau band&quot;</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a><span class="fu">write.csv</span>(sheet, spec_file, <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">na =</span> <span class="st">&quot;&quot;</span>)</span></code></pre></div>
+<p><code>scr_classing_read()</code> validates the file before anything
+else happens: <code>bin_id</code> must run from 1 to k without gaps,
+<code>upper</code> must be finite and strictly increasing except on the
+last bin, and the <code>lower</code> of every bin must equal the
+<code>upper</code> of the one before it. The edit above touched only
+<code>upper</code>, so the file is refused with a named reason.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">scr_classing_read</span>(spec_file)</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="co">#&gt; ! scr_classing_read(): invalid spec</span></span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="co">#&gt;   - vl_score_01: `lower` of bin i must equal `upper` of bin i-1 (contiguity)</span></span></code></pre></div>
+<p>Fixing the neighbouring <code>lower</code> makes the spec contiguous
+again.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>sheet<span class="sc">$</span>lower[sheet<span class="sc">$</span>variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span> <span class="sc">&amp;</span> sheet<span class="sc">$</span>bin_id <span class="sc">==</span> <span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="dv">42</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="fu">write.csv</span>(sheet, spec_file, <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">na =</span> <span class="st">&quot;&quot;</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>spec_back <span class="ot">&lt;-</span> <span class="fu">scr_classing_read</span>(spec_file)</span></code></pre></div>
+<p><code>scr_classing_import()</code> compares the file with the lab’s
+current bins and turns every variable that differs into a proposal, with
+the same checks and the same comparison as a proposal made by hand. The
+reviewer’s reason arrives as <code>imported_reason</code>; nothing is
+accepted on the analyst’s behalf.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a>imported <span class="ot">&lt;-</span> <span class="fu">scr_classing_import</span>(lab, spec_back)</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="fu">names</span>(imported)</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;vl_score_01&quot;</span></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>imported<span class="sc">$</span>vl_score_01<span class="sc">$</span>imported_reason</span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;reviewer: first cut moved to 42 to match the bureau band&quot;</span></span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>imported<span class="sc">$</span>vl_score_01</span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P008 vl_score_01 | breaks = c(42, 55, 70) | 2026-09-25 19:47</span></span>
+<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a><span class="co">#&gt;                         optimal    current     manual      delta</span></span>
+<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          4          4         -3</span></span>
+<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.2993     0.2990    -0.0474</span></span>
+<span id="cb24-11"><a href="#cb24-11" tabindex="-1"></a><span class="co">#&gt;   iv_holdout             0.2877     0.2740     0.2631    -0.0246</span></span>
+<span id="cb24-12"><a href="#cb24-12" tabindex="-1"></a><span class="co">#&gt;   iv_ratio               0.8649     0.9236     0.8867     0.0218</span></span>
+<span id="cb24-13"><a href="#cb24-13" tabindex="-1"></a><span class="co">#&gt;   ks                     0.1981     0.2472     0.2472     0.0490</span></span>
+<span id="cb24-14"><a href="#cb24-14" tabindex="-1"></a><span class="co">#&gt;   psi                    0.0066     0.0032     0.0035    -0.0031</span></span>
+<span id="cb24-15"><a href="#cb24-15" tabindex="-1"></a><span class="co">#&gt;   min_bin_pct            0.0518     0.0786     0.0786     0.0268</span></span>
+<span id="cb24-16"><a href="#cb24-16" tabindex="-1"></a><span class="co">#&gt;   largest_bin_pct        0.4796     0.4307     0.3904    -0.0893</span></span>
+<span id="cb24-17"><a href="#cb24-17" tabindex="-1"></a><span class="co">#&gt;   n_degenerate                0          0          0          0</span></span>
+<span id="cb24-18"><a href="#cb24-18" tabindex="-1"></a><span class="co">#&gt;   monotonic                   1          1          1          0</span></span>
+<span id="cb24-19"><a href="#cb24-19" tabindex="-1"></a><span class="co">#&gt;   manual bins (train | hold-out)</span></span>
+<span id="cb24-20"><a href="#cb24-20" tabindex="-1"></a><span class="co">#&gt;     1  (-Inf;42.000000]                   518  18.5%   6.4%  -0.893 |     242  17.3%   6.2%  -0.943</span></span>
+<span id="cb24-21"><a href="#cb24-21" tabindex="-1"></a><span class="co">#&gt;     2  (42.000000;55.000000]            1,093  39.0%  10.2%  -0.375 |     539  38.5%  11.5%  -0.266</span></span>
+<span id="cb24-22"><a href="#cb24-22" tabindex="-1"></a><span class="co">#&gt;     3  (55.000000;70.000000]              969  34.6%  19.6%   0.384 |     520  37.1%  18.1%   0.263</span></span>
+<span id="cb24-23"><a href="#cb24-23" tabindex="-1"></a><span class="co">#&gt;     4  (70.000000;+Inf]                   220   7.9%  29.1%   0.904 |      99   7.1%  32.3%   1.035</span></span>
+<span id="cb24-24"><a href="#cb24-24" tabindex="-1"></a><span class="co">#&gt;   Verdict: ACCEPTABLE - no warning raised.</span></span></code></pre></div>
+<p>The comparison now has a fourth column, <code>current</code>, because
+the variable already carries an accepted manual proposal. Accepting the
+imported one supersedes it, and the ledger records both facts.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_classing_accept</span>(lab, imported<span class="sc">$</span>vl_score_01, <span class="at">reason =</span> imported<span class="sc">$</span>vl_score_01<span class="sc">$</span>imported_reason)</span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">scr_decisions</span>(lab)[variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span>, .(seq, action, proposal_id, instruction, verdict)]</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a><span class="co">#&gt;      seq    action proposal_id            instruction    verdict</span></span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;    &lt;char&gt;      &lt;char&gt;                 &lt;char&gt;     &lt;char&gt;</span></span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a><span class="co">#&gt; 1:     1    accept        P001 breaks = c(40, 55, 70) ACCEPTABLE</span></span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a><span class="co">#&gt; 2:     6 supersede        P001                   &lt;NA&gt;       &lt;NA&gt;</span></span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="co">#&gt; 3:     7    accept        P008 breaks = c(42, 55, 70) ACCEPTABLE</span></span></code></pre></div>
+</div>
+<div id="committing-the-lab-what-changed" class="section level2">
+<h2>Committing the lab: what changed</h2>
+<p><code>scr_classing_apply()</code> returns a new
+<code>scr_result</code>. The input result is not modified. Inside the
+new one, the accepted manual entries replace the optimal ones in
+<code>fit</code>, the screening and hold-out rows of those variables are
+recomputed with the same pipeline functions, the final shortlist is the
+one implied by the choice, and the funnel, gains, SQL and summary are
+rebuilt.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>res2 <span class="ot">&lt;-</span> <span class="fu">scr_classing_apply</span>(lab)</span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>res2</span>
+<span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_result&gt; target &quot;default&quot;</span></span>
+<span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a><span class="co">#&gt;   4,200 rows (train 2,800 / hold-out 1,400) | split out-of-time at 2026-05-01</span></span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a><span class="co">#&gt;   event: 14.25% on train, 14.50% on hold-out | 0.7s</span></span>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a><span class="co">#&gt;   convention: risk (target=1 is the bad case)</span></span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="co">#&gt; Funnel</span></span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a><span class="co">#&gt;   candidates        37 ############################</span></span>
+<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a><span class="co">#&gt;   1. triage         37 ############################</span></span>
+<span id="cb26-11"><a href="#cb26-11" tabindex="-1"></a><span class="co">#&gt;   2. binning        37 ############################</span></span>
+<span id="cb26-12"><a href="#cb26-12" tabindex="-1"></a><span class="co">#&gt;   3. screening      20 ###############</span></span>
+<span id="cb26-13"><a href="#cb26-13" tabindex="-1"></a><span class="co">#&gt;   4. hold-out       16 ############</span></span>
+<span id="cb26-14"><a href="#cb26-14" tabindex="-1"></a><span class="co">#&gt;   5. correlation    12 #########</span></span>
+<span id="cb26-15"><a href="#cb26-15" tabindex="-1"></a><span class="co">#&gt;   6. consensus      12 #########</span></span>
+<span id="cb26-16"><a href="#cb26-16" tabindex="-1"></a><span class="co">#&gt;   7. manual         12 #########</span></span>
+<span id="cb26-17"><a href="#cb26-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb26-18"><a href="#cb26-18" tabindex="-1"></a><span class="co">#&gt; Approved: 12</span></span>
+<span id="cb26-19"><a href="#cb26-19" tabindex="-1"></a><span class="co">#&gt;    1. vl_score_01                                  IV  0.299  KS 0.247</span></span>
+<span id="cb26-20"><a href="#cb26-20" tabindex="-1"></a><span class="co">#&gt;    2. vl_score_02                                  IV  0.172  KS 0.156</span></span>
+<span id="cb26-21"><a href="#cb26-21" tabindex="-1"></a><span class="co">#&gt;    3. vl_score_04                                  IV  0.124  KS 0.120</span></span>
+<span id="cb26-22"><a href="#cb26-22" tabindex="-1"></a><span class="co">#&gt;    4. ds_band                                      IV  0.081  KS 0.110</span></span>
+<span id="cb26-23"><a href="#cb26-23" tabindex="-1"></a><span class="co">#&gt;    5. vl_late                                      IV  0.071  KS 0.120</span></span>
+<span id="cb26-24"><a href="#cb26-24" tabindex="-1"></a><span class="co">#&gt;   ... (+7) - scr_selected() for the list</span></span>
+<span id="cb26-25"><a href="#cb26-25" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb26-26"><a href="#cb26-26" tabindex="-1"></a><span class="co">#&gt; Models (hold-out)</span></span>
+<span id="cb26-27"><a href="#cb26-27" tabindex="-1"></a><span class="co">#&gt;   glmnet    AUC 0.7345 [0.7028, 0.7723]  KS 0.3842</span></span>
+<span id="cb26-28"><a href="#cb26-28" tabindex="-1"></a><span class="co">#&gt;   xgboost   AUC 0.7375 [0.7065, 0.7762]  KS 0.3695</span></span>
+<span id="cb26-29"><a href="#cb26-29" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb26-30"><a href="#cb26-30" tabindex="-1"></a><span class="co">#&gt; Warnings</span></span>
+<span id="cb26-31"><a href="#cb26-31" tabindex="-1"></a><span class="co">#&gt;   - 3 derived flag(s) outside the deliverable by policy (allow_derived_final)</span></span>
+<span id="cb26-32"><a href="#cb26-32" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb26-33"><a href="#cb26-33" tabindex="-1"></a><span class="co">#&gt; Coarse classing: 2 manual bin(s), 1 forced in, 1 dropped, 7 decision(s) by analyst - scr_decisions()</span></span></code></pre></div>
+<p><code>scr_selected()</code> on the new result returns the final list;
+the automatic one is still there under
+<code>which = &quot;consensus&quot;</code>.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">scr_selected</span>(res2)</span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;vl_score_01&quot; &quot;vl_score_02&quot; &quot;vl_score_04&quot; &quot;ds_band&quot;     &quot;vl_late&quot;    </span></span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;ds_region&quot;   &quot;vl_score_06&quot; &quot;vl_score_07&quot; &quot;vl_score_05&quot; &quot;ds_channel&quot; </span></span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a><span class="co">#&gt; [11] &quot;vl_hist_04&quot;  &quot;vl_score_03&quot;</span></span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a><span class="fu">scr_selected</span>(res2, <span class="st">&quot;consensus&quot;</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;vl_score_01&quot; &quot;vl_score_02&quot; &quot;vl_score_04&quot; &quot;ds_band&quot;     &quot;vl_late&quot;    </span></span>
+<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;ds_region&quot;   &quot;vl_score_06&quot; &quot;vl_score_07&quot; &quot;vl_score_05&quot; &quot;ds_channel&quot; </span></span>
+<span id="cb27-8"><a href="#cb27-8" tabindex="-1"></a><span class="co">#&gt; [11] &quot;vl_hist_04&quot;  &quot;vl_score_10&quot;</span></span>
+<span id="cb27-9"><a href="#cb27-9" tabindex="-1"></a><span class="fu">setdiff</span>(<span class="fu">scr_selected</span>(res2), <span class="fu">scr_selected</span>(res2, <span class="st">&quot;consensus&quot;</span>))</span>
+<span id="cb27-10"><a href="#cb27-10" tabindex="-1"></a><span class="co">#&gt; [1] &quot;vl_score_03&quot;</span></span>
+<span id="cb27-11"><a href="#cb27-11" tabindex="-1"></a><span class="fu">setdiff</span>(<span class="fu">scr_selected</span>(res2, <span class="st">&quot;consensus&quot;</span>), <span class="fu">scr_selected</span>(res2))</span>
+<span id="cb27-12"><a href="#cb27-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;vl_score_10&quot;</span></span></code></pre></div>
+<p>The funnel gains two columns. <code>provenance</code> says what the
+lab did to each variable (<code>auto</code>, <code>manual:rebin</code>,
+<code>manual:add</code>, <code>manual:drop</code>, or
+<code>manual:rebin+add</code> / <code>manual:rebin+drop</code> when both
+happened) and <code>manual_reason</code> carries the reason. A dropped
+variable exits at a new stage, <code>08.manual_drop</code>; a forced one
+is <code>07.approved</code> even though the consensus never selected
+it.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a>touched <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;vl_score_01&quot;</span>, <span class="st">&quot;ds_region&quot;</span>, <span class="st">&quot;vl_score_03&quot;</span>, <span class="st">&quot;vl_score_10&quot;</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" tabindex="-1"></a><span class="fu">scr_funnel</span>(res2, <span class="at">cols =</span> <span class="st">&quot;all&quot;</span>)[feature <span class="sc">%in%</span> touched,</span>
+<span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>                               .(feature, exit_stage, provenance, manual_reason)]</span>
+<span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a><span class="co">#&gt;        feature     exit_stage   provenance</span></span>
+<span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;         &lt;char&gt;       &lt;char&gt;</span></span>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_01    07.approved manual:rebin</span></span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a><span class="co">#&gt; 2:   ds_region    07.approved manual:rebin</span></span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a><span class="co">#&gt; 3: vl_score_03    07.approved   manual:add</span></span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a><span class="co">#&gt; 4: vl_score_10 08.manual_drop  manual:drop</span></span>
+<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a><span class="co">#&gt;                                               manual_reason</span></span>
+<span id="cb28-11"><a href="#cb28-11" tabindex="-1"></a><span class="co">#&gt;                                                      &lt;char&gt;</span></span>
+<span id="cb28-12"><a href="#cb28-12" tabindex="-1"></a><span class="co">#&gt; 1: reviewer: first cut moved to 42 to match the bureau band</span></span>
+<span id="cb28-13"><a href="#cb28-13" tabindex="-1"></a><span class="co">#&gt; 2:                           edge/core is what pricing uses</span></span>
+<span id="cb28-14"><a href="#cb28-14" tabindex="-1"></a><span class="co">#&gt; 3:                       policy: bureau band must be scored</span></span>
+<span id="cb28-15"><a href="#cb28-15" tabindex="-1"></a><span class="co">#&gt; 4:                           not available at decision time</span></span></code></pre></div>
+<p>The automatic fit is frozen as <code>fit_auto</code>, so the optimal
+cut points remain available next to the manual ones for as long as the
+result lives.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>res2<span class="sc">$</span>fit_auto<span class="sc">$</span>results<span class="sc">$</span>vl_score_01<span class="sc">$</span>cutpoints</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a><span class="co">#&gt; [1] 33.36 38.15 44.24 48.06 63.94 72.61</span></span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>res2<span class="sc">$</span>fit<span class="sc">$</span>results<span class="sc">$</span>vl_score_01<span class="sc">$</span>cutpoints</span>
+<span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a><span class="co">#&gt; [1] 42 55 70</span></span>
+<span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a>res2<span class="sc">$</span>fit<span class="sc">$</span>summary[res2<span class="sc">$</span>fit<span class="sc">$</span>summary<span class="sc">$</span>feature <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;vl_score_01&quot;</span>, <span class="st">&quot;ds_region&quot;</span>),</span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a>                 <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;algorithm&quot;</span>, <span class="st">&quot;n_bins&quot;</span>, <span class="st">&quot;total_iv&quot;</span>)]</span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a><span class="co">#&gt;        feature algorithm n_bins   total_iv</span></span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a><span class="co">#&gt; 1  vl_score_01    manual      4 0.29898958</span></span>
+<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a><span class="co">#&gt; 33   ds_region    manual      2 0.07392963</span></span></code></pre></div>
+</div>
+<div id="refitting-the-scorecard" class="section level2">
+<h2>Refitting the scorecard</h2>
+<p><code>scr_scorecard()</code> on the committed result fits the
+logistic regression on the WOE columns of the final list, the manual
+ones included, and aligns the score exactly as before. The points of a
+manually binned variable are distributed over its four policy bands.</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>sc <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res2)</span>
+<span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>sc</span>
+<span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_scorecard&gt; target &quot;default&quot; | 12 variables | higher_is_safer</span></span>
+<span id="cb30-4"><a href="#cb30-4" tabindex="-1"></a><span class="co">#&gt;   scale: 600 points at odds 50:1 (safe:event), PDO 20 | alignment regression</span></span>
+<span id="cb30-5"><a href="#cb30-5" tabindex="-1"></a><span class="co">#&gt;   score = 489.9126 + -27.0744 * logit | base_points = 539</span></span>
+<span id="cb30-6"><a href="#cb30-6" tabindex="-1"></a><span class="co">#&gt;   train    n 2,800   AUC 0.7845 [0.7681, 0.8026]  KS 0.4390  Gini 0.5690</span></span>
+<span id="cb30-7"><a href="#cb30-7" tabindex="-1"></a><span class="co">#&gt;   holdout  n 1,400   AUC 0.7348 [0.7007, 0.7736]  KS 0.3598  Gini 0.4697</span></span>
+<span id="cb30-8"><a href="#cb30-8" tabindex="-1"></a><span class="co">#&gt;   score PSI (hold-out): 0.0070 - fixed: stable | adjusted (0.0181): stable</span></span>
+<span id="cb30-9"><a href="#cb30-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb30-10"><a href="#cb30-10" tabindex="-1"></a><span class="co">#&gt; Points (first rows)</span></span>
+<span id="cb30-11"><a href="#cb30-11" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (-Inf;42.000000]             -0.893      28</span></span>
+<span id="cb30-12"><a href="#cb30-12" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (42.000000;55.000000]        -0.375      12</span></span>
+<span id="cb30-13"><a href="#cb30-13" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (55.000000;70.000000]         0.384     -12</span></span>
+<span id="cb30-14"><a href="#cb30-14" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                  (70.000000;+Inf]              0.904     -28</span></span>
+<span id="cb30-15"><a href="#cb30-15" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  (-Inf;40.880000]             -0.824      23</span></span>
+<span id="cb30-16"><a href="#cb30-16" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  (40.880000;42.700000]        -0.770      21</span></span>
+<span id="cb30-17"><a href="#cb30-17" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  (42.700000;48.660000]        -0.228       6</span></span>
+<span id="cb30-18"><a href="#cb30-18" tabindex="-1"></a><span class="co">#&gt;   vl_score_02                  (48.660000;64.440000]        -0.093       3</span></span>
+<span id="cb30-19"><a href="#cb30-19" tabindex="-1"></a><span class="co">#&gt;   ... (+50 rows)</span></span>
+<span id="cb30-20"><a href="#cb30-20" tabindex="-1"></a>sc<span class="sc">$</span>points[variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span>, .(variable, bin, woe, points)]</span>
+<span id="cb30-21"><a href="#cb30-21" tabindex="-1"></a><span class="co">#&gt;       variable                   bin        woe points</span></span>
+<span id="cb30-22"><a href="#cb30-22" tabindex="-1"></a><span class="co">#&gt;         &lt;char&gt;                &lt;char&gt;      &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb30-23"><a href="#cb30-23" tabindex="-1"></a><span class="co">#&gt; 1: vl_score_01      (-Inf;42.000000] -0.8929622     28</span></span>
+<span id="cb30-24"><a href="#cb30-24" tabindex="-1"></a><span class="co">#&gt; 2: vl_score_01 (42.000000;55.000000] -0.3753944     12</span></span>
+<span id="cb30-25"><a href="#cb30-25" tabindex="-1"></a><span class="co">#&gt; 3: vl_score_01 (55.000000;70.000000]  0.3836922    -12</span></span>
+<span id="cb30-26"><a href="#cb30-26" tabindex="-1"></a><span class="co">#&gt; 4: vl_score_01      (70.000000;+Inf]  0.9037063    -28</span></span>
+<span id="cb30-27"><a href="#cb30-27" tabindex="-1"></a>sc<span class="sc">$</span>points[variable <span class="sc">==</span> <span class="st">&quot;ds_region&quot;</span>, .(variable, bin, woe, points)]</span>
+<span id="cb30-28"><a href="#cb30-28" tabindex="-1"></a><span class="co">#&gt;     variable                  bin        woe points</span></span>
+<span id="cb30-29"><a href="#cb30-29" tabindex="-1"></a><span class="co">#&gt;       &lt;char&gt;               &lt;char&gt;      &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb30-30"><a href="#cb30-30" tabindex="-1"></a><span class="co">#&gt; 1: ds_region        NORTH%;%SOUTH  0.4985359    -15</span></span>
+<span id="cb30-31"><a href="#cb30-31" tabindex="-1"></a><span class="co">#&gt; 2: ds_region EAST%;%WEST%;%CENTRE -0.1492097      5</span></span></code></pre></div>
+<p>The manual decisions have a price, and the committee should see it.
+The scorecard fitted on the optimal bins and the consensus shortlist is
+the benchmark:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>sc_auto <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res)</span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a><span class="fu">rbind</span>(<span class="fu">scr_score_metrics</span>(sc_auto)[, .(<span class="at">card =</span> <span class="st">&quot;optimal&quot;</span>, sample, auc, auc_lo, auc_hi, ks)],</span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a>      <span class="fu">scr_score_metrics</span>(sc)[, .(<span class="at">card =</span> <span class="st">&quot;manual&quot;</span>, sample, auc, auc_lo, auc_hi, ks)])</span>
+<span id="cb31-4"><a href="#cb31-4" tabindex="-1"></a><span class="co">#&gt;       card  sample       auc    auc_lo    auc_hi        ks</span></span>
+<span id="cb31-5"><a href="#cb31-5" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb31-6"><a href="#cb31-6" tabindex="-1"></a><span class="co">#&gt; 1: optimal   train 0.7856428 0.7662170 0.8069608 0.4411466</span></span>
+<span id="cb31-7"><a href="#cb31-7" tabindex="-1"></a><span class="co">#&gt; 2: optimal holdout 0.7394060 0.7066284 0.7770357 0.3889033</span></span>
+<span id="cb31-8"><a href="#cb31-8" tabindex="-1"></a><span class="co">#&gt; 3:  manual   train 0.7844919 0.7681230 0.8025513 0.4390349</span></span>
+<span id="cb31-9"><a href="#cb31-9" tabindex="-1"></a><span class="co">#&gt; 4:  manual holdout 0.7348276 0.7007297 0.7736362 0.3598076</span></span></code></pre></div>
+<p>On hold-out the manual card gives up about 0.005 of AUC and 0.03 of
+KS, well inside the bootstrap interval of either card. Whether policy
+bands, a two-region grouping, a forced bureau variable and a dropped
+unavailable one are worth that is a business decision; the lab makes
+sure it is taken with the numbers on the table.</p>
+<p>The model card states the provenance in words: which binning
+algorithms the card mixes, whether the shortlist came from the consensus
+or from the lab, how many manual bins it carries and which variables
+were forced in or dropped. The ledger travels into the scorecard as
+well.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="fu">str</span>(sc<span class="sc">$</span>model_card[<span class="fu">c</span>(<span class="st">&quot;binning_algorithm&quot;</span>, <span class="st">&quot;shortlist_source&quot;</span>, <span class="st">&quot;n_manual_bins&quot;</span>,</span>
+<span id="cb32-2"><a href="#cb32-2" tabindex="-1"></a>                    <span class="st">&quot;manual_bins&quot;</span>, <span class="st">&quot;forced_in&quot;</span>, <span class="st">&quot;manual_dropped&quot;</span>, <span class="st">&quot;n_decisions&quot;</span>)])</span>
+<span id="cb32-3"><a href="#cb32-3" tabindex="-1"></a><span class="co">#&gt; List of 7</span></span>
+<span id="cb32-4"><a href="#cb32-4" tabindex="-1"></a><span class="co">#&gt;  $ binning_algorithm: chr &quot;manual, jedi&quot;</span></span>
+<span id="cb32-5"><a href="#cb32-5" tabindex="-1"></a><span class="co">#&gt;  $ shortlist_source : chr &quot;manual&quot;</span></span>
+<span id="cb32-6"><a href="#cb32-6" tabindex="-1"></a><span class="co">#&gt;  $ n_manual_bins    : int 2</span></span>
+<span id="cb32-7"><a href="#cb32-7" tabindex="-1"></a><span class="co">#&gt;  $ manual_bins      : chr &quot;vl_score_01, ds_region&quot;</span></span>
+<span id="cb32-8"><a href="#cb32-8" tabindex="-1"></a><span class="co">#&gt;  $ forced_in        : chr &quot;vl_score_03&quot;</span></span>
+<span id="cb32-9"><a href="#cb32-9" tabindex="-1"></a><span class="co">#&gt;  $ manual_dropped   : chr &quot;vl_score_10&quot;</span></span>
+<span id="cb32-10"><a href="#cb32-10" tabindex="-1"></a><span class="co">#&gt;  $ n_decisions      : int 7</span></span>
+<span id="cb32-11"><a href="#cb32-11" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">scr_decisions</span>(sc))</span>
+<span id="cb32-12"><a href="#cb32-12" tabindex="-1"></a><span class="co">#&gt; [1] 7</span></span></code></pre></div>
+</div>
+<div id="production-r-and-sql-follow-the-manual-bins" class="section level2">
+<h2>Production: R and SQL follow the manual bins</h2>
+<p>Nothing downstream needs to know that a bin was drawn by hand.
+<code>scr_apply()</code> scores new rows in R with the frozen
+pre-processing and the frozen bins; the points for
+<code>vl_score_01</code> fall in one of the four policy bands and the
+points for <code>ds_region</code> in one of the two regions.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>new <span class="ot">&lt;-</span> <span class="fu">head</span>(scr_demo, <span class="dv">5</span>)</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>new[, <span class="fu">c</span>(<span class="st">&quot;vl_score_01&quot;</span>, <span class="st">&quot;ds_region&quot;</span>)]</span>
+<span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a><span class="co">#&gt;   vl_score_01 ds_region</span></span>
+<span id="cb33-4"><a href="#cb33-4" tabindex="-1"></a><span class="co">#&gt; 1       71.94      EAST</span></span>
+<span id="cb33-5"><a href="#cb33-5" tabindex="-1"></a><span class="co">#&gt; 2       39.02      WEST</span></span>
+<span id="cb33-6"><a href="#cb33-6" tabindex="-1"></a><span class="co">#&gt; 3       57.39    CENTRE</span></span>
+<span id="cb33-7"><a href="#cb33-7" tabindex="-1"></a><span class="co">#&gt; 4       57.38     NORTH</span></span>
+<span id="cb33-8"><a href="#cb33-8" tabindex="-1"></a><span class="co">#&gt; 5       54.20      WEST</span></span>
+<span id="cb33-9"><a href="#cb33-9" tabindex="-1"></a><span class="fu">scr_apply</span>(sc, new, <span class="at">what =</span> <span class="st">&quot;points&quot;</span>)[, .(score, score_points, vl_score_01_points, ds_region_points)]</span>
+<span id="cb33-10"><a href="#cb33-10" tabindex="-1"></a><span class="co">#&gt;       score score_points vl_score_01_points ds_region_points</span></span>
+<span id="cb33-11"><a href="#cb33-11" tabindex="-1"></a><span class="co">#&gt;       &lt;num&gt;        &lt;num&gt;              &lt;num&gt;            &lt;num&gt;</span></span>
+<span id="cb33-12"><a href="#cb33-12" tabindex="-1"></a><span class="co">#&gt; 1: 544.1540          545                -28                5</span></span>
+<span id="cb33-13"><a href="#cb33-13" tabindex="-1"></a><span class="co">#&gt; 2: 575.3205          576                 28                5</span></span>
+<span id="cb33-14"><a href="#cb33-14" tabindex="-1"></a><span class="co">#&gt; 3: 519.6014          521                -12                5</span></span>
+<span id="cb33-15"><a href="#cb33-15" tabindex="-1"></a><span class="co">#&gt; 4: 494.8139          495                -12              -15</span></span>
+<span id="cb33-16"><a href="#cb33-16" tabindex="-1"></a><span class="co">#&gt; 5: 555.5494          557                 12                5</span></span></code></pre></div>
+<p><code>scr_sql()</code> emits the same thing for the database. The
+header carries the provenance line; for the two variables touched, the
+lines below show the frozen pre-processing, the WOE <code>CASE</code> on
+the manual cut points and groupings with full precision, and the
+bin-index <code>CASE</code> on the same cuts. The tail composes the
+whole points from that index.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">scr_sql</span>(sc, <span class="at">table =</span> <span class="st">&quot;prd.customers&quot;</span>, <span class="at">dialect =</span> <span class="st">&quot;databricks&quot;</span>)</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a>sql_lines <span class="ot">&lt;-</span> <span class="fu">unlist</span>(<span class="fu">strsplit</span>(sql, <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>, <span class="at">fixed =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb34-3"><a href="#cb34-3" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">grep</span>(<span class="st">&quot;^-- Provenance&quot;</span>, sql_lines, <span class="at">value =</span> <span class="cn">TRUE</span>), <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb34-4"><a href="#cb34-4" tabindex="-1"></a><span class="co">#&gt; -- Provenance: 2 manually binned (vl_score_01, ds_region), 1 forced in (vl_score_03), 1 dropped (vl_score_10) - see the decision ledger</span></span>
+<span id="cb34-5"><a href="#cb34-5" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">grep</span>(<span class="st">&quot;WHEN (vl_score_01|ds_region) &quot;</span>, sql_lines, <span class="at">value =</span> <span class="cn">TRUE</span>), <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" tabindex="-1"></a><span class="co">#&gt;     CASE WHEN vl_score_01 IS NULL OR vl_score_01 IN (-999) THEN 52.75 ELSE vl_score_01 </span><span class="re">END</span><span class="co"> AS vl_score_01,</span></span>
+<span id="cb34-7"><a href="#cb34-7" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 IS NULL THEN 0</span></span>
+<span id="cb34-8"><a href="#cb34-8" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &lt;= 42 THEN -0.8929621501396132</span></span>
+<span id="cb34-9"><a href="#cb34-9" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 42 AND vl_score_01 &lt;= 55 THEN -0.37539440893887893</span></span>
+<span id="cb34-10"><a href="#cb34-10" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 55 AND vl_score_01 &lt;= 70 THEN 0.3836922056211275</span></span>
+<span id="cb34-11"><a href="#cb34-11" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 70 THEN 0.9037062554415245</span></span>
+<span id="cb34-12"><a href="#cb34-12" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IS NULL THEN 0</span></span>
+<span id="cb34-13"><a href="#cb34-13" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IN (&#39;NORTH&#39;, &#39;SOUTH&#39;) THEN 0.4985359152057967</span></span>
+<span id="cb34-14"><a href="#cb34-14" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IN (&#39;EAST&#39;, &#39;WEST&#39;, &#39;CENTRE&#39;) THEN -0.1492097461959896</span></span>
+<span id="cb34-15"><a href="#cb34-15" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 IS NULL THEN NULL</span></span>
+<span id="cb34-16"><a href="#cb34-16" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &lt;= 42 THEN 1</span></span>
+<span id="cb34-17"><a href="#cb34-17" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 42 AND vl_score_01 &lt;= 55 THEN 2</span></span>
+<span id="cb34-18"><a href="#cb34-18" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 55 AND vl_score_01 &lt;= 70 THEN 3</span></span>
+<span id="cb34-19"><a href="#cb34-19" tabindex="-1"></a><span class="co">#&gt;     WHEN vl_score_01 &gt; 70 THEN 4</span></span>
+<span id="cb34-20"><a href="#cb34-20" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IS NULL THEN NULL</span></span>
+<span id="cb34-21"><a href="#cb34-21" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IN (&#39;NORTH&#39;, &#39;SOUTH&#39;) THEN 1</span></span>
+<span id="cb34-22"><a href="#cb34-22" tabindex="-1"></a><span class="co">#&gt;     WHEN ds_region IN (&#39;EAST&#39;, &#39;WEST&#39;, &#39;CENTRE&#39;) THEN 2</span></span>
+<span id="cb34-23"><a href="#cb34-23" tabindex="-1"></a><span class="fu">cat</span>(<span class="fu">tail</span>(sql, <span class="dv">8</span>), <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb34-24"><a href="#cb34-24" tabindex="-1"></a><span class="co">#&gt;       CASE vl_score_06_idx WHEN 1 THEN 9 WHEN 2 THEN 4 WHEN 3 THEN -3 WHEN 4 THEN -4 WHEN 5 THEN -5 WHEN 6 THEN -10 WHEN 7 THEN -15 ELSE 0 </span><span class="re">END</span><span class="co"> AS vl_score_06_points,</span></span>
+<span id="cb34-25"><a href="#cb34-25" tabindex="-1"></a><span class="co">#&gt;       CASE vl_score_07_idx WHEN 1 THEN 15 WHEN 2 THEN 7 WHEN 3 THEN 6 WHEN 4 THEN 1 WHEN 5 THEN -2 WHEN 6 THEN -8 ELSE 0 </span><span class="re">END</span><span class="co"> AS vl_score_07_points,</span></span>
+<span id="cb34-26"><a href="#cb34-26" tabindex="-1"></a><span class="co">#&gt;       CASE vl_score_05_idx WHEN 1 THEN 7 WHEN 2 THEN -3 WHEN 3 THEN -9 WHEN 4 THEN -9 WHEN 5 THEN -15 ELSE 0 </span><span class="re">END</span><span class="co"> AS vl_score_05_points,</span></span>
+<span id="cb34-27"><a href="#cb34-27" tabindex="-1"></a><span class="co">#&gt;       CASE ds_channel_idx WHEN 1 THEN 9 WHEN 2 THEN 4 WHEN 3 THEN -5 ELSE 0 </span><span class="re">END</span><span class="co"> AS ds_channel_points,</span></span>
+<span id="cb34-28"><a href="#cb34-28" tabindex="-1"></a><span class="co">#&gt;       CASE vl_hist_04_idx WHEN 1 THEN 19 WHEN 2 THEN 9 WHEN 3 THEN -3 ELSE 0 </span><span class="re">END</span><span class="co"> AS vl_hist_04_points,</span></span>
+<span id="cb34-29"><a href="#cb34-29" tabindex="-1"></a><span class="co">#&gt;       CASE vl_score_03_idx WHEN 1 THEN 3 WHEN 2 THEN -22 WHEN 3 THEN -19 ELSE 0 </span><span class="re">END</span><span class="co"> AS vl_score_03_points</span></span>
+<span id="cb34-30"><a href="#cb34-30" tabindex="-1"></a><span class="co">#&gt;   FROM woe_scr</span></span>
+<span id="cb34-31"><a href="#cb34-31" tabindex="-1"></a><span class="co">#&gt; ) pts;</span></span></code></pre></div>
+<p>That the two paths agree number for number, including a value sitting
+exactly on a manual cut point, is verified by the package tests, which
+run the generated SQL in DuckDB and compare it with
+<code>scr_apply()</code> on the same rows. This vignette does not need a
+database to run.</p>
+</div>
+<div id="governance" class="section level2">
+<h2>Governance</h2>
+<p>A reviewer can reconstruct every manual decision from the
+deliverables. The ledger is append-only, with one row per
+<code>accept</code>, <code>discard</code>, <code>supersede</code>,
+<code>restore</code> (a <code>reset = TRUE</code> proposal that takes a
+variable back to its optimal bins), <code>override</code>,
+<code>force</code>, <code>drop</code> and <code>keep</code>, and it
+travels from the lab into the result, the scorecard and the workbooks
+written by <code>scr_export()</code>. Four conditions block a proposal:
+an empty bin, a degenerate bin without smoothing, a bin below the hard
+minimum share and a manual IV above the leakage ceiling. Accepting a
+blocked proposal, forcing a variable failed for
+<code>IV_SUSPICIOUS</code> and forcing a derived <code>__sp</code> flag
+under <code>allow_derived_final = FALSE</code> each need
+<code>override = TRUE</code>, which adds its own ledger row.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
