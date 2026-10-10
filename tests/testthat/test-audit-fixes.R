@@ -126,7 +126,7 @@ test_that("scr_lgd_downturn() always records a reason", {
 
 test_that("the traffic-light convention is the same in PD, LGD and EAD: red at or below, amber at or below", {
   l <- c(0.01, 0.05)
-  expect_equal(.pd_light(c(0.005, 0.01, 0.03, 0.05, 0.051, NA), l), c("red", "red", "amber", "amber", "green", NA))
+  expect_equal(.pd_light(c(0.005, 0.01, 0.03, 0.05, 0.051, NA), l), c("red", "red", "amber", "amber", "green", "grey"))
   v <- scr_pd_validate(pd_model(), pd_panel(), score = "score", tests = "jeffreys")
   expect_true(all(v$summary$light[!is.na(v$summary$p_value)] == .pd_light(v$summary$p_value[!is.na(v$summary$p_value)], v$lights)))
 })

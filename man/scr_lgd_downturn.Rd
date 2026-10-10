@@ -34,7 +34,7 @@ and the pool columns \code{lgd_dt} and \code{lgd_final} updated.
 }
 \description{
 Quantifies the downturn per pool from user-supplied downturn periods.
-\code{method = "type1"} (observed impact): the default-weighted realised LGD
+\code{method = "type1"} (observed impact): the default-weighted realized LGD
 of the training defaults whose default date falls inside the periods; a
 pool with fewer than ten such defaults falls back to type 3. \code{method = "type3"}:
 the long-run average plus \code{add_on}. \code{method = "none"}: the long-run

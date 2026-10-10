@@ -1,4 +1,4 @@
-test_that("scr_compare and scr_core summarise a list of results", {
+test_that("scr_compare and scr_core summarize a list of results", {
   r1 <- res_demo()
   r2 <- scr_select(scr_demo, "churn", config = cfg_test(objective = "propensity"),
                    drop = c("id", "default"), date_col = "ref_date")

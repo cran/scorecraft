@@ -60,13 +60,13 @@ boundaries are score cut points, direction-aware: grade 1 is the safest
 \code{"geometric"} builds a \code{\link[=scr_master_scale]{scr_master_scale()}} between percentiles 1
 and 99 of the calibrated PD and converts its PD bounds into scores
 through the calibrated alignment; \code{"quantile"} cuts equal-count score
-bands (cut points moved half-way between neighbouring scores, so a
+bands (cut points moved half-way between neighboring scores, so a
 boundary never sits on an observed value); \code{"supplied"} grades by the PD
 bands of a given master scale.
 }
 \details{
 Grades below \code{min_obligors} obligors or \code{min_defaults} defaults are
-merged with the neighbour of closer default rate; the sequence of grade
+merged with the neighbor of closer default rate; the sequence of grade
 PDs is then repaired by pool-adjacent-violators when \code{monotone = TRUE},
 and every merge is recorded in \code{repairs}. The grade PD (\code{pd_be}) is the
 long-run average of the grade default rates when a default-rate series

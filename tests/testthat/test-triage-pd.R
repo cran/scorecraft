@@ -1,7 +1,7 @@
 # Regression tests of the PD / default / IRB-binning triage: each block pins
-# one fixed behaviour against a brute-force or textbook reference.
+# one fixed behavior against a brute-force or textbook reference.
 
-test_that("the vectorised default engine equals the row state machine unit by unit", {
+test_that("the vectorized default engine equals the row state machine unit by unit", {
   set.seed(11)
   for (rep in 1:60) {
     nid <- sample(1:12, 1)

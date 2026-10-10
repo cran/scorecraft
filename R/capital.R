@@ -1,10 +1,10 @@
 # ============================================================================ #
-# capital.R - expected loss, IRB risk weights, standardised comparison, capital
+# capital.R - expected loss, IRB risk weights, standardized comparison, capital
 # ============================================================================ #
 # Closed-form arithmetic on per-exposure vectors: the asymptotic single risk
-# factor function of the IRB approach, the input floors, the standardised
+# factor function of the IRB approach, the input floors, the standardized
 # lookup for the output floor, the EL-versus-provisions comparison and a
-# fixed sensitivity grid. Everything is vectorised; the parameter tables come
+# fixed sensitivity grid. Everything is vectorized; the parameter tables come
 # from scr_irb_params() and are never hard-coded here. The Vasicek helpers
 # live in this file and are shared with the PD module.
 # ============================================================================ #
@@ -149,7 +149,7 @@ scr_pd_stress <- function(pd, rho, q) {
   (lgd * cond - pd * lgd) * ma * params$scaling_factor
 }
 
-#' Vectorised risk-weight engine with switchable floors and shocks
+#' Vectorized risk-weight engine with switchable floors and shocks
 #'
 #' `floors` is a subset of `c("pd", "lgd", "m")`; `r_mult` scales the
 #' correlation (sensitivity grid). Returns the table of [scr_irb_rw()].
@@ -257,7 +257,7 @@ scr_pd_stress <- function(pd, rho, q) {
 
 #' IRB risk weight of one or many exposures
 #'
-#' The asymptotic single risk factor function, vectorised over exposures:
+#' The asymptotic single risk factor function, vectorized over exposures:
 #' PD floors by asset class, LGD input floors for own estimates
 #' (`approach = "airb"`; the unsecured column of `params$lgd_floor` unless
 #' `collateral` names another column, blended with `secured_share`), the
@@ -351,9 +351,9 @@ scr_irb_rw <- function(pd, lgd, ead = 1, m = NULL, asset_class, sales = NULL, fi
   as.character(apply_floors)
 }
 
-# -- Standardised risk weight ------------------------------------------------ #
+# -- Standardized risk weight ------------------------------------------------ #
 
-#' Standardised risk weight of an exposure
+#' Standardized risk weight of an exposure
 #'
 #' Lookup in `params$sa_rw`: regulatory retail (`"retail_other"`,
 #' `"qrre_*"`: 75 %, or the transactor weight), residential mortgages by
@@ -376,7 +376,7 @@ scr_irb_rw <- function(pd, lgd, ead = 1, m = NULL, asset_class, sales = NULL, fi
 #'   exposure belongs to a granular regulatory retail pool; `FALSE` applies
 #'   the non-granular retail weight.
 #'
-#' @return A numeric vector of standardised risk weights (decimals).
+#' @return A numeric vector of standardized risk weights (decimals).
 #'
 #' @references
 #' Basel Committee on Banking Supervision (2023). *The Basel Framework*,
@@ -453,7 +453,7 @@ scr_sa_rw <- function(asset_class, ltv = NULL, rating = NULL, transactor = NULL,
 #' Expected loss, risk-weighted assets and capital of a portfolio
 #'
 #' Runs [scr_irb_rw()] on every exposure, aggregates by segment, compares
-#' the IRB result with the standardised approach for the output floor,
+#' the IRB result with the standardized approach for the output floor,
 #' reconciles regulatory expected loss with the provision stock
 #' (shortfall deducted from capital; excess eligible as tier 2 up to 0.6 %
 #' of the IRB risk-weighted assets), measures the impact of each input
@@ -497,7 +497,7 @@ scr_sa_rw <- function(asset_class, ltv = NULL, rating = NULL, transactor = NULL,
 #'   the foundation approach (a row of `params$lgd_firb`); the supervisory
 #'   LGD then replaces `lgd`.
 #' @param granular `TRUE`, `FALSE` or a column name: whether the retail
-#'   exposures belong to a granular regulatory retail pool (the standardised
+#'   exposures belong to a granular regulatory retail pool (the standardized
 #'   comparison uses the non-granular weight otherwise).
 #' @param params An [scr_irb_params()] object; defaults to the preset of
 #'   `config$framework`.
@@ -709,7 +709,7 @@ scr_capital <- function(x, pd = "pd", lgd = "lgd", ead = "ead", segment = NULL, 
                                   fh$n[fh$floor == "m_floor"] + fh$n[fh$floor == "m_cap"])),
     if (n_m_default > 0) .cap_ledger("maturity", sprintf("M = %.1f (params$m_default) on %d wholesale rows without maturity", params$m_default, n_m_default)),
     if (n_elbe_missing > 0) .cap_ledger("elbe", sprintf("ELBE taken equal to LGD (K = 0) on %d defaulted rows without elbe", n_elbe_missing)),
-    .cap_ledger("output_floor", if (use_sa) sprintf("%s of the standardised RWA: %s", fmt_pct(of, 1),
+    .cap_ledger("output_floor", if (use_sa) sprintf("%s of the standardized RWA: %s", fmt_pct(of, 1),
                                                     if (totals$floor_binding) "BINDING" else "not binding") else "not computed (capital_output_floor = FALSE)"),
     .cap_ledger("provisions", if (is.na(prov_t)) "no provision column: EL comparison skipped"
                               else sprintf("EL %s vs provisions %s: shortfall %s, excess %s, tier 2 add-back %s",
@@ -786,7 +786,7 @@ print.scr_capital <- function(x, ...) {
               format(round(t$rwa_irb), big.mark = ","), fmt_pct(t$density, 1), fmt_pct(t$target_ratio, 1),
               format(round(t$capital), big.mark = ",")))
   if (!is.na(t$rwa_sa)) {
-    cat(sprintf("  standardised RWA %s | IRB/SA %.3f | output floor %s: %s (headroom %s)\n",
+    cat(sprintf("  standardized RWA %s | IRB/SA %.3f | output floor %s: %s (headroom %s)\n",
                 format(round(t$rwa_sa), big.mark = ","), t$irb_sa_ratio, fmt_pct(t$output_floor, 1),
                 if (isTRUE(t$floor_binding)) "BINDING" else "not binding", format(round(t$headroom), big.mark = ",")))
   }

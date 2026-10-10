@@ -1,6 +1,6 @@
 # Regression tests of the capital / ECL triage: hand-computed IRB values,
 # numerical stability of the maturity adjustment, SME sales, maturity
-# reporting, vectorised lookups and the ECL scenario guards.
+# reporting, vectorized lookups and the ECL scenario guards.
 
 k_ref <- function(pd, lgd, m, r) {
   b <- (0.11852 - 0.05478 * log(pd))^2
@@ -58,7 +58,7 @@ test_that("maturity is reported on wholesale rows only and F-IRB does not count 
   expect_error(scr_irb_rw(0.01, 0.45, m = -1, asset_class = "corporate"), "`m`")
 })
 
-test_that("the vectorised LGD-floor and LTV-band lookups keep their semantics", {
+test_that("the vectorized LGD-floor and LTV-band lookups keep their semantics", {
   p <- scr_irb_params("bcb")
   l <- scr_irb_rw(0.01, 0.01, asset_class = c("corporate", "corporate", "retail_other", "retail_mortgage", "qrre_revolver"),
                   collateral = c("receivables", "other_physical", "financial", "real_estate", "unsecured"), params = p)
@@ -90,7 +90,7 @@ test_that("ECL input lengths and stages are validated", {
   expect_error(scr_ecl(rep(0.01, 5), c(0.4, 0.5), 100, config = cfg), "length")
   expect_error(scr_ecl(0.01, 0.4, 100, stage = 2.5, config = cfg), "stage")
   expect_equal(scr_ecl(rep(0.01, 2), 0.4, 100, stage = c(1, 2), config = cfg)$stages$n, c(1L, 1L, 0L))
-  # the vectorised cumulative PD is exact at the boundaries and for tiny hazards
+  # the vectorized cumulative PD is exact at the boundaries and for tiny hazards
   e <- scr_ecl(matrix(c(1e-12, 1, 0), 3, 12), 0.4, 100, config = cfg, keep_rows = TRUE)
   expect_equal(e$exposures$pd_12m, c(-expm1(12 * log1p(-1e-12)), 1, 0), tolerance = 1e-12)   # 1 - (1 - h)^12 loses 5 digits here
   expect_gt(e$exposures$pd_12m[1], 0)

@@ -36,7 +36,7 @@ A \code{data.table} with the fetched table.
 }
 \description{
 Sampling happens on the server, not in R: pulling a million rows to
-discard ninety per cent of them pays the network cost twice. \code{max_rows} is
+discard ninety percent of them pays the network cost twice. \code{max_rows} is
 a memory guard: when it binds, the requested fraction is reduced on the
 server and the reduction is reported. The random expression follows the
 connection class (\code{rand(seed)} on Spark/Databricks/MySQL, \code{random()} on

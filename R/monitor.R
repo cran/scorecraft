@@ -71,17 +71,11 @@ scr_monitoring_plan <- function(x, breaks = NULL) {
 #' @keywords internal
 #' @noRd
 .csi_row <- function(pt, cmp, alpha, thresholds = c(0.10, 0.25)) {
-  n_new <- sum(cmp); n_tr <- sum(pt$count_train); k <- nrow(pt)
-  csi_v <- if (n_new > 0L) {
-    sm <- if (any(pt$count_train == 0L) || any(cmp == 0L)) 0.5 else 0
-    pb <- (pt$count_train + sm) / (n_tr + sm * k); pc <- (cmp + sm) / (n_new + sm * k)
-    sum((pb - pc) * log(pb / pc))
-  } else NA_real_
-  crit <- (1 / n_tr + 1 / max(1L, n_new)) * stats::qchisq(1 - alpha, df = max(1L, k - 1L))
-  list(n = n_new, csi = csi_v,
-       flag_fixed = if (is.na(csi_v)) NA_character_ else if (csi_v < thresholds[1]) "stable" else if (csi_v < thresholds[2]) "moderate" else "shift",
-       critical = crit,
-       flag_adjusted = if (is.na(csi_v)) NA_character_ else if (csi_v < crit) "stable" else "shift",
+  n_new <- sum(cmp); n_tr <- sum(pt$count_train)
+  # the PSI core of scr_psi(): bins empty in both samples stay out of the
+  # smoothing and of the degrees of freedom
+  r <- .psi_counts(pt$count_train, cmp, pt$bin, alpha, thresholds)
+  list(n = n_new, csi = r$psi, flag_fixed = r$flag_fixed, critical = r$critical, flag_adjusted = r$flag_adjusted,
        points_shift = if (n_new > 0L) .points_shift(pt$count_train / n_tr, cmp / n_new, pt$points) else NA_real_)
 }
 

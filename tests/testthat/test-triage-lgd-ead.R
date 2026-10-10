@@ -18,7 +18,7 @@ test_that("a cure with drawings after default returns them in the artificial rec
   expect_equal(wo2$rds$lgd_raw, 0.03)
 })
 
-test_that("the vectorised cash-flow sums and extrapolation match the per-event definitions", {
+test_that("the vectorized cash-flow sums and extrapolation match the per-event definitions", {
   wo <- wo_demo()
   cf <- scr_workout(scr_demo_lgd, scr_demo_lgd_cashflows, rates = scr_demo_rates, config = lgd_cfg(), keep_rows = TRUE)$cashflows
   s <- cf[type == "recovery", list(pv = sum(pv)), by = default_id]
@@ -71,7 +71,7 @@ test_that("scr_lgd_pools refuses a non-positive number of pools", {
   expect_error(scr_lgd_pools(lgd_demo(), n_pools = 0), "positive integer")
 })
 
-test_that("scr_lgd_validate refuses newdata with a missing realised LGD", {
+test_that("scr_lgd_validate refuses newdata with a missing realized LGD", {
   m <- lgd_demo()
   nd <- data.table::copy(wo_demo()$rds)
   nd$lgd_real[1] <- NA
@@ -146,7 +146,7 @@ test_that("the EAD downturn refuses a period that ends before it starts", {
                                 reason = "x"), "start <= end")
 })
 
-test_that("the vectorised reference rows keep the per-event rules at the edges", {
+test_that("the vectorized reference rows keep the per-event rules at the edges", {
   s <- ead_panel()
   cfg <- scr_config(verbose = FALSE)
   # a default dated before the first snapshot: the default row itself, horizon 0, excluded

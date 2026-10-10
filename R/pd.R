@@ -397,12 +397,12 @@ print.scr_pd_calibration <- function(x, ...) {
 #' `"geometric"` builds a [scr_master_scale()] between percentiles 1
 #' and 99 of the calibrated PD and converts its PD bounds into scores
 #' through the calibrated alignment; `"quantile"` cuts equal-count score
-#' bands (cut points moved half-way between neighbouring scores, so a
+#' bands (cut points moved half-way between neighboring scores, so a
 #' boundary never sits on an observed value); `"supplied"` grades by the PD
 #' bands of a given master scale.
 #'
 #' Grades below `min_obligors` obligors or `min_defaults` defaults are
-#' merged with the neighbour of closer default rate; the sequence of grade
+#' merged with the neighbor of closer default rate; the sequence of grade
 #' PDs is then repaired by pool-adjacent-violators when `monotone = TRUE`,
 #' and every merge is recorded in `repairs`. The grade PD (`pd_be`) is the
 #' long-run average of the grade default rates when a default-rate series
@@ -622,7 +622,7 @@ scr_grades <- function(x, calibration = NULL, master_scale = NULL, n_grades = NU
   ), class = c("scr_grades", "list"))
 }
 
-#' Equal-count score cut points moved half-way between neighbouring scores
+#' Equal-count score cut points moved half-way between neighboring scores
 #' @keywords internal
 #' @noRd
 .pd_quantile_breaks <- function(score, n_groups) {
@@ -1153,7 +1153,7 @@ scr_pd_pit_ttc <- function(pd, z, rho, to = c("pit", "ttc")) {
 #' weighted bandwidths
 #' \deqn{MWB_{up} = \frac{\sum_{i<j} |i-j|\, N_i\, p_{ij}}{\sum_i \max(|i-K|, |i-1|)\, N_i \sum_{j>i} p_{ij}},}
 #' (and the mirror image for downgrades), the `z` statistic of every
-#' off-diagonal cell against its neighbour closer to the diagonal (a
+#' off-diagonal cell against its neighbor closer to the diagonal (a
 #' significantly positive value means the probability does not decay away
 #' from the diagonal) and the mobility summary. Values of `grade_t1`
 #' outside `1..K` count as `default`, `NA` as `closed`; both stay out of
@@ -1199,7 +1199,7 @@ scr_migration <- function(grade_t0, grade_t1, K = NULL) {
   norm_l <- sum(vapply(idx, function(i) max(abs(i - K), abs(i - 1)) * n_i[i] * sum(Pk[i, dn[i, ]]), numeric(1)))
   mwb_u <- if (norm_u > 0) sum((D * Pk * n_i)[up]) / norm_u else NA_real_
   mwb_l <- if (norm_l > 0) sum((D * Pk * n_i)[dn]) / norm_l else NA_real_
-  # z of each off-diagonal cell against the neighbour closer to the diagonal
+  # z of each off-diagonal cell against the neighbor closer to the diagonal
   Z <- matrix(NA_real_, K, K, dimnames = list(rownames(M), as.character(idx)))
   for (i in idx) for (j in idx) {
     if (j == i || n_i[i] == 0) next
@@ -1288,12 +1288,13 @@ print.scr_migration <- function(x, ...) {
   list(chi2 = chi2, df = df, p = if (df >= 1L) stats::pchisq(chi2, df, lower.tail = FALSE) else NA_real_)
 }
 
-#' Traffic light of a p-value
+#' Traffic light of a p-value; "grey" when the p-value is missing (no testable
+#' result), as in the LGD validation
 #' @keywords internal
 #' @noRd
-.pd_light <- function(p, lights) ifelse(is.na(p), NA_character_, ifelse(p <= lights[1], "red", ifelse(p <= lights[2], "amber", "green")))
+.pd_light <- function(p, lights) ifelse(is.na(p), "grey", ifelse(p <= lights[1], "red", ifelse(p <= lights[2], "amber", "green")))
 
-#' DeLong standard error of an AUC, from mid-ranks
+#' DeLong standard error of an AUC, from the counts per score value
 #'
 #' The structural components of DeLong et al. (1988): for every event
 #' V10_i is the share of non-events it outranks (ties count one half), for
@@ -1301,7 +1302,9 @@ print.scr_migration <- function(x, ...) {
 #' Var(AUC) = var(V10) / n1 + var(V01) / n0. This is the estimator of the
 #' ECB instructions for reporting validation results (current AUC against
 #' the initial one) and, unlike the Hanley-McNeil approximation, it holds
-#' under heavy ties (a grade scale).
+#' under heavy ties (a grade scale). The components are constant within a
+#' score value, so the rows are tabulated once and the variances come from
+#' the counts (`.study_delong_counts()`).
 #' @keywords internal
 #' @noRd
 .pd_auc_se <- function(score, y, higher_is_event = TRUE) {
@@ -1310,10 +1313,10 @@ print.scr_migration <- function(x, ...) {
   if (!higher_is_event) s <- -s
   e <- y == 1L; n1 <- sum(e); n0 <- sum(!e)
   if (n1 < 2L || n0 < 2L) return(NA_real_)
-  r <- data.table::frank(s, ties.method = "average")
-  v10 <- (r[e] - data.table::frank(s[e], ties.method = "average")) / n0
-  v01 <- 1 - (r[!e] - data.table::frank(s[!e], ties.method = "average")) / n1
-  sqrt(stats::var(v10) / n1 + stats::var(v01) / n0)
+  # event and non-event counts per distinct score, in ascending order
+  idx <- data.table::frank(s, ties.method = "dense")
+  K <- max(idx)
+  .study_delong_counts(tabulate(idx[e], K), tabulate(idx[!e], K))
 }
 
 #' Validate a PD model on a cohort panel
@@ -1356,7 +1359,8 @@ print.scr_migration <- function(x, ...) {
 #' @param alpha Significance level of the binomial critical count.
 #' @param lights Two p-value thresholds (red at or below the first, amber at
 #'   or below the second, green above; the convention shared with the LGD
-#'   and EAD validations); `NULL` reads `config$pd_lights`.
+#'   and EAD validations); `NULL` reads `config$pd_lights`. A missing
+#'   p-value gives `"grey"`.
 #' @param pd_column Grade PD tested: `"pd_final"` (default), `"pd_moc"` or `"pd_be"`.
 #' @param horizon,by Cohort window in months and frequency (`NULL` reads `config$pd_dr_by`).
 #' @param n_boot,seed Bootstrap resamples and seed of the discrimination interval.
@@ -1367,8 +1371,11 @@ print.scr_migration <- function(x, ...) {
 #'   `pd`, `p_jeffreys`, `p_binomial`, `hl_chi2`, `hl_df`, `hl_p`,
 #'   `multi_period_z`, `multi_period_p`, `brier`), `discrimination`,
 #'   `stability` (`psi` table, `migration`, `concentration`), `summary`
-#'   (one row per test with `statistic`, `p_value`, `light`), `light`
-#'   (the worst light of the summary), `n_cohorts`, `alpha`, `lights`.
+#'   (one row per test with `statistic`, `p_value`, `light`; the light is
+#'   `"grey"` when the row has no testable result, such as a missing p-value
+#'   or the descriptive migration bandwidth), `light` (the worst light of the
+#'   summary: red, then amber, then green; `"grey"` when no row has a
+#'   testable result), `n_cohorts`, `alpha`, `lights`.
 #'   `portfolio_tests` also carries `critical`, `z`, `p_normal`, `n_cohorts`
 #'   and `pd_column`; the object also has `horizon`, `by`, `pd_column` and
 #'   `target`.
@@ -1521,12 +1528,14 @@ scr_pd_validate <- function(x, newdata, id = "id", date = "date", default = "def
   if (!is.null(disc)) sm[[length(sm) + 1L]] <- row("auc_vs_initial", "portfolio", disc$s_stat, disc$p_value)
   if (!is.null(psi_tab)) { last_psi <- psi_tab[nrow(psi_tab)]
     sm[[length(sm) + 1L]] <- data.table::data.table(test = "psi_grades", level = "portfolio", statistic = last_psi$psi, p_value = NA_real_,
-                                                    light = if (is.na(last_psi$flag_fixed)) NA_character_ else
+                                                    light = if (is.na(last_psi$flag_fixed)) "grey" else
                                                       switch(last_psi$flag_fixed, stable = "green", moderate = "amber", "red")) }
-  if (!is.null(mig)) sm[[length(sm) + 1L]] <- data.table::data.table(test = "migration_mwb_upper", level = "portfolio", statistic = mig$mwb_upper, p_value = NA_real_, light = NA_character_)
+  if (!is.null(mig)) sm[[length(sm) + 1L]] <- data.table::data.table(test = "migration_mwb_upper", level = "portfolio", statistic = mig$mwb_upper, p_value = NA_real_, light = "grey")
   if (!is.null(conc)) sm[[length(sm) + 1L]] <- row("concentration_cv", "portfolio", conc$cv, conc$p_value)
   summary <- data.table::rbindlist(sm)
-  worst <- if (any(summary$light == "red", na.rm = TRUE)) "red" else if (any(summary$light == "amber", na.rm = TRUE)) "amber" else "green"
+  # grey (no testable result) never rolls up to green: all grey stays grey
+  worst <- if (any(summary$light == "red", na.rm = TRUE)) "red" else if (any(summary$light == "amber", na.rm = TRUE)) "amber" else
+    if (any(summary$light == "green", na.rm = TRUE)) "green" else "grey"
   structure(list(calibration = by_g[], calibration_cohort = by_cg[], portfolio = port[], portfolio_tests = portfolio_tests,
                  discrimination = disc, stability = list(psi = psi_tab, migration = mig, concentration = conc),
                  summary = summary[], light = worst, n_cohorts = T_c, alpha = alpha, lights = lights, horizon = as.integer(horizon), by = by,

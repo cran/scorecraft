@@ -41,7 +41,7 @@
 #' | `odds_orientation` | `safe:event` | `event:safe` |
 #'
 #' **`objective` does not touch the selection.** It does not change the
-#' modelled target, the cut points, the IV or the shortlist; it acts on the
+#' modeled target, the cut points, the IV or the shortlist; it acts on the
 #' direction of the points scale, on the odds orientation of the alignment
 #' and on the vocabulary of the reports. To model the other class as the
 #' event, the argument is `event_level` in [scr_split()] and [scr_select()],
@@ -286,7 +286,14 @@ scr_config <- function(preset = c("moderate", "aggressive", "lazy"), ...) {
     ecl_discount         = "eir",
     ecl_stage_dpd        = c(30L, 90L),
     ecl_sicr_ratio       = 2.0,
-    ecl_horizon_months   = 12L
+    ecl_horizon_months   = 12L,
+
+    # ---- Stage 13: score studies ----------------------------------------- #
+    study_bands     = 20L,
+    study_level     = 0.95,
+    tier_min_pct    = 0.05,
+    tier_min_events = 20L,
+    tier_max_bins   = 100L
   )
 
   tight <- switch(preset,
@@ -489,8 +496,19 @@ scr_config <- function(preset = c("moderate", "aggressive", "lazy"), ...) {
   .scr_num1(cfg$ccf_sa_ccf, "ccf_sa_ccf", lower = 0, upper = 1)
   .scr_num1(cfg$capital_target_ratio, "capital_target_ratio", lower = 0, upper = 1)
   if (length(cfg$pd_lights) != 2L || any(!is.finite(cfg$pd_lights)) || cfg$pd_lights[1] >= cfg$pd_lights[2]) {
-    stop("`pd_lights` must be two increasing p-value thresholds (red below the first, amber below the second).", call. = FALSE)
+    stop("`pd_lights` must be two increasing p-value thresholds (red at or below the first, amber at or below the second).", call. = FALSE)
   }
+
+  # ---- score-study keys ------------------------------------------------------ #
+  # a configuration saved before these keys existed takes their defaults
+  st <- list(study_bands = 20L, study_level = 0.95, tier_min_pct = 0.05, tier_min_events = 20L, tier_max_bins = 100L)
+  for (key in names(st)) if (is.null(cfg[[key]])) cfg[[key]] <- st[[key]]
+  .int("study_bands", 1)
+  .scr_num1(cfg$study_level, "study_level", lower = 0, upper = 1, open_lower = TRUE)
+  if (cfg$study_level >= 1) stop("`study_level` must be below 1.", call. = FALSE)
+  .scr_num1(cfg$tier_min_pct, "tier_min_pct", lower = 0, upper = 0.5)
+  .int("tier_min_events", 0)
+  .int("tier_max_bins", 2, 500)
   structure(cfg, class = c("scr_config", "list"))
 }
 
@@ -580,7 +598,8 @@ scr_presets <- function() {
 #' value and what it controls.
 #'
 #' @param stage Optional filter by stage: `0` to `7` for the scorecard
-#'   pipeline, `8` to `12` for the IRB models. `NULL` returns everything.
+#'   pipeline, `8` to `12` for the IRB models, `13` for the score studies.
+#'   `NULL` returns everything.
 #'
 #' @return A `data.frame` with `key`, `stage`, `default` and `description`.
 #'
@@ -614,7 +633,7 @@ scr_config_keys <- function(stage = NULL) {
     .ck("algorithm", 2, "jedi", "Binning algorithm (see obwoe_algorithms())"),
     .ck("bin_cutoff", 2, "0.03", "Minimum fraction per bin inside the algorithm"),
     .ck("max_n_prebins", 2, "30", "Pre-bins; strongly affects numerics"),
-    .ck("max_iterations", 2, "1000", "Maximum optimiser iterations"),
+    .ck("max_iterations", 2, "1000", "Maximum optimizer iterations"),
     .ck("bin_separator", 2, "%;%", "Separator of merged categories"),
     .ck("iv_min", 2, "0.02", "IV admission floor"),
     .ck("iv_max", 2, "1.00", "IV admission ceiling (leakage)"),
@@ -693,8 +712,8 @@ scr_config_keys <- function(stage = NULL) {
     .ck("pd_dr_by", 9, "quarter", "Cohort frequency of the default-rate series"),
     .ck("lgd_discount_add_on", 10, "0.05", "Add-on over the reference rate in the workout discount rate"),
     .ck("lgd_discount_rate", 10, "NA", "Flat annual discount rate when no rates table is given"),
-    .ck("lgd_cap_at_one", 10, "FALSE", "Cap realised LGD at 1"),
-    .ck("lgd_floor_at_zero", 10, "TRUE", "Floor realised LGD at 0 for the averages (raw value kept)"),
+    .ck("lgd_cap_at_one", 10, "FALSE", "Cap realized LGD at 1"),
+    .ck("lgd_floor_at_zero", 10, "TRUE", "Floor realized LGD at 0 for the averages (raw value kept)"),
     .ck("lgd_t_max", 10, "60", "Maximum workout period in months; older open defaults close with no further recovery"),
     .ck("lgd_cure_window", 10, "9", "Months within which two defaults of one facility are one event"),
     .ck("lgd_min_defaults_bin", 10, "100", "Minimum defaults per LGD bin or pool"),
@@ -706,25 +725,30 @@ scr_config_keys <- function(stage = NULL) {
     .ck("lgd_elbe_grid", 10, "0, 6, 12, 24, 36", "Months since default of the in-default grid"),
     .ck("ccf_horizon", 11, "fixed", "Reference-date approach: fixed, cohort, variable"),
     .ck("ccf_horizon_months", 11, "12", "Months between reference date and default under the fixed horizon"),
-    .ck("ccf_measure", 11, "auto", "Realised measure: auto (ULF below u_star, LF above), ulf, lf, eadf"),
-    .ck("ccf_u_star", 11, "0.95", "Utilisation above which the limit factor replaces the CCF"),
-    .ck("ccf_floor_realised", 11, "0", "Floor on the realised CCF (NA keeps the raw value)"),
-    .ck("ccf_cap_realised", 11, "NA", "Cap on the realised CCF (NA: none)"),
+    .ck("ccf_measure", 11, "auto", "Realized measure: auto (ULF below u_star, LF above), ulf, lf, eadf"),
+    .ck("ccf_u_star", 11, "0.95", "Utilization above which the limit factor replaces the CCF"),
+    .ck("ccf_floor_realised", 11, "0", "Floor on the realized CCF (NA keeps the raw value)"),
+    .ck("ccf_cap_realised", 11, "NA", "Cap on the realized CCF (NA: none)"),
     .ck("ccf_min_defaults", 11, "30", "Minimum defaults per CCF bin or pool"),
     .ck("ccf_n_pools", 11, "5", "Target number of CCF pools"),
     .ck("ccf_moc_alpha", 11, "0.05", "One-sided alpha of the estimation-error margin on the CCF"),
     .ck("ccf_downturn", 11, "type1", "Downturn quantification of the CCF: type1, type3, none"),
-    .ck("ccf_sa_ccf", 11, "0.40", "Standardised CCF used for the own-estimate floor"),
+    .ck("ccf_sa_ccf", 11, "0.40", "Standardized CCF used for the own-estimate floor"),
     .ck("post_default_drawings_in", 11, "lgd", "Where drawings after default are booked: lgd or ccf"),
     .ck("framework", 12, "bcb", "Parameter preset: bcb, basel3_final, crr3"),
     .ck("capital_approach", 12, "airb", "Capital approach: airb (own LGD, floored) or firb (supervisory LGD, fixed maturity)"),
     .ck("capital_target_ratio", 12, "0.08", "Capital ratio applied to the reported RWA"),
-    .ck("capital_output_floor", 12, "TRUE", "Compute the standardised comparison and the output floor"),
+    .ck("capital_output_floor", 12, "TRUE", "Compute the standardized comparison and the output floor"),
     .ck("capital_sensitivity", 12, "TRUE", "Run the fixed sensitivity grid"),
     .ck("ecl_discount", 12, "eir", "Discount the expected credit loss at the effective interest rate, or not"),
     .ck("ecl_stage_dpd", 12, "30, 90", "Days past due that move an exposure to stage 2 and stage 3"),
     .ck("ecl_sicr_ratio", 12, "2", "PD deterioration ratio (now over origination) that signals stage 2"),
-    .ck("ecl_horizon_months", 12, "12", "Horizon of the 12-month expected credit loss")
+    .ck("ecl_horizon_months", 12, "12", "Horizon of the 12-month expected credit loss"),
+    .ck("study_bands", 13, "20", "Bands of the percentile study (scr_bands())"),
+    .ck("study_level", 13, "0.95", "Confidence level of the score studies (bands, tiers, lights)"),
+    .ck("tier_min_pct", 13, "0.05", "Smallest volume share of a tier (scr_tiers())"),
+    .ck("tier_min_events", 13, "20", "Fewest events, and non-events, per tier"),
+    .ck("tier_max_bins", 13, "100", "Pre-bins of the tier search (at most 500)")
   )
   if (!is.null(stage)) d <- d[d$stage %in% stage, , drop = FALSE]
   rownames(d) <- NULL

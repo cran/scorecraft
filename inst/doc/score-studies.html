@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Score studies</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Score studies</h1>
+
+
+
+<p>A score is validated with an AUC, but it is used through cuts: who is
+approved, who is reviewed, who gets the retention offer. The score
+studies of <code>scorecraft</code> answer the questions that come with
+the cuts. How does the event rate move along the score? Which few groups
+can be named and defended? Is the score still fit on new data? What can
+be promised about a group, and with what confidence? Where should the
+cut be under a budget or a team’s capacity? How do two scores read on
+the same customers relate? When the event rate moves, is it the
+population or the score bands? Does one score serve every segment?</p>
+<p>Every study aggregates the scored rows once into a table of counts
+and works on that table afterwards, so a study of millions of rows costs
+one grouped pass plus work proportional to the number of distinct
+scores. The exceptions are the rank association of
+<code>scr_score_cross()</code>, which sorts the rows of the two scores
+once more, and <code>scr_detection()</code>, which sorts the rows of the
+entities with an event.</p>
+<div id="three-scores-on-the-demo-data" class="section level2">
+<h2>1. Three scores on the demo data</h2>
+<p>The demo table carries a risk target (<code>default</code>) and a
+propensity target (<code>churn</code>) on the same customers. A light
+configuration fits a credit scorecard, a mirrored copy of it read as a
+fraud score (a higher score means more risk), and a churn scorecard. The
+split is out-of-time on <code>ref_date</code>, so both targets share the
+same hold-out rows.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(scorecraft)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>cfg <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>, <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>, <span class="at">use_ranger =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>                  <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>, <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;default&quot;</span>, <span class="at">config =</span> cfg, <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;churn&quot;</span>),</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>                  <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>credit <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res)</span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>fraud <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res, <span class="at">direction =</span> <span class="st">&quot;higher_is_riskier&quot;</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>cfg_churn <span class="ot">&lt;-</span> <span class="fu">scr_config</span>(<span class="at">objective =</span> <span class="st">&quot;propensity&quot;</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">nthread =</span> <span class="dv">1</span>, <span class="at">use_glmnet =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a>                        <span class="at">use_ranger =</span> <span class="cn">FALSE</span>, <span class="at">use_lightgbm =</span> <span class="cn">FALSE</span>, <span class="at">xgb_rounds =</span> <span class="dv">60</span>, <span class="at">n_boot =</span> <span class="dv">20</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>res_churn <span class="ot">&lt;-</span> <span class="fu">scr_select</span>(scr_demo, <span class="st">&quot;churn&quot;</span>, <span class="at">config =</span> cfg_churn, <span class="at">drop =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;default&quot;</span>),</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>                        <span class="at">date_col =</span> <span class="st">&quot;ref_date&quot;</span>)</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>churn <span class="ot">&lt;-</span> <span class="fu">scr_scorecard</span>(res_churn)</span></code></pre></div>
+</div>
+<div id="credit-bands-tiers-and-lights" class="section level2">
+<h2>2. Credit: bands, tiers and lights</h2>
+<p><code>scr_bands()</code> cuts the score into bands of equal share
+<strong>frozen on the training sample</strong> and reads them on the
+hold-out. Each band reports its event rate with a Jeffreys interval, the
+lift over the overall rate, the cumulative capture of events and the KS
+at its lower edge; the last column is the Holm-adjusted p-value of a
+one-sided Fisher test that the band is riskier than the band before it
+(a rank-order reversal).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>b <span class="ot">&lt;-</span> <span class="fu">scr_bands</span>(credit, <span class="at">n_bands =</span> <span class="dv">10</span>, <span class="at">n_boot =</span> <span class="dv">50</span>, <span class="at">seed =</span> <span class="dv">1</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>b</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_study_bands&gt; target &quot;default&quot; | objective risk | higher_is_safer</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   bands frozen on &#39;train&#39;, read on &#39;holdout&#39; | 10 requested, 10 effective (uniform)</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   sample             n    events     rate AUC [95% CI]           Gini     KS     IV     PSI  reversals</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;   train          2,800       399   14.25% 0.7856 [0.763, 0.805]  0.571  0.441  1.136       -         0</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   holdout        1,400       203   14.50% 0.7394 [0.710, 0.763]  0.479  0.389  0.804  0.0069         0</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; Bands on &#39;holdout&#39; (event-richest first; 95% Jeffreys interval of the rate)</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;   band score                        pct rate [lo, hi]                 lift  capture     KS p_rev_adj</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;      1 [-Inf, 509.8922)            9.1% 35.43% [27.52%, 44.00%]       2.44    22.2%  0.153         -</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;      2 [509.8922, 523.5026)        9.1% 27.34% [20.19%, 35.51%]       1.89    39.4%  0.248     1.000</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;      3 [523.5026, 533.3684)        9.9% 26.62% [19.81%, 34.39%]       1.84    57.6%  0.345     1.000</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;      4 [533.3684, 542.0923)       10.6% 17.45% [12.01%, 24.14%]       1.20    70.4%  0.370     1.000</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;      5 [542.0923, 550.3612)       10.8% 11.26% [6.96%, 17.03%]        0.78    78.8%  0.342     1.000</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;      6 [550.3612, 557.7648)       10.6% 12.16% [7.64%, 18.15%]        0.84    87.7%  0.322     1.000</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;      7 [557.7648, 566.5601)       10.6% 7.38% [3.99%, 12.41%]         0.51    93.1%  0.261     1.000</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt;      8 [566.5601, 576.5187)        9.1% 3.91% [1.51%, 8.35%]          0.27    95.6%  0.183     1.000</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;      9 [576.5187, 590.2783)        8.9% 3.23% [1.10%, 7.49%]          0.22    97.5%  0.102     1.000</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt;     10 [590.2783, Inf)            11.2% 3.18% [1.23%, 6.84%]          0.22   100.0%  0.000     1.000</span></span></code></pre></div>
+<p>The hold-out shows 0 significant reversal(s) of the rank order, and
+the summary compares the AUC on train and on the hold-out with bootstrap
+intervals. A band with a wide interval is a band with few events; the
+interval, not the point rate, is what a policy should be read
+against.</p>
+<p>Ten bands are too many to name in a credit policy.
+<code>scr_tiers()</code> groups the score into a few tiers by an exact
+dynamic program: every tier holds at least 5% of the volume and 20
+events and non-events, adjacent tiers differ by a one-sided Fisher test,
+and among the segmentations that meet those constraints the one with the
+best binomial likelihood wins. <code>round_to</code> moves the cuts to
+round numbers, and <code>n_boot</code> refits on resampled counts to
+show how stable each cut is.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>tr <span class="ot">&lt;-</span> <span class="fu">scr_tiers</span>(credit, <span class="at">n_tiers =</span> <span class="dv">5</span>, <span class="at">round_to =</span> <span class="dv">5</span>, <span class="at">n_boot =</span> <span class="dv">30</span>, <span class="at">seed =</span> <span class="dv">1</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>tr</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_study_tiers&gt; target &quot;default&quot; | measure risk | higher_is_safer</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;   optimal (deviance) | 5 tiers requested, 5 achieved | fitted on &#39;train&#39; | cuts rounded to 5</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   cuts: 500, 515, 540, 555</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   sample             n    events     rate     IV     PSI  tiers  monotone  distinct</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   train          2,800       399   14.25%  1.143       -      5       yes       yes</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;   holdout        1,400       203   14.50%  0.752  0.0014      5        no        no</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; Tiers on &#39;holdout&#39; (event-richest first)</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   tier label              score                        pct     rate [95% CI]               p_adj</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;      5 01.very high       [-Inf, 500)                 5.4%   33.33% [23.45%, 44.47%]       0.753</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;      4 02.high            [500, 515)                  7.5%   37.14% [28.35%, 46.63%]       0.007</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;      3 03.medium          [515, 540)                 23.6%   23.03% [18.74%, 27.80%]       0.001</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;      2 04.low             [540, 555)                 19.6%   11.64% [8.25%, 15.82%]        0.001</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;      1 05.very low        [555, Inf)                 43.9%    5.04% [3.52%, 6.98%]             -</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; Stability (30 resamples): tier agreement 84.5%, same tier count 96.7%</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>tr<span class="sc">$</span>stability<span class="sc">$</span>cuts</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt;      cut    score   median      q25      q75       iqr n_same</span></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;     &lt;num&gt;  &lt;num&gt;</span></span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a><span class="co">#&gt; 1:     1 502.3609 504.4274 502.3609 506.1428  3.781886     29</span></span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a><span class="co">#&gt; 2:     2 516.0750 516.0750 516.0750 526.5455 10.470557     29</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a><span class="co">#&gt; 3:     3 538.0089 539.6230 538.0089 542.0923  4.083412     29</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a><span class="co">#&gt; 4:     4 555.0927 555.0927 552.8810 556.8089  3.927859     29</span></span></code></pre></div>
+<p>The tiers are fitted on train, so the hold-out tells whether they
+hold. Its summary line reads <code>monotone</code> “no”: the tiers are
+monotone on train by construction, but on the hold-out at least one pair
+of adjacent tiers comes out in the wrong order. The p_adj column and the
+intervals of the table say which pair, and whether the two tiers can be
+told apart at all on new data. The interquartile range of each refitted
+cut, in score points, shows which boundaries the data pins down and
+which ones a different sample would move.</p>
+<p><code>scr_rag()</code> turns the comparison of the hold-out with
+train into red, amber and green lights for discrimination, calibration,
+stability and the variables of the scorecard, each lit only when its
+confidence interval or test shows a deviation.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>rg <span class="ot">&lt;-</span> <span class="fu">scr_rag</span>(credit, <span class="at">n_boot =</span> <span class="dv">50</span>, <span class="at">seed =</span> <span class="dv">1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>rg<span class="sc">$</span>summary</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;     sample  group discrimination calibration stability variables overall reason</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;     &lt;char&gt; &lt;char&gt;         &lt;char&gt;      &lt;char&gt;    &lt;char&gt;    &lt;char&gt;  &lt;char&gt; &lt;char&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt; 1: holdout    all          amber       green     green     amber   amber</span></span></code></pre></div>
+</div>
+<div id="fraud-tail-bands-action-tiers-and-a-daily-capacity" class="section level2">
+<h2>3. Fraud: tail bands, action tiers and a daily capacity</h2>
+<p>A fraud score is read at its tail: the riskiest 2%, 5% or 10% of the
+traffic, not its deciles. <code>spacing = &quot;tail&quot;</code> places the cuts
+at cumulative shares counted from the event-rich end, here the high
+scores.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>bf <span class="ot">&lt;-</span> <span class="fu">scr_bands</span>(fraud, <span class="at">spacing =</span> <span class="st">&quot;tail&quot;</span>, <span class="at">tail_probs =</span> <span class="fu">c</span>(<span class="fl">0.02</span>, <span class="fl">0.05</span>, <span class="fl">0.10</span>, <span class="fl">0.20</span>, <span class="fl">0.50</span>), <span class="at">n_boot =</span> <span class="dv">0</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>bf<span class="sc">$</span>table[sample <span class="sc">==</span> <span class="st">&quot;holdout&quot;</span>, .(band, label, pct, rate, lift, capture)]</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;     band                label        pct       rate      lift    capture</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;               &lt;char&gt;      &lt;num&gt;      &lt;num&gt;     &lt;num&gt;      &lt;num&gt;</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 1:     1      [490.1607, Inf) 0.01428571 0.35000000 2.4137931 0.03448276</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 2:     2 [474.5723, 490.1607) 0.03785714 0.33962264 2.3422251 0.12315271</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 3:     3 [464.3536, 474.5723) 0.03857143 0.37037037 2.5542784 0.22167488</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 4:     4 [450.7431, 464.3536) 0.09142857 0.27343750 1.8857759 0.39408867</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 5:     5 [423.8846, 450.7431) 0.31357143 0.18223235 1.2567748 0.78817734</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 6:     6     [-Inf, 423.8846) 0.50428571 0.06090652 0.4200449 1.00000000</span></span></code></pre></div>
+<p>Three actions (pass, review, block) are three tiers; the labels
+follow the event rate, lowest first.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>tf <span class="ot">&lt;-</span> <span class="fu">scr_tiers</span>(fraud, <span class="at">n_tiers =</span> <span class="dv">3</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&quot;pass&quot;</span>, <span class="st">&quot;review&quot;</span>, <span class="st">&quot;block&quot;</span>))</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>tf<span class="sc">$</span>table[sample <span class="sc">==</span> <span class="st">&quot;holdout&quot;</span>, .(tier, label, score_lo, score_hi, pct, rate)]</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt;     tier  label score_lo score_hi       pct       rate</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt; &lt;char&gt;    &lt;num&gt;    &lt;num&gt;     &lt;num&gt;      &lt;num&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; 1:     3  block 458.1708      Inf 0.1321429 0.35675676</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt; 2:     2 review 423.2734 458.1708 0.3728571 0.18390805</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 3:     1   pass     -Inf 423.2734 0.4950000 0.05916306</span></span></code></pre></div>
+<p>How deep can the review queue go? A review team has a capacity per
+day. <code>scr_operating()</code> accumulates the score from its
+event-rich end and, with a date column, reads the selected volume of
+every date at each candidate cut. In the demo the date is monthly, so
+the capacity is read per month: here at most 80 cases on nine months in
+ten (<code>day_quantile = 0.9</code>), over the six months of the whole
+table. The rates of this curve include the training months and are
+therefore optimistic; the volumes, which is what a capacity is about,
+are not.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>d_fraud <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">score =</span> <span class="fu">scr_apply</span>(fraud, scr_demo)<span class="sc">$</span>score, <span class="at">y =</span> scr_demo<span class="sc">$</span>default,</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>                      <span class="at">month =</span> scr_demo<span class="sc">$</span>ref_date)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>op_f <span class="ot">&lt;-</span> <span class="fu">scr_operating</span>(d_fraud, <span class="at">objective =</span> <span class="st">&quot;risk&quot;</span>, <span class="at">direction =</span> <span class="st">&quot;higher_is_riskier&quot;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>                      <span class="at">max_per_day =</span> <span class="dv">80</span>, <span class="at">date =</span> <span class="st">&quot;month&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>op_f</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; &lt;scr_operating&gt; target &quot;y&quot; | objective risk | higher_is_riskier | side event (from the high scores, score &gt;= cut)</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;   sample &#39;all&#39; | 4188 score values | 6 dates | economics: none</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;   constraints: max_per_day 80</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; Optimum: cut 463.0245 | depth 10.4% (n 438) | rate 42.9% [38.3%, 47.6%] | capture 31.2% | value -</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;   binding: max_per_day | shadow price - per additional case | next marginal rate 33.6%</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; Curve (selected rows)</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;     depth          cut      n_sel rate [lo, hi]             capture   lift  marginal          value     day_q feasible</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt;      1.0%     497.4886         42 66.7% [51.7%, 79.4%]         4.7%   4.65     45.6%              -       8.5      yes</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt;      5.0%     475.1601        210 47.6% [40.9%, 54.4%]        16.6%   3.32     42.1%              -      39.0      yes</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt;     10.0%     463.7915        420 42.9% [38.2%, 47.6%]        29.9%   2.99     33.6%              -      78.0      yes</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;     10.4%     463.0245        438 42.9% [38.3%, 47.6%]        31.2%   2.99     33.6%              -      80.0      yes  &lt;- optimum</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt;     20.0%      450.096        840 34.4% [31.3%, 37.7%]        48.0%   2.40     22.6%              -     152.0       no</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt;     50.0%     423.8132      2,100 23.8% [22.0%, 25.7%]        83.1%   1.66     10.3%              -     358.5       no</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt;    100.0%         -Inf      4,200 14.3% [13.3%, 15.4%]       100.0%   1.00      0.0%              -     700.0       no</span></span></code></pre></div>
+<p>Without economics the optimum is the deepest cut that fits the
+capacity, and <code>binding</code> names the constraint that stops it.
+The curve shows what the capacity costs: the optimum captures 31.2% of
+the defaults, and the next score value beyond it still has a smoothed
+default rate of 33.6%, against an overall rate of 14.3%.</p>
+</div>
+<div id="churn-anchored-tiers-claims-and-a-budget" class="section level2">
+<h2>4. Churn: anchored tiers, claims and a budget</h2>
+<p>Under propensity the event is the outcome sought, and tiers can be
+anchored on event rates that mean something to the business: below 15%,
+around the overall churn rate and above 50%.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>ta <span class="ot">&lt;-</span> <span class="fu">scr_tiers</span>(churn, <span class="at">method =</span> <span class="st">&quot;anchored&quot;</span>, <span class="at">anchors =</span> <span class="fu">c</span>(<span class="fl">0.15</span>, <span class="st">&quot;overall&quot;</span>, <span class="fl">0.5</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>ta</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_study_tiers&gt; target &quot;churn&quot; | measure propensity | higher_is_riskier</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;   anchored | 4 tiers requested, 4 achieved | fitted on &#39;train&#39;</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;   cuts: 432.3465, 456.9944, 486.6599</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;   sample             n    events     rate     IV     PSI  tiers  monotone  distinct</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;   train          2,800       797   28.46%  0.761       -      4       yes       yes</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;   holdout        1,400       424   30.29%  0.692  0.0008      4       yes       yes</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; Tiers on &#39;holdout&#39; (event-richest first)</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   tier label              score                        pct     rate [95% CI]               p_adj</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;      4 01.high            [486.6599, Inf)            13.9%   65.46% [58.58%, 71.89%]       0.000</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;      3 02.medium high     [456.9944, 486.6599)       34.1%   34.38% [30.22%, 38.73%]       0.001</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;      2 03.medium low      [432.3465, 456.9944)       31.7%   24.32% [20.51%, 28.47%]       0.000</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;      1 04.low             [-Inf, 432.3465)           20.4%    8.77% [5.90%, 12.47%]            -</span></span></code></pre></div>
+<p><code>scr_claims()</code> turns such statements into tests. Each
+claim names a group (a tier, a band or a score range), a direction and a
+rate; it is tested on the hold-out with an exact one-sided binomial
+test, Holm-adjusted across the claims, and reported with its one-sided
+Jeffreys bound. A claim is “supported” when the data show it, “refuted”
+when they show the opposite and “not proven” otherwise.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>claims <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">name =</span> <span class="fu">c</span>(<span class="st">&quot;high tier churns&quot;</span>, <span class="st">&quot;top of the score&quot;</span>, <span class="st">&quot;low tier is quiet&quot;</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">label =</span> <span class="fu">c</span>(<span class="st">&quot;high&quot;</span>, <span class="cn">NA</span>, <span class="st">&quot;low&quot;</span>), <span class="at">score_lo =</span> <span class="fu">c</span>(<span class="cn">NA</span>, <span class="dv">480</span>, <span class="cn">NA</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">op =</span> <span class="fu">c</span>(<span class="st">&quot;&gt;=&quot;</span>, <span class="st">&quot;&gt;=&quot;</span>, <span class="st">&quot;&lt;=&quot;</span>), <span class="at">rate =</span> <span class="fu">c</span>(<span class="fl">0.50</span>, <span class="fl">0.60</span>, <span class="fl">0.15</span>))</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">scr_claims</span>(ta, claims)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>cl</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_claims&gt; target &quot;churn&quot; | objective propensity | sample &#39;holdout&#39; | level 95% (one-sided) | adjustment holm | average</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   claim                    group                              n     rate    bound claimed       p_adj  verdict</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt;   high tier churns         high                             194    65.5%    59.7% &gt;= 50.0%     0.0000  supported</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt;   top of the score         score &gt;= 480                     278    60.4%    55.5% &gt;= 60.0%     0.4675  not proven</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;   low tier is quiet        low                              285     8.8%    11.8% &lt;= 15.0%     0.0024  supported</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; On &#39;holdout&#39; (n = 194), rows in tier &#39;high&#39; had an event rate of 65.5% (95% one-sided lower bound</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="co">#&gt;   59.7%); the claim &#39;high tier churns&#39; (rate &gt;= 50%) is supported.</span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="co">#&gt; On &#39;holdout&#39; (n = 278), rows with score &gt;= 480 had an event rate of 60.4% (95% one-sided lower</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="co">#&gt;   bound 55.5%); the claim &#39;top of the score&#39; (rate &gt;= 60%) is not proven.</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="co">#&gt; On &#39;holdout&#39; (n = 285), rows in tier &#39;low&#39; had an event rate of 8.8% (95% one-sided upper bound</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="co">#&gt;   11.8%); the claim &#39;low tier is quiet&#39; (rate &lt;= 15%) is supported.</span></span></code></pre></div>
+<p>The claim on the top of the score shows the difference between a
+point rate and a statement: the observed rate is 60.4% against a claim
+of 60%, so the one-sided lower bound sits below the claim and the claim
+is not proven.</p>
+<p>A rate of a group is an average. <code>type = &quot;floor&quot;</code> tests
+the claim on the weakest end of the group instead: the reference rows of
+the group are cut into ten pre-bins (<code>floor_bins</code>), a
+monotone fit of their rates along the score (pool adjacent violators)
+finds the end where the claim is hardest to meet (the lowest rates for a
+“rate &gt;= r” claim, the highest for “rate &lt;= r”), and the claim is
+tested on the hold-out rows of that end. A dip inside the group is
+averaged with its neighbors by the fit, and the pre-bins set the
+resolution, so the floor speaks for the weakest tenth or more of the
+group, not for each customer.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>fl <span class="ot">&lt;-</span> <span class="fu">scr_claims</span>(ta, claims, <span class="at">type =</span> <span class="st">&quot;floor&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>fl<span class="sc">$</span>table[, .(name, group, score_lo, score_hi, n, rate, bound, verdict)]</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt;                 name        group score_lo score_hi     n      rate     bound</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;               &lt;char&gt;       &lt;char&gt;    &lt;num&gt;    &lt;num&gt; &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 1:  high tier churns         high 486.6599 496.8521    79 0.5569620 0.4645748</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 2:  top of the score score &gt;= 480 480.0000 483.7317    46 0.4782609 0.3604868</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt; 3: low tier is quiet          low 430.0975 432.3465    18 0.2222222 0.4082341</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt;       verdict</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt;</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 1: not proven</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 2: not proven</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 3: not proven</span></span></code></pre></div>
+<p>An average can be supported while its floor is not: on the tier
+“high”, the average claim is supported but its floor is not proven,
+because the customers at the low end of the tier churn less than the
+tier as a whole.</p>
+<p>A retention campaign has a gain per event reached (a churner who gets
+the offer; how many of them stay is part of that gain), a cost per
+contact and a budget. <code>scr_operating()</code> maximizes the value
+of the campaign along the score within the budget and reports the shadow
+price, what one more contact beyond the optimum would be worth.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>op_c <span class="ot">&lt;-</span> <span class="fu">scr_operating</span>(churn, <span class="at">gain_event =</span> <span class="dv">100</span>, <span class="at">cost_select =</span> <span class="dv">20</span>, <span class="at">budget =</span> <span class="dv">3000</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>op_c<span class="sc">$</span>optimum[, .(cut, depth, n_sel, rate_sel, value, binding, shadow_price)]</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;         cut     depth n_sel  rate_sel value binding shadow_price</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;       &lt;num&gt;     &lt;num&gt; &lt;num&gt;     &lt;num&gt; &lt;num&gt;  &lt;char&gt;        &lt;num&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; 1: 492.3036 0.1042857   146 0.6986301  7280  budget     37.14286</span></span></code></pre></div>
+<p>The binding constraint is the budget, and the shadow price of 37.1
+per contact is positive: the next contacts would still pay, so the
+budget, not the score, limits the campaign.</p>
+</div>
+<div id="credit-and-churn-on-the-same-customers" class="section level2">
+<h2>5. Credit and churn on the same customers</h2>
+<p>The two scorecards score the same hold-out rows.
+<code>scr_score_cross()</code> crosses their tiers, reports the event
+rate of both targets in every cell, the rank association of the scores,
+and the overlap of the customers each score puts first.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>ho <span class="ot">&lt;-</span> scr_demo[res<span class="sc">$</span>split<span class="sc">$</span>holdout_idx, ]</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>d_x <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">credit =</span> <span class="fu">scr_apply</span>(credit, ho)<span class="sc">$</span>score, <span class="at">churn =</span> <span class="fu">scr_apply</span>(churn, ho)<span class="sc">$</span>score,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>                  <span class="at">default =</span> ho<span class="sc">$</span>default, <span class="at">churned =</span> ho<span class="sc">$</span>churn)</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>cx <span class="ot">&lt;-</span> <span class="fu">scr_score_cross</span>(d_x, <span class="st">&quot;credit&quot;</span>, <span class="st">&quot;churn&quot;</span>, <span class="at">y_a =</span> <span class="st">&quot;default&quot;</span>, <span class="at">y_b =</span> <span class="st">&quot;churned&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>                      <span class="at">objective_b =</span> <span class="st">&quot;propensity&quot;</span>, <span class="at">cuts_a =</span> tr, <span class="at">cuts_b =</span> ta)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>cx</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_score_cross&gt; A &quot;credit&quot; (risk, higher_is_safer) | B &quot;churn&quot; (propensity, higher_is_riskier)</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="co">#&gt;   1,400 rows | outcomes: default, churned | bands: A tiers, B tiers</span></span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="co">#&gt;   association (raw scores): Spearman -0.432, Kendall tau-b -0.299 | oriented to the event-rich ends: 0.432, 0.299</span></span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; Share of rows</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt;   A \ B                           B1        B2        B3        B4     total</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt;   A1 very low                  13.4%     17.1%     11.1%      2.4%     43.9%</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt;   A2 low                        3.2%      7.1%      7.6%      1.8%     19.6%</span></span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt;   A3 medium                     2.9%      6.4%      9.7%      4.6%     23.6%</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt;   A4 high                       0.8%      0.6%      4.0%      2.1%      7.5%</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt;   A5 very high                  0.1%      0.4%      1.7%      3.1%      5.4%</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt;   total                        20.4%     31.7%     34.1%     13.9%    100.0%</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt; Event rate of &quot;default&quot;</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt;   A \ B                           B1        B2        B3        B4     total</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt;   A1 very low                   2.7%      5.0%      7.1%      9.1%      5.0%</span></span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#&gt;   A2 low                        8.9%     12.1%      9.4%     24.0%     11.6%</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#&gt;   A3 medium                    10.0%     18.9%     25.0%     32.8%     23.0%</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#&gt;   A4 high                      18.2%     33.3%     42.9%     34.5%     37.1%</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt;   A5 very high                 50.0%     33.3%     37.5%     30.2%     33.3%</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt;   total                         5.6%     10.4%     18.4%     27.3%     14.5%</span></span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a><span class="co">#&gt; Event rate of &quot;churned&quot;</span></span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a><span class="co">#&gt;   A \ B                           B1        B2        B3        B4     total</span></span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a><span class="co">#&gt;   A1 very low                   6.4%     18.8%     19.4%     60.6%     17.4%</span></span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a><span class="co">#&gt;   A2 low                       15.6%     27.3%     39.6%     56.0%     32.7%</span></span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a><span class="co">#&gt;   A3 medium                    12.5%     30.0%     37.5%     60.9%     37.0%</span></span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a><span class="co">#&gt;   A4 high                       0.0%     44.4%     42.9%     79.3%     48.6%</span></span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a><span class="co">#&gt;   A5 very high                 50.0%     83.3%     70.8%     72.1%     72.0%</span></span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a><span class="co">#&gt;   total                         8.8%     24.3%     34.4%     65.5%     30.3%</span></span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a><span class="co">#&gt;   B bands: B1 low, B2 medium low, B3 medium high, B4 high</span></span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a><span class="co">#&gt; Overlap (each score selects from its event-rich end)</span></span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a><span class="co">#&gt;    depth  share_a  share_b       n_a       n_b      both    A only    B only  Jaccard</span></span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a><span class="co">#&gt;     5.0%     5.0%     5.0%        70        70        17        53        53    0.138</span></span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a><span class="co">#&gt;    10.0%    10.0%    10.0%       140       140        45        95        95    0.191</span></span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a><span class="co">#&gt;    20.0%    20.0%    20.0%       280       280       125       155       155    0.287</span></span>
+<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a><span class="co">#&gt; Event rate of each set (B only = swap-in, A only = swap-out)</span></span>
+<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a><span class="co">#&gt;    depth outcome              A         B      both    A only    B only</span></span>
+<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a><span class="co">#&gt;     5.0% churned          71.4%     75.7%     76.5%     69.8%     75.5%</span></span>
+<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a><span class="co">#&gt;    10.0% churned          64.3%     69.3%     77.8%     57.9%     65.3%</span></span>
+<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a><span class="co">#&gt;    20.0% churned          52.9%     60.4%     68.0%     40.6%     54.2%</span></span>
+<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a><span class="co">#&gt;     5.0% default          34.3%     30.0%     35.3%     34.0%     28.3%</span></span>
+<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a><span class="co">#&gt;    10.0% default          35.7%     27.9%     31.1%     37.9%     26.3%</span></span>
+<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a><span class="co">#&gt;    20.0% default          31.4%     25.7%     32.8%     30.3%     20.0%</span></span></code></pre></div>
+<p>The oriented association (Spearman 0.43) is positive: the customers
+the credit score calls risky tend to be those the churn score calls
+likely to leave. The overlap table says how far that goes at the top of
+each score, and the rates of the “A only” and “B only” sets say what
+changes when one list is replaced by the other.</p>
+</div>
+<div id="why-the-default-rate-moved" class="section level2">
+<h2>6. Why the default rate moved</h2>
+<p>The hold-out defaults at a different rate than the training sample.
+Two things can move a rate: the population shifted along the score (the
+mix), or the same score now carries a different risk (the rates).
+<code>scr_mix_shift()</code> splits the change between the two, band by
+band, on bands frozen on the base. The two effects add up to the change
+exactly.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>ms <span class="ot">&lt;-</span> <span class="fu">scr_mix_shift</span>(credit, <span class="at">n_bands =</span> <span class="dv">5</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>ms</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_mix_shift&gt; target &quot;default&quot; | objective risk | higher_is_safer</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;   base &#39;train&#39; | 5 bands frozen on the base | 1 comparison</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   holdout      rate 14.2% -&gt; 14.5% (+0.25 pp): mix -0.35 pp, rate +0.60 pp | PSI 0.0027 (critical 0.0102)</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; Largest band effects on &#39;holdout&#39; (p_adj: Holm-adjusted test of the band rate)</span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="co">#&gt;   band score                               share               rate        mix       rate      total   p_adj</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="co">#&gt;      1 [-Inf, 523.5026)           20.0% -&gt; 18.2%     36.1% -&gt; 31.4%   -0.60 pp   -0.90 pp   -1.50 pp   0.955</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="co">#&gt;      2 [523.5026, 542.0923)       20.0% -&gt; 20.6%     18.8% -&gt; 21.9%   +0.12 pp   +0.63 pp   +0.75 pp   0.955</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="co">#&gt;      3 [542.0923, 557.7648)       20.0% -&gt; 21.4%      9.1% -&gt; 11.7%   +0.14 pp   +0.54 pp   +0.68 pp   0.955</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co">#&gt;      4 [557.7648, 576.5187)       20.0% -&gt; 19.8%       4.8% -&gt; 5.8%   -0.01 pp   +0.19 pp   +0.18 pp   1.000</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co">#&gt;      5 [576.5187, Inf)            20.0% -&gt; 20.1%       2.5% -&gt; 3.2%   +0.00 pp   +0.14 pp   +0.14 pp   1.000</span></span></code></pre></div>
+<p>Of the change of +0.25 percentage points, -0.35 come from the mix and
++0.60 from the band rates; 0 band(s) changed their rate significantly
+after the Holm adjustment, and the PSI of the band shares sits below its
+critical value. With <code>by</code>, every period is compared with the
+base, here the first month of the scored rows:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">scr_mix_shift</span>(credit, <span class="at">by =</span> <span class="st">&quot;date&quot;</span>, <span class="at">n_bands =</span> <span class="dv">5</span>)<span class="sc">$</span>summary[</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>  , .(group, rate_base, rate_cmp, delta, mix_total, rate_total, psi)]</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt;         group rate_base  rate_cmp        delta     mix_total    rate_total</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;        &lt;char&gt;     &lt;num&gt;     &lt;num&gt;        &lt;num&gt;         &lt;num&gt;         &lt;num&gt;</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt; 1: 2026-02-01 0.1414286 0.1457143  0.004285714 -2.762334e-04  0.0045619477</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt; 2: 2026-03-01 0.1414286 0.1371429 -0.004285714  1.721942e-05 -0.0043029337</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt; 3: 2026-04-01 0.1414286 0.1457143  0.004285714 -9.430080e-03  0.0137157940</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt; 4: 2026-05-01 0.1414286 0.1400000 -0.001428571 -1.060643e-03 -0.0003679283</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co">#&gt; 5: 2026-06-01 0.1414286 0.1500000  0.008571429 -9.716728e-03  0.0182881565</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co">#&gt;            psi</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="co">#&gt;          &lt;num&gt;</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="co">#&gt; 1: 0.002097308</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="co">#&gt; 2: 0.005328688</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="co">#&gt; 3: 0.013627112</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="co">#&gt; 4: 0.006771972</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co">#&gt; 5: 0.009641191</span></span></code></pre></div>
+</div>
+<div id="one-score-many-segments" class="section level2">
+<h2>7. One score, many segments</h2>
+<p>A single scorecard is applied to every channel.
+<code>scr_segments()</code> reads the score within each segment against
+the pooled rows: the AUC with its DeLong standard error and a chi-square
+test of equal AUC across the segments, the observed events against those
+expected from the pooled bands (indirect standardization), the offset on
+the log-odds scale and the slope of the score relative to the pooled
+slope. The <code>action</code> column summarizes them under stated
+tolerances: a shared score, an intercept offset, a separate model, or
+too few events to say.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>sg <span class="ot">&lt;-</span> <span class="fu">scr_segments</span>(credit, ho, <span class="at">segment =</span> <span class="st">&quot;ds_channel&quot;</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>sg</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_segments&gt; target &quot;default&quot; | objective risk | higher_is_safer | segments of &#39;ds_channel&#39;</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;   tolerances: AUC 0.03, offset 0.25, slope 0.25 | fewest events 20 | level 95%</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt; Pooled: n 1,400 | rate 14.5% | AUC 0.7394 | equal AUC across 3 segments: chi-square 1.17 (df 2), p 0.5577</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;   segment                n     rate AUC [lo, hi]                 PSI O/E [lo, hi]          offset slope ratio  action</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;   APP                  701    17.1% 0.7184 [0.671, 0.766]     0.0357 1.05 [0.89, 1.23]      +0.06        0.92  shared</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;   STORE                267    12.0% 0.7383 [0.647, 0.829]     0.0955 1.03 [0.73, 1.40]      +0.03        1.00  shared</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt;   WEB                  432    11.8% 0.7636 [0.697, 0.831]     0.0304 0.89 [0.68, 1.14]      -0.13        1.14  shared</span></span></code></pre></div>
+<p>The test of equal AUC has a p-value of 0.56, and the O/E intervals
+all cover 1: the hold-out gives no reason to treat a channel apart.</p>
+</div>
+<div id="time-treatment-rules-and-episodes" class="section level2">
+<h2>8. Time, treatment, rules and episodes</h2>
+<p>Four more studies need columns the demo table does not have; each
+help page has a worked example.</p>
+<ul>
+<li><code>scr_maturity()</code> follows each band over time with
+censoring (a Kaplan-Meier curve per band) and shows where the event rate
+flattens: the performance window.</li>
+<li><code>scr_uplift()</code> reads a score on a treated and a control
+group: the uplift per band with its interval, the Qini coefficient and a
+check of the randomization.</li>
+<li><code>scr_overlap()</code> compares expert rules with the alerts of
+a score: what each catches alone, and which rules the score already
+covers.</li>
+<li><code>scr_detection()</code> measures, per alert threshold, how many
+fraud episodes are detected, after how many fraudulent transactions and
+with how much of the loss prevented.</li>
+</ul>
+</div>
+<div id="production" class="section level2">
+<h2>9. Production</h2>
+<p>Bands and tiers are assigned to new scores in R and in SQL from the
+same frozen cuts, and every study writes a workbook. A tier label
+carries its order in front, <code>01</code> for the tier with the
+highest event rate, so that the labels sort from the event-richest tier
+in a report or an <code>ORDER BY</code>; the tiers table has the same
+value in <code>tier_label</code>, and <code>numbered = FALSE</code>
+returns the plain labels.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">scr_apply</span>(tr, <span class="fu">c</span>(<span class="dv">495</span>, <span class="dv">520</span>, <span class="dv">560</span>)))</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">#&gt;    score  tier   tier_label</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt;    &lt;num&gt; &lt;int&gt;       &lt;char&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">#&gt; 1:   495     5 01.very high</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt; 2:   520     3    03.medium</span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; 3:   560     1  05.very low</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>sql <span class="ot">&lt;-</span> <span class="fu">scr_sql</span>(tr, <span class="at">table =</span> <span class="st">&quot;scored&quot;</span>, <span class="at">dialect =</span> <span class="st">&quot;postgres&quot;</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="fu">substr</span>(sql[<span class="dv">9</span>], <span class="dv">1</span>, <span class="dv">80</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;    CASE WHEN s.score IS NULL THEN NULL WHEN s.score &lt; 500 THEN 5 WHEN s.score &lt;&quot;</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="fu">substr</span>(sql[<span class="dv">10</span>], <span class="dv">1</span>, <span class="dv">80</span>)</span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; [1] &quot;    CASE WHEN s.score IS NULL THEN NULL WHEN s.score &lt; 500 THEN &#39;01.very high&#39; W&quot;</span></span></code></pre></div>
+<p><code>scr_export()</code> writes
+<code>study_tiers_&lt;target&gt;.xlsx</code>,
+<code>claims_&lt;target&gt;.xlsx</code>,
+<code>operating_&lt;target&gt;.xlsx</code>,
+<code>score_cross_&lt;a&gt;_&lt;b&gt;.xlsx</code>,
+<code>mix_shift_&lt;target&gt;.xlsx</code> and
+<code>segments_&lt;target&gt;.xlsx</code> for the objects above.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

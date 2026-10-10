@@ -1,7 +1,7 @@
 # ============================================================================ #
 # export.R - deliverables: hardened xlsx writer, four workbooks, SQL, summary
 # ============================================================================ #
-# Writer contract: sanitise
+# Writer contract: sanitize
 # formula injection -> write to a temporary file -> reopen and verify sheet
 # names and row counts -> rename atomically. An empty sheet receives an
 # availability/reason_code row, never a fabricated zero.
@@ -34,12 +34,31 @@
 #' `lgd_<tag>.xlsx`, `ead_<tag>.xlsx`, `capital_<framework>.xlsx`), with the
 #' validation, the ledger and the model card as sheets.
 #'
+#' A score study ([scr_bands()], [scr_tiers()]) writes one workbook,
+#' `study_bands_<target>.xlsx` or `study_tiers_<target>.xlsx`, with its
+#' summary, its table, the cuts and the settings (plus the ledger and the
+#' stability of the tiers, and the lights of `rag` when given); a set of
+#' lights from [scr_rag()] writes `rag_<target>.xlsx`; claims from
+#' [scr_claims()] write `claims_<target>.xlsx`; an operating point from
+#' [scr_operating()] writes `operating_<target>.xlsx` (curve, optimum,
+#' constraints); two crossed scores from [scr_score_cross()] write
+#' `score_cross_<score_a>_<score_b>.xlsx` (cross table, overlap, overlap
+#' rates, association). The other score studies write one workbook each:
+#' `mix_shift_<target>.xlsx` from [scr_mix_shift()],
+#' `segments_<target>.xlsx` from [scr_segments()], `maturity_<event>.xlsx`
+#' from [scr_maturity()], `uplift_<target>.xlsx` from [scr_uplift()],
+#' `overlap_<target>.xlsx` from [scr_overlap()] and
+#' `detection_<target>.xlsx` from [scr_detection()].
+#'
 #' The timeline and vintage sheets need the date column of the split; when it
 #' is absent they carry an availability row instead of a fabricated number.
 #'
 #' @param x An object from [scr_select()], [scr_scorecard()],
-#'   [scr_coarse_classing()], [scr_pd()], [scr_lgd()], [scr_ead()] or
-#'   [scr_capital()].
+#'   [scr_coarse_classing()], [scr_pd()], [scr_lgd()], [scr_ead()],
+#'   [scr_capital()], [scr_bands()], [scr_tiers()], [scr_rag()],
+#'   [scr_claims()], [scr_operating()], [scr_score_cross()],
+#'   [scr_mix_shift()], [scr_segments()], [scr_maturity()], [scr_uplift()],
+#'   [scr_overlap()] or [scr_detection()].
 #' @param dir Output directory. Created if it does not exist.
 #' @param stamp If `TRUE` (default), writes to a timestamped subdirectory,
 #'   preserving earlier runs.
@@ -130,7 +149,7 @@ scr_export.scr_scorecard <- function(x, dir, stamp = TRUE, ...) {
   )
   validation <- list(
     "Score_Gains_Frozen"      = x$gains,
-    "Variable_Gains_IV"       = x$points[, c("variable", "bin_id", "bin", "count_fit", "pos_rate", "woe", "iv", "points")],
+    "Variable_Gains_IV"       = .points_shares(x$points)[, c("variable", "bin_id", "bin", "count_fit", "pos_rate", "pct_event", "pct_nonevent", "woe", "iv", "points")],
     "Discrimination_CI"       = x$metrics,
     "Stability_PSI_Timeline"  = tl$psi %||% na_tl,
     "Stability_CSI_Timeline"  = tl$csi %||% na_tl,
@@ -206,6 +225,23 @@ scr_export.scr_scorecard <- function(x, dir, stamp = TRUE, ...) {
   list(psi = psi, csi = csi, vintage = vintage)
 }
 
+#' Event and non-event shares of every bin, rebuilt per variable from
+#' `count_fit` and `pos_rate` when the points table was fitted before they
+#' were stored
+#' @keywords internal
+#' @noRd
+.points_shares <- function(p) {
+  if (all(c("pct_event", "pct_nonevent") %in% names(p))) return(p)
+  # pos_rate = count_pos / count, so the event count is recovered exactly
+  pos <- round(p$pos_rate * p$count_fit)
+  pe <- pn <- rep(NA_real_, nrow(p))
+  for (i in split(seq_len(nrow(p)), p$variable)) {
+    bw <- .band_woe(pos[i], p$count_fit[i] - pos[i])
+    pe[i] <- bw$pct_event; pn[i] <- bw$pct_nonevent
+  }
+  data.table::copy(p)[, `:=`(pct_event = pe, pct_nonevent = pn)]
+}
+
 #' @keywords internal
 #' @noRd
 .kv_table <- function(l) {
@@ -241,7 +277,7 @@ scr_export.scr_scorecard <- function(x, dir, stamp = TRUE, ...) {
   out_dir
 }
 
-#' Hardened xlsx writer: sanitise, write to a temporary file, reopen and verify, rename
+#' Hardened xlsx writer: sanitize, write to a temporary file, reopen and verify, rename
 #' @keywords internal
 #' @noRd
 .scr_write_xlsx <- function(sheets, file) {
@@ -272,7 +308,7 @@ scr_export.scr_scorecard <- function(x, dir, stamp = TRUE, ...) {
   file
 }
 
-#' Sanitise a sheet: plain data.frame, no formula injection, no empty table
+#' Sanitize a sheet: plain data.frame, no formula injection, no empty table
 #' @keywords internal
 #' @noRd
 .sanitise_sheet <- function(d) {

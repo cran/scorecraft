@@ -19,7 +19,7 @@ test_that("without a date column the split is stratified random and reproducible
   expect_message(scr_split(scr_demo, "default", date_col = "nope"), "does not exist")
 })
 
-test_that("event_level rewrites what is modelled and text targets are accepted", {
+test_that("event_level rewrites what is modeled and text targets are accepted", {
   inv <- scr_split(scr_demo, "default", event_level = 0)
   expect_true(inv$cols$event$inverted)
   expect_equal(inv$data$default, 1L - scr_demo$default)

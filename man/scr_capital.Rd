@@ -52,7 +52,7 @@ the foundation approach (a row of \code{params$lgd_firb}); the supervisory
 LGD then replaces \code{lgd}.}
 
 \item{granular}{\code{TRUE}, \code{FALSE} or a column name: whether the retail
-exposures belong to a granular regulatory retail pool (the standardised
+exposures belong to a granular regulatory retail pool (the standardized
 comparison uses the non-granular weight otherwise).}
 
 \item{params}{An \code{\link[=scr_irb_params]{scr_irb_params()}} object; defaults to the preset of
@@ -87,7 +87,7 @@ records the column names the SQL reads.
 }
 \description{
 Runs \code{\link[=scr_irb_rw]{scr_irb_rw()}} on every exposure, aggregates by segment, compares
-the IRB result with the standardised approach for the output floor,
+the IRB result with the standardized approach for the output floor,
 reconciles regulatory expected loss with the provision stock
 (shortfall deducted from capital; excess eligible as tier 2 up to 0.6 \%
 of the IRB risk-weighted assets), measures the impact of each input

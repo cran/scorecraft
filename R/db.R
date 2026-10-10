@@ -41,7 +41,7 @@ scr_connect <- function(dsn = NULL, driver = NULL, timeout = 20, ...) {
 #' Fetch a table with reproducible server-side sampling
 #'
 #' Sampling happens on the server, not in R: pulling a million rows to
-#' discard ninety per cent of them pays the network cost twice. `max_rows` is
+#' discard ninety percent of them pays the network cost twice. `max_rows` is
 #' a memory guard: when it binds, the requested fraction is reduced on the
 #' server and the reduction is reported. The random expression follows the
 #' connection class (`rand(seed)` on Spark/Databricks/MySQL, `random()` on

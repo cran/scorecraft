@@ -16,7 +16,7 @@ A \code{data.table} with \code{feature}, \code{n_targets}, \code{targets} and \c
 }
 \description{
 Which variables were approved on how many targets. A stable core across
-targets is the best argument in favour of a variable.
+targets is the best argument in favor of a variable.
 }
 \examples{
 cfg <- scr_config(verbose = FALSE, nthread = 1, use_ranger = FALSE,

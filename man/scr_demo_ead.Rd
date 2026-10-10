@@ -15,7 +15,7 @@ A \code{data.frame} with 34,811 rows and 9 columns:
 \item{\code{product}}{\code{"card"}, \code{"overdraft"} or \code{"line"}.}
 \item{\code{months_on_book}}{Age of the facility in months.}
 \item{\code{dpd}}{Days past due at the month end (multiples of 30).}
-\item{\code{defaulted}}{0/1 flag, 1 from the default month onwards.}
+\item{\code{defaulted}}{0/1 flag, 1 from the default month onward.}
 }
 }
 \source{
@@ -28,13 +28,13 @@ scr_demo_ead
 \description{
 1,200 revolving facilities (cards, overdrafts and revolving lines) of
 950 obligors, observed monthly (snapshots dated the first day of the
-month) over 30 months. Utilisation
+month) over 30 months. Utilization
 follows a facility-specific level with a mild drift; about 10\% of the
-facilities default, with the utilisation ramping up over the twelve
+facilities default, with the utilization ramping up over the twelve
 months before the default month at an intensity that depends on the
-drivers a CCF model is expected to find (utilisation, product, months on
+drivers a CCF model is expected to find (utilization, product, months on
 book, days past due). Some defaulters are fully drawn or over the limit
-at the reference date, some repay before default (negative realised
+at the reference date, some repay before default (negative realized
 CCF), some have their limit cut before default, a share of all
 facilities gets a limit change and a few facilities originate inside the
 window (fast defaults). Built for \code{\link[=scr_ead_data]{scr_ead_data()}}, \code{\link[=scr_ead]{scr_ead()}} and

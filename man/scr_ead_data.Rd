@@ -2,7 +2,7 @@
 % Please edit documentation in R/ead.R
 \name{scr_ead_data}
 \alias{scr_ead_data}
-\title{Build the realised-CCF reference data set from facility snapshots}
+\title{Build the realized-CCF reference data set from facility snapshots}
 \usage{
 scr_ead_data(
   snapshots,
@@ -62,8 +62,8 @@ exposure-weighted averages by cohort and measure, with a total row),
 \description{
 One row per default event (or per event and reference date under the
 variable-horizon comparison), with the facility as it stood at the
-reference date and the realised exposure at default (EAD) at the default
-date, from which the realised credit conversion factor (CCF) follows. The
+reference date and the realized exposure at default (EAD) at the default
+date, from which the realized credit conversion factor (CCF) follows. The
 reference date follows \code{config$ccf_horizon}: \code{"fixed"} takes the
 snapshot \code{ccf_horizon_months} before the default month (the nearest
 earlier snapshot when that month is missing; the first snapshot for a
@@ -73,15 +73,15 @@ falls; \code{"variable"} takes every snapshot in the horizon before the
 default, for comparison only.
 }
 \details{
-The realised measure per row follows \code{config$ccf_measure}: under
-\code{"auto"} the undrawn-limit factor (CCF) when the utilisation at the
+The realized measure per row follows \code{config$ccf_measure}: under
+\code{"auto"} the undrawn-limit factor (CCF) when the utilization at the
 reference date is below \code{ccf_u_star} and the limit factor (LF) at or
 above it; rows with nothing undrawn or over the limit at the reference
 date are always routed to the limit factor (\code{ZERO_UNDRAWN},
-\code{OVER_LIMIT_AT_REF}), never dropped. The raw realised value is kept in
+\code{OVER_LIMIT_AT_REF}), never dropped. The raw realized value is kept in
 \code{ccf_raw}; \code{ccf} carries the value after the optional floor
 (\code{ccf_floor_realised}) and cap (\code{ccf_cap_realised}), both logged in the
-funnel (\code{NEGATIVE_CCF_FLOORED}, \code{CCF_ABOVE_ONE}). The realised EAD is
+funnel (\code{NEGATIVE_CCF_FLOORED}, \code{CCF_ABOVE_ONE}). The realized EAD is
 the drawn amount at the default date, uncapped; with
 \code{post_default_drawings_in = "ccf"} it is the maximum drawn amount over
 the default event when \code{defaulted} is given.

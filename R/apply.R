@@ -4,14 +4,16 @@
 
 #' Apply the WOE transformation or the scorecard to new data
 #'
-#' Materialises in R exactly what the production SQL does: the frozen Stage
+#' Materializes in R exactly what the production SQL does: the frozen Stage
 #' 1 pre-processing (training median, special-population flags,
 #' `"MISSING"`) followed by the frozen Stage 2 binning and, for a scorecard,
 #' by the points. Nothing is refitted. The two paths, R and SQL, produce the
 #' same numbers, and a test guarantees it.
 #'
 #' @param x An object from [scr_select()] (returns WOE/bin of the approved
-#'   variables) or from [scr_scorecard()] (returns score and points).
+#'   variables), from [scr_scorecard()] (returns score and points), or a
+#'   score study from [scr_bands()] or [scr_tiers()] (returns the band or
+#'   tier of a score).
 #' @param newdata New table with the source columns of the requested
 #'   variables. The target column is not needed.
 #' @param ... Passed on to the methods.
@@ -145,7 +147,7 @@ scr_apply.scr_scorecard <- function(x, newdata, what = c("score", "points", "woe
 #' For each row of `newdata`, the `k` variables whose contribution in points
 #' fell furthest below the reference. The reference is the mean points of
 #' the variable on the training population (`"mean"`, the Regulation B safe
-#' harbour referenced to the average) or the maximum points of the variable
+#' harbor referenced to the average) or the maximum points of the variable
 #' (`"max"`). Only applies to the additive scorecard; a tree challenger has
 #' no reason codes.
 #'

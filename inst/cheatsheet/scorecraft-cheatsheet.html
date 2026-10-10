@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en-US">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -470,7 +470,7 @@ ol.pipe li.grp { padding-left: 0; }
   <p class="fn"><code><b>scr_gains</b>(res)</code> Bin-level gains of the approved variables.</p>
   <p class="fn"><code><b>scr_leakage</b>(res, threshold = NULL)</code> Suspicious IV and degenerate bins.</p>
   <p class="fn"><code><b>scr_score_metrics</b>(sc)</code> AUC, KS and Gini per sample, with bootstrap CI.</p>
-  <p class="fn"><code><b>scr_score_gains</b>(sc, sample = "holdout")</code> Gains per score band frozen on train.</p>
+  <p class="fn"><code><b>scr_score_gains</b>(sc, sample = "holdout")</code> Gains per score band frozen on train: KS, lift, <code class="inl">pct_event</code>, <code class="inl">pct_nonevent</code> and <code class="inl">woe</code> = ln(pct_event / pct_nonevent), &gt; 0 when the band rate is above the overall rate; <code class="inl">odds</code> in the scale orientation.</p>
   <p class="fn"><code><b>summary</b>(res)</code>, <code><b>plot</b>(res)</code>, <code><b>as.data.frame</b>(res)</code> Executive summary, funnel bar chart, funnel table.</p>
 </section>
 
@@ -519,9 +519,9 @@ sc$alignment   <span class="cm"># the fitted scale map</span></pre>
 <section style="--c: var(--c-decide)">
   <h2>Decide <small>stage 6</small></h2>
   <p class="fn"><code><b>scr_cutoff</b>(sc, n_cuts = NULL, cuts = NULL)</code> Approval, event rate on each side, events avoided and KS at each cut. Cuts are train quantiles applied frozen to the hold-out.</p>
-  <p class="fn"><code><b>scr_strategy</b>(sc, revenue_good = 1080, loss_bad = 4500)</code> Bands with volume, event rate, decision and expected profit per account:</p>
+  <p class="fn"><code><b>scr_strategy</b>(sc, revenue_good = 1080, loss_bad = 4500)</code> Bands with volume, event rate, <code class="inl">odds_event</code>, <code class="inl">log_odds</code>, decision and expected profit per account:</p>
   <div class="eq">EP = (1 &minus; p)&middot;revenue_good &minus; p&middot;loss_bad<br>p* = revenue_good / (revenue_good + loss_bad)</div>
-  <svg class="fig" viewBox="0 0 250 46" role="img" aria-label="Strategy bands: approve below break-even, review up to 25 percent above, decline the rest">
+  <svg class="fig" viewBox="0 0 250 46" style="max-height:11.2mm" role="img" aria-label="Strategy bands: approve below break-even, review up to 25 percent above, decline the rest">
     <g>
       <rect x="4" y="38" width="16" height="6" fill="#16a34a"/><rect x="23" y="36" width="16" height="8" fill="#16a34a"/>
       <rect x="42" y="33" width="16" height="11" fill="#16a34a"/><rect x="61" y="30" width="16" height="14" fill="#16a34a"/>
@@ -536,6 +536,7 @@ sc$alignment   <span class="cm"># the fitted scale map</span></pre>
       <text x="162" y="42" fill="#b91c1c" font-weight="700">decline</text>
     </g>
   </svg>
+  <p class="fn"><code><b>scr_strategy</b>(sc, rule = "crossing")</code> Cut where the event and non-event distributions cross (max KS, <code class="inl">st$crossing</code>). Propensity: most likely band first; <b>target</b>, <b>review</b>, <b>skip</b>.</p>
   <p class="fn"><code><b>scr_reject</b>(sc, population = NULL, accepted = NULL)</code> Honest reject inference: population scope, outcome coverage per band and a <b>sensitivity band</b> (the rejects 2, 4 or 8 times worse), never a single invented multiplier.</p>
 </section>
 
@@ -598,9 +599,9 @@ sc2 &lt;- <span class="fx">scr_scorecard</span>(res2)</pre>
 </div>
 
 <footer class="foot">
-  <span><b>scorecraft</b> 0.2.0<span class="dot">|</span>MIT licence<span class="dot">|</span>Jose Evandeilton Lopes</span>
+  <span><b>scorecraft</b> 0.3.1.9000<span class="dot">|</span>MIT license<span class="dot">|</span>Jose Evandeilton Lopes</span>
   <span>Learn more at <b>evandeilton.github.io/scorecraft</b><span class="dot">|</span><code class="inl">help(package = "scorecraft")</code></span>
-  <span>Updated: 2026-09<span class="dot">|</span>1 / 2</span>
+  <span>Updated: 2026-10<span class="dot">|</span>1 / 3</span>
 </footer>
 </div>
 
@@ -664,7 +665,7 @@ rs &lt;- <span class="fx">scr_run</span>(con, <span class="st">"dtm"</span>, con
 
 <section style="--c: var(--c-default)">
   <h2>Parameters and default</h2>
-  <p class="fn"><code><b>scr_irb_params</b>(framework)</code> Editable tables: PD and LGD floors, supervisory LGD, CCFs, correlations, maturity, output floor, standardised weights.</p>
+  <p class="fn"><code><b>scr_irb_params</b>(framework)</code> Editable tables: PD and LGD floors, supervisory LGD, CCFs, correlations, maturity, output floor, standardized weights.</p>
   <div class="chips"><span>"bcb"</span><span>"basel3_final"</span><span>"crr3"</span></div>
   <p class="fn"><code><b>scr_default</b>(data, id, date, dpd, arrears, exposure, utp, restructured, obligor)</code> Default flag from a monthly panel: 90 days past due with material arrears, or unlikeliness to pay; probation 3 months (12 if restructured); obligor pulling effect.</p>
   <p class="fn"><code><b>scr_default_rate</b>(x, horizon = 12, by = "quarter")</code> One-year default rates by cohort and the long-run average; <code class="inl">lra_adjusted</code> is benchmarked, never applied.</p>
@@ -737,12 +738,12 @@ lgd &lt;- <span class="fx">scr_lgd_downturn</span>(lgd, periods = dt,
          reason = <span class="st">"rates above 13% in 2022-23"</span>)
 lgd &lt;- <span class="fx">scr_lgd_floor</span>(lgd, params = params)
 <span class="cm"># dt: data.frame(start, end) of downturn dates</span></pre>
-  <p class="fn"><code><b>scr_workout</b>(defaults, cashflows, rates)</code> Realised LGD per default: recoveries, direct costs and drawings discounted to the default date.</p>
+  <p class="fn"><code><b>scr_workout</b>(defaults, cashflows, rates)</code> Realized LGD per default: recoveries, direct costs and drawings discounted to the default date.</p>
   <p class="fn"><code><b>scr_lgd</b>(x, drivers, holdout = 0.3)</code> Cure &times; severity on cohort split, then pools.</p>
   <p class="fn"><code><b>scr_lgd_pools</b>(x, n_pools)</code> Re-pool the predicted LGD.</p>
   <p class="fn"><code><b>scr_lgd_downturn</b>(x, periods, method, reason)</code> Downturn per pool: <code class="inl">"type1"</code> observed impact, <code class="inl">"type3"</code> add-on, <code class="inl">"none"</code>.</p>
   <p class="fn"><code><b>scr_lgd_floor</b>(x, params, asset_class, secured_share)</code> Input floors by collateral.</p>
-  <p class="fn"><code><b>scr_lgd_validate</b>(x)</code> Calibration, discrimination (generalised AUC) and stability battery.</p>
+  <p class="fn"><code><b>scr_lgd_validate</b>(x)</code> Calibration, discrimination (generalized AUC) and stability battery.</p>
   <p class="fn"><code><b>scr_elbe</b>(x, grid = c(0, 6, 12, 24, 36))</code> ELBE and in-default LGD by months since default.</p>
   <p class="fn"><code><b>scr_bin_continuous</b>(data, target, features)</code> Monotone bins against a continuous target.</p>
 </section>
@@ -767,8 +768,8 @@ lgd &lt;- <span class="fx">scr_lgd_floor</span>(lgd, params = params)
          drivers = c(<span class="st">"product"</span>, <span class="st">"months_on_book"</span>))
 ead &lt;- <span class="fx">scr_ead</span>(rds, drivers = c(<span class="st">"product"</span>,
          <span class="st">"utilisation_ref"</span>, <span class="st">"months_on_book"</span>))</pre>
-  <p class="fn"><code><b>scr_ead_data</b>(snapshots, facility_id, date_col, limit, drawn, defaulted, drivers)</code> Realised CCF from monthly facility snapshots.</p>
-  <p class="fn"><code><b>scr_ead</b>(x, drivers, holdout = 0.3)</code> Driver admission (<code class="inl">TOO_FEW_DEFAULTS</code>, <code class="inl">NO_SEPARATION</code>, <code class="inl">NOT_MONOTONIC</code>, <code class="inl">UNSTABLE_HOLDOUT</code>) and CCF pools with MoC and the standardised floor.</p>
+  <p class="fn"><code><b>scr_ead_data</b>(snapshots, facility_id, date_col, limit, drawn, defaulted, drivers)</code> Realized CCF from monthly facility snapshots.</p>
+  <p class="fn"><code><b>scr_ead</b>(x, drivers, holdout = 0.3)</code> Driver admission (<code class="inl">TOO_FEW_DEFAULTS</code>, <code class="inl">NO_SEPARATION</code>, <code class="inl">NOT_MONOTONIC</code>, <code class="inl">UNSTABLE_HOLDOUT</code>) and CCF pools with MoC and the standardized floor.</p>
   <p class="fn"><code><b>scr_ead_downturn</b>(x, periods, method, reason)</code> Downturn CCF per pool.</p>
   <p class="fn"><code><b>scr_ead_validate</b>(x, newdata)</code> Calibration, discrimination, back-testing, stability.</p>
 </section>
@@ -784,7 +785,7 @@ ead &lt;- <span class="fx">scr_ead</span>(rds, drivers = c(<span class="st">"pro
   <p class="fn"><code><b>scr_irb_rw</b>(pd, lgd, ead, m, asset_class, approach = "airb")</code> IRB risk weight of the one-factor model, with floors, correlation and maturity adjustment.</p>
   <div class="eq">K = LGD&middot;(scr_pd_stress(PD, R, 0.999) &minus; PD)&middot;MA<br>RWA = 12.5&middot;K&middot;EAD</div>
   <div class="chips"><span>corporate</span><span>corporate_sme</span><span>bank</span><span>sovereign</span><span>hvcre</span><span>retail_mortgage</span><span>qrre_revolver</span><span>qrre_transactor</span><span>retail_other</span></div>
-  <p class="fn"><code><b>scr_sa_rw</b>(asset_class, ltv, rating, ...)</code> Standardised risk weight.</p>
+  <p class="fn"><code><b>scr_sa_rw</b>(asset_class, ltv, rating, ...)</code> Standardized risk weight.</p>
   <p class="fn"><code><b>scr_pd_stress</b>(pd, rho, q = 0.999)</code> Conditional PD of the one-factor model.</p>
 <pre class="code">cap &lt;- <span class="fx">scr_capital</span>(scr_demo_portfolio,
          segment = <span class="st">"segment"</span>,
@@ -792,7 +793,7 @@ ead &lt;- <span class="fx">scr_ead</span>(rds, drivers = c(<span class="st">"pro
          provisions = <span class="st">"provision"</span>,
          params = params)
 cap$totals; cap$segments</pre>
-  <p class="fn"><code><b>scr_capital</b>(x, pd, lgd, ead, segment, asset_class, provisions, params)</code> RWA under IRB and the standardised approach, output floor, EL against provisions, floor impact, sensitivity and concentration.</p>
+  <p class="fn"><code><b>scr_capital</b>(x, pd, lgd, ead, segment, asset_class, provisions, params)</code> RWA under IRB and the standardized approach, output floor, EL against provisions, floor impact, sensitivity and concentration.</p>
   <p class="fn"><code><b>scr_ecl</b>(pd_term, lgd, ead, eir, stage, dpd, pd_orig, scenarios, weights)</code> Expected credit loss from monthly hazards, discounted at the EIR, with weighted scenarios:</p>
   <div class="eq">ECL = &Sigma;<sub>t</sub> S(t&minus;1)&middot;h<sub>t</sub>&middot;LGD<sub>t</sub>&middot;EAD<sub>t</sub>&middot;(1 + r)<sup>&minus;t/12</sup></div>
   <svg class="fig" viewBox="0 0 250 33" role="img" aria-label="Stage 1 twelve-month loss, stages 2 and 3 lifetime loss">
@@ -839,9 +840,252 @@ cap$totals; cap$segments</pre>
 </div>
 
 <footer class="foot">
-  <span><b>scorecraft</b> 0.2.0<span class="dot">|</span>MIT licence<span class="dot">|</span>Jose Evandeilton Lopes</span>
+  <span><b>scorecraft</b> 0.3.1.9000<span class="dot">|</span>MIT license<span class="dot">|</span>Jose Evandeilton Lopes</span>
   <span>Learn more at <b>evandeilton.github.io/scorecraft</b><span class="dot">|</span><code class="inl">help(package = "scorecraft")</code></span>
-  <span>Updated: 2026-09<span class="dot">|</span>2 / 2</span>
+  <span>Updated: 2026-10<span class="dot">|</span>2 / 3</span>
+</footer>
+</div>
+
+<div class="page">
+<header class="band slim">
+  <img class="logo" src="logo.png" alt="">
+  <h1>Score studies: <span class="pkg">bands, tiers, lights and operating points</span></h1>
+  <div class="tagline">One pass over the scored rows into counts per score value, then every study runs on the counts: <b>credit, fraud and propensity scores from any engine</b>.</div>
+</header>
+
+<div class="grid">
+
+<!-- ---------------- column 1 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-config)">
+  <h2>Three ways in</h2>
+<pre class="code"><span class="fx">scr_bands</span>(sc)                <span class="cm"># a scorecard</span>
+<span class="fx">scr_bands</span>(df, score = <span class="st">"score"</span>, y = <span class="st">"y"</span>,
+  objective = <span class="st">"propensity"</span>,
+  sample = <span class="st">"sample"</span>,
+  reference = <span class="st">"train"</span>)    <span class="cm"># any engine</span>
+<span class="fx">scr_bands</span>(agg, counts = TRUE) <span class="cm"># score, n, events</span></pre>
+  <p>A data.frame takes <code class="inl">weight</code>, <code class="inl">value</code> and a <code class="inl">sample</code> column; <code class="inl">counts = TRUE</code> reads a <code class="inl">GROUP BY score</code> done in the database.</p>
+  <div class="two">
+    <div><b>Frozen cuts</b><br>fitted on the reference (train), midway between adjacent training scores; ties are never split.</div>
+    <div><b>One convention</b><br><code class="inl">score &gt;= cut</code> is the upper side; the event-richest band comes first.</div>
+  </div>
+</section>
+
+<section style="--c: var(--c-select)">
+  <h2>Bands <small>percentiles or tail</small></h2>
+  <p class="fn"><code><b>scr_bands</b>(x, n_bands = 20, spacing = "uniform")</code> Per band and sample: rate with a Jeffreys interval, lift, capture, KS, WOE, IV, PSI and a Fisher test of rank order (<code class="inl">p_reversal_adj</code>, Holm). Per sample: AUC, Gini and KS with a bootstrap on the counts.</p>
+  <p class="fn"><code class="inl">spacing = "tail"</code> cuts the event-rich end at 0.1%, 0.5%, 1%, 2%, 5%, 10%, 20% and 50%: the fraud reading (alert rate, precision, recall).</p>
+  <svg class="fig" viewBox="0 0 250 40" role="img" aria-label="Event rate falling across bands from the event-rich end">
+    <g fill="#0284c7">
+      <rect x="4" y="4" width="18" height="32"/><rect x="25" y="9" width="18" height="27"/><rect x="46" y="14" width="18" height="22"/>
+      <rect x="67" y="19" width="18" height="17"/><rect x="88" y="23" width="18" height="13"/><rect x="109" y="27" width="18" height="9"/>
+      <rect x="130" y="30" width="18" height="6"/><rect x="151" y="32" width="18" height="4"/>
+    </g>
+    <line x1="1" y1="22" x2="172" y2="22" stroke="#0f172a" stroke-width="0.7" stroke-dasharray="3 2"/>
+    <g font-size="7.8" fill="#0f172a">
+      <text x="178" y="12">event rate per band</text>
+      <text x="178" y="23">- - overall rate, lift 1</text>
+      <text x="178" y="34" fill="#64748b">band 1 = event-richest</text>
+    </g>
+  </svg>
+  <table class="tb">
+    <tr><th>band</th><th>rate [95%]</th><th class="c">lift</th><th class="c">capture</th><th class="c">KS</th></tr>
+    <tr><td><code>1 [-Inf, 509.9)</code></td><td>35.4% [27.5, 44.0]</td><td class="c">2.44</td><td class="c">22.2%</td><td class="c">0.153</td></tr>
+    <tr><td><code>2 [509.9, 523.5)</code></td><td>27.3% [20.2, 35.5]</td><td class="c">1.89</td><td class="c">39.4%</td><td class="c">0.248</td></tr>
+    <tr><td><code>4 [533.4, 542.1)</code></td><td>17.4% [12.0, 24.1]</td><td class="c">1.20</td><td class="c">70.4%</td><td class="c">0.370</td></tr>
+    <tr><td><code>10 [590.3, Inf)</code></td><td>3.2% [1.2, 6.8]</td><td class="c">0.22</td><td class="c">100%</td><td class="c">0.000</td></tr>
+  </table>
+  <p class="cap"><code class="inl">scr_bands(sc, n_bands = 10)</code> on the hold-out of <code class="inl">scr_demo</code>: AUC 0.739, KS 0.389, PSI 0.007 against train.</p>
+  <table class="tb">
+    <tr><th>column</th><th>fraud and campaign reading</th></tr>
+    <tr><td><code>capture</code></td><td>recall at that depth</td></tr>
+    <tr><td><code>cum_rate</code></td><td>precision (hit rate) of the selection</td></tr>
+    <tr><td><code>cum_nonevent_pct</code></td><td>false positive rate</td></tr>
+    <tr><td><code>value_capture</code></td><td>share of the event value caught (<code>value</code>)</td></tr>
+  </table>
+</section>
+
+<section style="--c: var(--c-db)">
+  <h2>Large tables</h2>
+  <p>The studies aggregate once (a keyed <code class="inl">data.table</code> pass) and then work on the distinct scores: 5 million rows take about one to three seconds.</p>
+  <p class="fn"><code class="inl">max_cells = 1e5</code> pools a continuous score into cells; <code class="inl">boot_cells = 1e4</code> bounds the cells of the bootstrap (exact below it).</p>
+  <p class="fn"><code><b>scr_export</b>(study, dir)</code> One workbook per study.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 2 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-decide)">
+  <h2>Tiers <small>3, 5 or 7 labels</small></h2>
+<pre class="code">tr &lt;- <span class="fx">scr_tiers</span>(sc, n_tiers = 5, round_to = 5,
+        n_boot = 100)
+<span class="fx">scr_apply</span>(tr, newdata)  <span class="cm"># tier, tier_label</span>
+<span class="fx">scr_sql</span>(tr, table = <span class="st">"scored"</span>)</pre>
+  <p class="fn"><code><b>scr_tiers</b>(x, n_tiers = 5, method = "optimal")</code> Exact dynamic program on the training counts: maximizes the binomial likelihood (or the IV) with every tier above <code class="inl">min_pct</code> and <code class="inl">min_events</code>, monotone rates and adjacent tiers distinct (Fisher). An infeasible count falls back and is recorded in <code class="inl">ledger</code>.</p>
+  <p class="fn"><code class="inl">method = "anchored"</code> cuts at event-rate anchors, e.g. <code class="inl">anchors = c("overall", "0.6")</code>; <code class="inl">conservative = TRUE</code> uses the lower bound. <code class="inl">"quantile"</code>: equal shares.</p>
+  <svg class="fig" viewBox="0 0 250 34" role="img" aria-label="Five tiers from very high to very low event rate">
+    <rect x="4" y="3" width="30" height="13" fill="#dc2626"/><rect x="34" y="3" width="38" height="13" fill="#f97316"/>
+    <rect x="72" y="3" width="52" height="13" fill="#f59e0b"/><rect x="124" y="3" width="56" height="13" fill="#84cc16"/>
+    <rect x="180" y="3" width="66" height="13" fill="#16a34a"/>
+    <g font-size="6.8" fill="#fff" font-weight="700" text-anchor="middle">
+      <text x="19" y="12">01</text><text x="53" y="12">02</text><text x="98" y="12">03</text><text x="152" y="12">04</text><text x="213" y="12">05</text>
+    </g>
+    <g font-size="7" fill="#475569" text-anchor="middle">
+      <text x="19" y="25">very high</text><text x="53" y="25">high</text><text x="98" y="25">medium</text><text x="152" y="25">low</text><text x="213" y="25">very low</text>
+    </g>
+  </svg>
+  <p class="cap">Labels are numbered from the highest event rate: <code class="inl">"01.very high"</code>; <code class="inl">scr_apply()</code> and <code class="inl">scr_sql()</code> take <code class="inl">numbered = FALSE</code> for plain labels. Not an IRB rating scale.</p>
+  <table class="tb">
+    <tr><th>tier_label</th><th>score</th><th class="c">share</th><th>rate [95%]</th></tr>
+    <tr><td><code>01.very high</code></td><td>&lt; 500</td><td class="c">5.4%</td><td>33.3% [23.5, 44.5]</td></tr>
+    <tr><td><code>02.high</code></td><td>[500, 515)</td><td class="c">7.5%</td><td>37.1% [28.4, 46.6]</td></tr>
+    <tr><td><code>03.medium</code></td><td>[515, 540)</td><td class="c">23.6%</td><td>23.0% [18.7, 27.8]</td></tr>
+    <tr><td><code>04.low</code></td><td>[540, 555)</td><td class="c">19.6%</td><td>11.6% [8.3, 15.8]</td></tr>
+    <tr><td><code>05.very low</code></td><td>&ge; 555</td><td class="c">43.9%</td><td>5.0% [3.5, 7.0]</td></tr>
+  </table>
+  <p class="cap">Fitted on train, read on the hold-out: there the two top tiers are not distinct (p 0.75), a reason to use four. Across 100 resamples 83% of the rows keep their tier.</p>
+  <div class="eq">CASE &hellip; WHEN s.score &lt; 500 THEN '01.very high'<br>&hellip; ELSE '05.very low' END AS tier_label</div>
+</section>
+
+<section style="--c: var(--c-default)">
+  <h2>Lights <small>red, amber, green</small></h2>
+  <p class="fn"><code><b>scr_rag</b>(x, plan = NULL, by = NULL)</code> Discrimination (Gini ratio, AUC change), calibration (O/E, bands), stability (PSI, rank order) and, for a scorecard, the variables (CSI, IV ratio, WOE sign).</p>
+  <div class="chips"><span>green</span><span>amber</span><span>red</span><span>grey: too few events</span></div>
+  <p class="fn"><code><b>scr_rag_plan</b>(objective)</code> The editable thresholds. A light turns amber or red only when the confidence interval shows the deviation; calibration is one-sided under risk, two-sided under propensity.</p>
+  <table class="tb">
+    <tr><th>check</th><th>green</th><th>red</th></tr>
+    <tr><td><code>gini_ratio</code></td><td>&ge; 0.95</td><td>&lt; 0.90</td></tr>
+    <tr><td><code>auc_change_p</code></td><td>&gt; 0.05</td><td>&le; 0.01</td></tr>
+    <tr><td><code>oe_ratio</code></td><td>&le; 1.10</td><td>&gt; 1.25</td></tr>
+    <tr><td><code>score_psi</code>, <code>csi</code></td><td>&lt; 0.10</td><td>&ge; 0.25, significant</td></tr>
+    <tr><td><code>rank_order</code></td><td>0 reversals</td><td>2 or more</td></tr>
+    <tr><td><code>iv_ratio</code></td><td>&ge; 0.80</td><td>&lt; 0.50</td></tr>
+  </table>
+  <p class="cap">Defaults under risk. Propensity: Gini ratio 0.90 and 0.80; O/E green within 0.90 to 1.10, red outside 0.80 to 1.25.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 3 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-pd)">
+  <h2>Claims <small>tested statements</small></h2>
+<pre class="code">cl &lt;- data.frame(score_lo = 500, op = <span class="st">"&gt;="</span>,
+                 rate = c(0.60, 0.70))
+<span class="fx">scr_claims</span>(sc_prop, cl)</pre>
+  <p class="fn"><code><b>scr_claims</b>(x, claims, level = 0.95, type = "average")</code> One row per claim, on a band or tier (<code class="inl">label</code>) or a score range: exact one-sided binomial test, Jeffreys bound, Holm. The verdict is <b>supported</b>, <b>refuted</b> or <b>not proven</b>, with the sentence written out. <code class="inl">type = "floor"</code> tests the weakest end of the group.</p>
+  <table class="tb">
+    <tr><th>group</th><th class="c">n</th><th class="c">rate</th><th class="c">bound</th><th>claim</th><th>verdict</th></tr>
+    <tr><td><code>score &gt;= 500</code></td><td class="c">104</td><td class="c">73.1%</td><td class="c">65.5%</td><td>&ge; 60%</td><td><b>supported</b></td></tr>
+    <tr><td><code>score &gt;= 500</code></td><td class="c">104</td><td class="c">73.1%</td><td class="c">65.5%</td><td>&ge; 70%</td><td>not proven</td></tr>
+  </table>
+  <p class="note">"On 'holdout' (n = 104), rows with score &gt;= 500 had an event rate of 73.1% (95% one-sided lower bound 65.5%); the claim 'rate &gt;= 60%' is supported."</p>
+</section>
+
+<section style="--c: var(--c-cap)">
+  <h2>Operating point</h2>
+<pre class="code"><span class="fx">scr_operating</span>(sc_prop, gain_event = 100,
+  cost_select = 20, budget = 6000)</pre>
+  <p class="fn"><code><b>scr_operating</b>(x, side = NULL, ...)</code> The curve from the event-rich end (<code class="inl">"event"</code>: targeting, alerting) or from the safe end (<code class="inl">"safe"</code>: approval with <code class="inl">revenue_good</code>, <code class="inl">loss_bad</code>), the optimum, the binding constraint and its shadow price.</p>
+  <div class="chips"><span>max_n</span><span>max_share</span><span>budget</span><span>max_per_day</span><span>min_rate</span><span>max_rate</span></div>
+  <p class="cap"><code class="inl">max_per_day</code> reads a quantile of the daily volume (<code class="inl">day_quantile = 0.9</code>): review capacity.</p>
+  <svg class="fig" viewBox="0 0 250 50" role="img" aria-label="Value against depth: the budget stops the selection before the value peaks">
+    <line x1="14" y1="42" x2="160" y2="42" stroke="#94a3b8" stroke-width="0.8"/>
+    <line x1="14" y1="42" x2="14" y2="4" stroke="#94a3b8" stroke-width="0.8"/>
+    <path d="M14 42 Q 60 6 100 8 T 160 22" fill="none" stroke="#1e3a8a" stroke-width="1.8"/>
+    <line x1="46" y1="42" x2="46" y2="6" stroke="#dc2626" stroke-width="0.8" stroke-dasharray="3 2"/>
+    <circle cx="46" cy="21" r="2.6" fill="#1e3a8a"/>
+    <g font-size="7.5" fill="#475569">
+      <text x="87" y="49" text-anchor="middle">depth (share selected)</text>
+      <text x="18" y="9">value</text>
+    </g>
+    <g font-size="7.8" fill="#0f172a">
+      <text x="168" y="11" fill="#b91c1c" font-weight="700">budget binds</text>
+      <text x="168" y="22">depth 21.4%, n 299</text>
+      <text x="168" y="33">rate 59.9%, value 11,920</text>
+      <text x="168" y="44">shadow price 27.75</text>
+    </g>
+  </svg>
+  <p class="cap">The shadow price is what one more selected case is worth at the binding constraint: the number to argue for budget or staff.</p>
+<pre class="code"><span class="fx">scr_operating</span>(sc, revenue_good = 1080,
+  loss_bad = 4500, max_rate = 0.10)  <span class="cm"># approval</span></pre>
+</section>
+
+<section style="--c: var(--c-read)">
+  <h2>Two scores</h2>
+  <p class="fn"><code><b>scr_score_cross</b>(df, score_a, score_b, y_a, y_b)</code> Band by band cross table with the rate of one or two outcomes, Spearman and Kendall tau-b, and the overlap of the two selected lists at <code class="inl">depths</code>, with swap-in and swap-out rates.</p>
+<pre class="code"><span class="fx">scr_score_cross</span>(df, <span class="st">"score_a"</span>, <span class="st">"score_b"</span>,
+  y_a = <span class="st">"default"</span>, y_b = <span class="st">"churn"</span>,
+  objective_a = <span class="st">"risk"</span>,
+  objective_b = <span class="st">"propensity"</span>)</pre>
+  <p class="cap">Cuts may come from a tiers study (<code class="inl">cuts_a = tr</code>), which also sets the direction of that score.</p>
+</section>
+
+</div>
+
+<!-- ---------------- column 4 ---------------- -->
+<div class="col">
+
+<section style="--c: var(--c-monitor)">
+  <h2>What changed, and where</h2>
+  <p class="fn"><code><b>scr_mix_shift</b>(x, by = NULL)</code> Splits the change of the event rate into a <b>mix</b> effect (the population moved across bands) and a <b>rate</b> effect (the bands deteriorated); the two sum exactly to the change.</p>
+  <div class="eq">2026-06: 14.1% &rarr; 15.0% (+0.86 pp)<br>= mix &minus;1.04 pp + rate +1.90 pp</div>
+  <p class="cap">With <code class="inl">by = "date", n_bands = 10</code>: June against January.</p>
+  <p class="fn"><code><b>scr_segments</b>(sc, newdata, segment)</code> One score per segment: AUC, O/E, offset, slope ratio and PSI, tests of equal AUC and slope, and an action.</p>
+  <div class="chips"><span>shared</span><span>offset</span><span>separate model</span><span>too few events</span></div>
+  <table class="tb">
+    <tr><th>segment</th><th class="c">AUC</th><th class="c">O/E</th><th class="c">slope ratio</th><th>action</th></tr>
+    <tr><td><code>APP</code></td><td class="c">0.753</td><td class="c">1.02</td><td class="c">0.93</td><td>shared</td></tr>
+    <tr><td><code>STORE</code></td><td class="c">0.788</td><td class="c">1.02</td><td class="c">1.11</td><td>shared</td></tr>
+    <tr><td><code>WEB</code></td><td class="c">0.778</td><td class="c">0.94</td><td class="c">1.07</td><td>shared</td></tr>
+  </table>
+  <p class="cap"><code class="inl">scr_demo</code> by channel: equal AUC is not rejected (p 0.35).</p>
+</section>
+
+<section style="--c: var(--c-lab)">
+  <h2>Time and treatment</h2>
+  <p class="fn"><code><b>scr_maturity</b>(df, time, event, horizons)</code> Kaplan-Meier cumulative incidence per band and horizon with censoring: where the curve flattens is the outcome window. <code class="inl">time</code> runs from the origin to the event or to the end of follow-up; <code class="inl">event</code> is 1 when it was observed.</p>
+  <p class="fn"><code><b>scr_uplift</b>(df, treat = "treat")</code> Treated against control per band (Newcombe interval), Qini and AUUC with a bootstrap, and a check that the assignment was random.</p>
+  <div class="chips"><span>persuadable</span><span>no effect</span><span>negative</span></div>
+  <p class="cap">A high propensity is not a high uplift.</p>
+</section>
+
+<section style="--c: var(--c-ead)">
+  <h2>Fraud operations</h2>
+  <p class="fn"><code><b>scr_overlap</b>(df, rules, alert_share)</code> Rules against the score: overlap sets, incremental recall in counts and in value, and the rules the score already covers.</p>
+  <p class="fn"><code><b>scr_detection</b>(df, entity, time, alert_shares)</code> Per threshold: episodes detected, event rows and time before detection, and the loss prevented.</p>
+</section>
+
+<section style="--c: var(--c-db)">
+  <h2>Which study answers what</h2>
+  <table class="tb">
+    <tr><td>Does the score rank?</td><td><code>scr_bands</code></td></tr>
+    <tr><td>Which labels for the business?</td><td><code>scr_tiers</code></td></tr>
+    <tr><td>Is the model still healthy?</td><td><code>scr_rag</code></td></tr>
+    <tr><td>Can we state "above 60%"?</td><td><code>scr_claims</code></td></tr>
+    <tr><td>Where to cut, given capacity?</td><td><code>scr_operating</code></td></tr>
+    <tr><td>Why did the rate move?</td><td><code>scr_mix_shift</code></td></tr>
+    <tr><td>One model or one per segment?</td><td><code>scr_segments</code></td></tr>
+    <tr><td>Do two scores pick the same rows?</td><td><code>scr_score_cross</code></td></tr>
+    <tr><td>When is the outcome mature?</td><td><code>scr_maturity</code></td></tr>
+    <tr><td>Who responds because of us?</td><td><code>scr_uplift</code></td></tr>
+    <tr><td>Which rules can retire?</td><td><code>scr_overlap</code></td></tr>
+    <tr><td>How fast is fraud caught?</td><td><code>scr_detection</code></td></tr>
+  </table>
+</section>
+
+</div>
+</div>
+
+<footer class="foot">
+  <span><b>scorecraft</b> 0.3.1.9000<span class="dot">|</span>MIT license<span class="dot">|</span>Jose Evandeilton Lopes</span>
+  <span>Learn more at <b>evandeilton.github.io/scorecraft</b><span class="dot">|</span><code class="inl">vignette("score-studies")</code></span>
+  <span>Updated: 2026-10<span class="dot">|</span>3 / 3</span>
 </footer>
 </div>
 

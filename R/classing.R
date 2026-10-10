@@ -5,7 +5,7 @@
 # engine reads (cutpoints for numerics, "a%;%b" labels for categoricals), so
 # scr_apply(), scr_sql() and scr_scorecard() consume it through the very same
 # code path as an optimal bin. Every decision carries a reason and lands in an
-# append-only ledger; the automatic artefacts are frozen alongside for audit.
+# append-only ledger; the automatic artifacts are frozen alongside for audit.
 # Value semantics throughout: every verb returns the updated lab.
 # ============================================================================ #
 
@@ -56,7 +56,7 @@
 #' @param author Free text recorded in the ledger.
 #'
 #' @return An `scr_classing` object (the lab), with a print method that
-#'   summarises the session: variables touched, before/after IV, verdicts,
+#'   summarizes the session: variables touched, before/after IV, verdicts,
 #'   reasons, pending proposals and the final choice.
 #'
 #' @family classing

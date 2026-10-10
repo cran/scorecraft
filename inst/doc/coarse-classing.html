@@ -344,7 +344,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div id="why-manual-coarse-classing-still-matters" class="section level2">
 <h2>Why manual coarse classing still matters</h2>
 <p>Optimal binning does one job well: it finds the cut points and the
-groupings that maximise the information value of a variable subject to
+groupings that maximize the information value of a variable subject to
 the admission rules (minimum bin size, monotonicity, hold-out
 stability). What it cannot know is how the business reads the variable.
 A bureau score is communicated to underwriters in policy bands; a region
@@ -363,7 +363,7 @@ committed.</p>
 <p>What the lab refuses to do is let a manual decision enter silently.
 Every proposal is compared against the optimal bins, every acceptance
 carries a reason, every override of a blocking rule is a row in an
-append-only ledger, and the automatic artefacts are frozen alongside the
+append-only ledger, and the automatic artifacts are frozen alongside the
 manual ones. The scorecard, the R scoring function and the production
 SQL consume the manual bins through the very same code path as the
 optimal ones, so there is no second implementation to keep in step.</p>
@@ -394,7 +394,7 @@ screening can be rebinned and forced in later with a reason.
 the system user.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>lab <span class="ot">&lt;-</span> <span class="fu">scr_coarse_classing</span>(res, <span class="at">author =</span> <span class="st">&quot;analyst&quot;</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>lab</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-09-25 19:47 by analyst | 37 variables | 0 proposals: 0 accepted, 0 discarded</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-10-09 22:38 by analyst | 37 variables | 0 proposals: 0 accepted, 0 discarded</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   final choice: 12 variables | consensus 12 | force: (none) | drop: (none)</span></span></code></pre></div>
 <p>Without a variable, <code>scr_classing_view()</code> prints one line
 per variable: its current source (optimal or manual), the number of
@@ -498,7 +498,7 @@ is a value: nothing changes in the lab until it is accepted.</p>
 below 40, 40 to 55, 55 to 70 and above 70.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>p_breaks <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">40</span>, <span class="dv">55</span>, <span class="dv">70</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>p_breaks</span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P001 vl_score_01 | breaks = c(40, 55, 70) | 2026-09-25 19:47</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P001 vl_score_01 | breaks = c(40, 55, 70) | 2026-10-09 22:38</span></span>
 <span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
 <span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          4         -3</span></span>
 <span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.2993    -0.0471</span></span>
@@ -533,7 +533,7 @@ points, which is what the header shows.</p>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>p_split <span class="ot">&lt;-</span> <span class="fu">scr_classing_propose</span>(lab, <span class="st">&quot;vl_score_01&quot;</span>,</span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>                                <span class="at">split =</span> <span class="fu">c</span>(<span class="dv">1</span>, res<span class="sc">$</span>fit<span class="sc">$</span>results<span class="sc">$</span>vl_score_01<span class="sc">$</span>cutpoints[<span class="dv">1</span>] <span class="sc">-</span> <span class="dv">5</span>))</span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>p_split</span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P003 vl_score_01 | split = c(1, 28.36) | 2026-09-25 19:47</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P003 vl_score_01 | split = c(1, 28.36) | 2026-10-09 22:38</span></span>
 <span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
 <span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          8          1</span></span>
 <span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.3561     0.0098</span></span>
@@ -580,7 +580,7 @@ it.</p>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                                 <span class="at">groups =</span> <span class="fu">list</span>(<span class="at">edge =</span> <span class="fu">c</span>(<span class="st">&quot;NORTH&quot;</span>, <span class="st">&quot;SOUTH&quot;</span>),</span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                                               <span class="at">core =</span> <span class="fu">c</span>(<span class="st">&quot;EAST&quot;</span>, <span class="st">&quot;WEST&quot;</span>, <span class="st">&quot;CENTRE&quot;</span>)))</span>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>p_groups</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P004 ds_region | groups = list(edge = c(&quot;NORTH&quot;, &quot;SOUTH&quot;), core = c(&quot;EAST&quot;, &quot;WEST&quot;, &quot;CENTRE&quot;)) | 2026-09-25 19:47</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P004 ds_region | groups = list(edge = c(&quot;NORTH&quot;, &quot;SOUTH&quot;), core = c(&quot;EAST&quot;, &quot;WEST&quot;, &quot;CENTRE&quot;)) | 2026-10-09 22:38</span></span>
 <span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;                         optimal     manual      delta</span></span>
 <span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;   n_bins                      5          2         -3</span></span>
 <span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.0846     0.0739    -0.0107</span></span>
@@ -732,11 +732,11 @@ card.</p>
 </div>
 <div id="the-session-summary-and-the-ledger" class="section level2">
 <h2>The session summary and the ledger</h2>
-<p>Printing the lab summarises the session: the variables touched with
+<p>Printing the lab summarizes the session: the variables touched with
 bins and IV before and after, the verdicts, the reasons, the discards
 and the final choice.</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>lab</span>
-<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-09-25 19:47 by analyst | 37 variables | 7 proposals: 2 accepted, 1 discarded</span></span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing&gt; target &quot;default&quot; | opened 2026-10-09 22:38 by analyst | 37 variables | 7 proposals: 2 accepted, 1 discarded</span></span>
 <span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">#&gt;   variable                   action      bins          IV train       IV hold-out verdict     reason</span></span>
 <span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a><span class="co">#&gt;   vl_score_01                accepted  7-&gt;4     0.3464-&gt;0.2993     0.2877-&gt;0.2740   ACCEPTABLE  policy bands 40/55/70 used by underwriti</span></span>
 <span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a><span class="co">#&gt;   ds_region                  accepted  5-&gt;2     0.0846-&gt;0.0739     0.0971-&gt;0.0786   REVIEW      edge/core is what pricing uses</span></span>
@@ -825,7 +825,7 @@ last bin, and the <code>lower</code> of every bin must equal the
 <span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="co">#&gt; Error:</span></span>
 <span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a><span class="co">#&gt; ! scr_classing_read(): invalid spec</span></span>
 <span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="co">#&gt;   - vl_score_01: `lower` of bin i must equal `upper` of bin i-1 (contiguity)</span></span></code></pre></div>
-<p>Fixing the neighbouring <code>lower</code> makes the spec contiguous
+<p>Fixing the neighboring <code>lower</code> makes the spec contiguous
 again.</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a>sheet<span class="sc">$</span>lower[sheet<span class="sc">$</span>variable <span class="sc">==</span> <span class="st">&quot;vl_score_01&quot;</span> <span class="sc">&amp;</span> sheet<span class="sc">$</span>bin_id <span class="sc">==</span> <span class="dv">2</span>] <span class="ot">&lt;-</span> <span class="dv">42</span></span>
 <span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="fu">write.csv</span>(sheet, spec_file, <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">na =</span> <span class="st">&quot;&quot;</span>)</span>
@@ -841,7 +841,7 @@ accepted on the analyst’s behalf.</p>
 <span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>imported<span class="sc">$</span>vl_score_01<span class="sc">$</span>imported_reason</span>
 <span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="co">#&gt; [1] &quot;reviewer: first cut moved to 42 to match the bureau band&quot;</span></span>
 <span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>imported<span class="sc">$</span>vl_score_01</span>
-<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P008 vl_score_01 | breaks = c(42, 55, 70) | 2026-09-25 19:47</span></span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; &lt;scr_classing_proposal&gt; P008 vl_score_01 | breaks = c(42, 55, 70) | 2026-10-09 22:38</span></span>
 <span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a><span class="co">#&gt;                         optimal    current     manual      delta</span></span>
 <span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a><span class="co">#&gt;   n_bins                      7          4          4         -3</span></span>
 <span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a><span class="co">#&gt;   iv_train               0.3464     0.2993     0.2990    -0.0474</span></span>
@@ -883,7 +883,7 @@ rebuilt.</p>
 <span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>res2</span>
 <span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a><span class="co">#&gt; &lt;scr_result&gt; target &quot;default&quot;</span></span>
 <span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a><span class="co">#&gt;   4,200 rows (train 2,800 / hold-out 1,400) | split out-of-time at 2026-05-01</span></span>
-<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a><span class="co">#&gt;   event: 14.25% on train, 14.50% on hold-out | 0.7s</span></span>
+<span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a><span class="co">#&gt;   event: 14.25% on train, 14.50% on hold-out | 0.5s</span></span>
 <span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a><span class="co">#&gt;   convention: risk (target=1 is the bad case)</span></span>
 <span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="co">#&gt; Funnel</span></span>

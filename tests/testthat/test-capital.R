@@ -1,4 +1,4 @@
-# Expected loss, IRB risk weights, standardised comparison, portfolio capital,
+# Expected loss, IRB risk weights, standardized comparison, portfolio capital,
 # the Vasicek helpers, SQL, export and the accounting ECL.
 
 test_that("expected loss is the primitive with the ELBE branch on defaulted rows", {
@@ -31,7 +31,7 @@ test_that("the risk-weight function reproduces the worked examples", {
   expect_true(is.na(o$b)); expect_equal(o$ma, 1)
   # K equals LGD times the stressed PD minus PD at 99.9 % (retail, no MA)
   expect_equal(o$k, 0.5 * (scr_pd_stress(0.02, o$r, 0.999) - 0.02), tolerance = 1e-12)
-  # vectorised over classes with an EAD
+  # vectorized over classes with an EAD
   v <- scr_irb_rw(c(0.01, 0.02), c(0.20, 0.80), ead = c(100, 200), asset_class = c("retail_mortgage", "qrre_revolver"), params = p)
   expect_equal(nrow(v), 2L); expect_equal(v$rwa, v$rw * c(100, 200))
   expect_error(scr_irb_rw(0.01, 0.45, asset_class = "boats"), "asset_class")
@@ -102,7 +102,7 @@ test_that("the Vasicek helpers are consistent and bounded", {
   expect_error(.vasicek_pit(0.02, 0, 1), "rho")
 })
 
-test_that("standardised risk weights are looked up by class, band, rating and default status", {
+test_that("standardized risk weights are looked up by class, band, rating and default status", {
   expect_equal(scr_sa_rw("retail_other"), 0.75)
   expect_equal(scr_sa_rw(c("qrre_revolver", "qrre_transactor")), c(0.75, 0.45))
   expect_equal(scr_sa_rw("retail_other", transactor = TRUE), 0.45)
@@ -207,7 +207,7 @@ test_that("scr_capital aggregates the book, reconciles EL with provisions and me
   expect_output(print(cm), "params modified")
 })
 
-test_that("the output floor binds when the IRB result is below 72.5 % of the standardised one", {
+test_that("the output floor binds when the IRB result is below 72.5 % of the standardized one", {
   cfg <- cfg_test()
   low <- data.frame(pd = 0.001, lgd = 0.10, ead = 1000, ltv = 0.4, segment = "mtg")
   cap <- scr_capital(low, segment = "segment", asset_class = "retail_mortgage", ltv = "ltv", config = cfg)
@@ -392,14 +392,14 @@ test_that("ECL of a flat hazard equals the closed form, with discounting, prepay
   expect_equal(sup$stages$n, c(1L, 1L, 1L))
   s2 <- scr_ecl(h, lgd, ead, config = cfg_test(ecl_stage_dpd = c(15L, 60L)), dpd = 20)
   expect_equal(s2$stages$n[2], 1L)
-  # scenarios: the weighted ECL is the weighted mean, weights normalised, z shocks move the hazard
+  # scenarios: the weighted ECL is the weighted mean, weights normalized, z shocks move the hazard
   sc <- scr_ecl(h, lgd, ead, t_max = 12L, scenarios = list(base = list(), bad = list(pd_mult = 2), worse = list(lgd_add = 0.1, ead_mult = 1.1)),
                 weights = c(2, 1, 1), config = cfg)
   expect_equal(sc$scenarios$weight, c(0.5, 0.25, 0.25))
   expect_equal(sc$scenarios$ecl[2], lgd * ead * (1 - (1 - 2 * h)^12), tolerance = 1e-12)
   expect_equal(sc$scenarios$ecl[3], 0.5 * 1100 * (1 - (1 - h)^12), tolerance = 1e-12)
   expect_equal(sc$totals$ecl, sum(sc$scenarios$weight * sc$scenarios$ecl), tolerance = 1e-12)
-  expect_true(grepl("normalised", sc$ledger$reason[sc$ledger$action == "scenarios"]))
+  expect_true(grepl("normalized", sc$ledger$reason[sc$ledger$action == "scenarios"]))
   z <- scr_ecl(h, lgd, ead, t_max = 12L, scenarios = list(good = list(z = 1), bad = list(z = -1)), rho = 0.15, config = cfg)
   expect_lt(z$scenarios$ecl[1], z$scenarios$ecl[2])
   expect_equal(z$scenarios$ecl[2], lgd * ead * (1 - (1 - .vasicek_pit(h, -1, 0.15))^12), tolerance = 1e-12)

@@ -29,7 +29,7 @@ An object of class \code{scr_lgd}: \code{split}, \code{drivers}, \code{cure} (fi
 features, coef, sign_check, bins, holdout), \code{severity} (fit, features,
 coef, engine, sign_check, bins), \code{lgd_cure}, \code{has_cures}, \code{scored} (one
 row per default: \code{sample}, \code{p_cure}, \code{severity}, \code{lgd_pred}, \code{pool},
-\code{lgd_real}), \code{bins_idx}, \code{samples} (predicted vs realised by decile of
+\code{lgd_real}), \code{bins_idx}, \code{samples} (predicted vs realized by decile of
 the prediction), \code{metrics}, \code{pools}, \code{downturn}, \code{floors}, \code{workout}
 (the profile and summary of the RDS), \code{model_card}, \code{ledger}, \code{config}.
 }
@@ -40,19 +40,19 @@ The \strong{cure stage} is a binary model on \code{is_cure} with the scorecard
 machinery: optimal binning of the drivers on the training cohorts, WOE,
 hold-out revalidation with frozen bins and a logistic regression on the
 WOE columns with the sign check (every coefficient positive). The
-\strong{severity stage} bins the same drivers against the realised LGD of
+\strong{severity stage} bins the same drivers against the realized LGD of
 the non-cures with \code{\link[=scr_bin_continuous]{scr_bin_continuous()}} (bin means, monotone, at least
 \code{lgd_min_defaults_bin} defaults per bin, hold-out revalidated) and fits a
 fractional logit (\code{glm} with a quasi-binomial family on the bin means)
 or, with \code{lgd_severity = "beta"}, a beta regression through the
-\code{betareg} package. \code{LGD^cure} is the mean realised LGD of the cures on
+\code{betareg} package. \code{LGD^cure} is the mean realized LGD of the cures on
 train (costs and the discount effect, never zero by decree).
 }
 \details{
 The split is by cohort of default: the last \code{holdout} share of the
 default dates is the hold-out. Metrics on both samples: RMSE, MAE,
 R-squared, Spearman rho, Somers' D of the prediction with respect to
-the realised LGD (generalised AUC \code{(D + 1) / 2}) with a bootstrap
+the realized LGD (generalized AUC \code{(D + 1) / 2}) with a bootstrap
 confidence interval, and the loss capture ratio. Pools come from
 \code{\link[=scr_lgd_pools]{scr_lgd_pools()}}. The object carries a provisional downturn (type 3
 add-on, or none, by configuration) and no floor until

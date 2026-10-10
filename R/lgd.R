@@ -2,17 +2,17 @@
 # lgd.R - Stage 10: loss given default under the IRB approach
 # ============================================================================ #
 # Five steps, one object carried through: scr_workout() turns default events
-# and cash flows into the reference data set (realised LGD per default);
+# and cash flows into the reference data set (realized LGD per default);
 # scr_lgd() fits the two-stage model (cure x severity) and derives the pools;
 # scr_lgd_downturn() and scr_lgd_floor() add the downturn and the input
 # floor to the pools; scr_elbe() derives the in-default grid. scr_apply(),
 # scr_sql(), scr_lgd_validate() and scr_export() close the production and
-# validation contracts. Every judgement lands in the ledger.
+# validation contracts. Every judgment lands in the ledger.
 # ============================================================================ #
 
 # -- small helpers ---------------------------------------------------------- #
 
-#' Whole months elapsed from one date to another (day-aware, vectorised)
+#' Whole months elapsed from one date to another (day-aware, vectorized)
 #' @keywords internal
 #' @noRd
 .months_between <- function(from, to) {
@@ -120,14 +120,14 @@
 
 #' Workout LGD: the reference data set from default events and cash flows
 #'
-#' Builds the reference data set (RDS) of realised loss given default, one
+#' Builds the reference data set (RDS) of realized loss given default, one
 #' row per default event, from a table of default events and the long table
 #' of their post-default cash flows. Every cash flow is discounted to the
 #' default date at the reference rate in force at that date plus
 #' `lgd_discount_add_on`, with monthly compounding over whole months:
 #' \deqn{\mathrm{PV} = \frac{A}{(1 + r/12)^{t}}}
 #' where `t` is the number of whole months between the default date and the
-#' cash-flow date. The realised LGD is the economic loss
+#' cash-flow date. The realized LGD is the economic loss
 #' \deqn{\mathrm{LGD} = \frac{E - \mathrm{PV}(R) + \mathrm{PV}(C) + \mathrm{PV}(D) + C^{\mathrm{ind}}}{E}}
 #' with `E` the exposure at default, `R` recoveries, `C` direct costs, `D`
 #' drawings after default and `C^ind` the indirect costs allocated by
@@ -150,7 +150,7 @@
 #'   of the closed defaults of the same product (cumulative discounted
 #'   recovery rate by month in default); an open event at or beyond
 #'   `lgd_t_max` is treated as closed with no further recovery.
-#' * **Bounds.** With `lgd_floor_at_zero` the realised LGD used in the
+#' * **Bounds.** With `lgd_floor_at_zero` the realized LGD used in the
 #'   averages is floored at zero and with `lgd_cap_at_one` capped at one;
 #'   `lgd_raw` always keeps the unbounded value.
 #'
@@ -258,7 +258,7 @@ scr_workout <- function(defaults, cashflows, rates = NULL, config = scr_config()
   cf[, month := pmax(0L, .months_between(default_date, date))]
   cf[, pv := amount / (1 + discount_rate / 12)^month]
   # grouped sums on indicator-weighted columns: plain sum()/max() by group are
-  # GForce-optimised, per-group subsetting (amount[type == ...]) is not
+  # GForce-optimized, per-group subsetting (amount[type == ...]) is not
   sums <- c("recovery_nominal", "pv_recovery_cash", "cost_nominal", "pv_cost", "drawing_nominal", "pv_drawing")
   w <- cf[, list(root_id, month,
                  recovery_nominal = amount * (type == "recovery"), pv_recovery_cash = pv * (type == "recovery"),
@@ -295,7 +295,7 @@ scr_workout <- function(defaults, cashflows, rates = NULL, config = scr_config()
   ext <- NULL
   if (any(rds$is_incomplete)) {
     inc <- rds[is_incomplete == TRUE, list(default_id, product, ead, months_in_default)]
-    # vectorised look-up of the profile at (product, month); a product without
+    # vectorized look-up of the profile at (product, month); a product without
     # closed defaults reads the "all" profile
     pkey <- paste(profile$product, profile$month, sep = "\r")
     rho <- function(src, m) {
@@ -456,11 +456,11 @@ print.scr_workout <- function(x, ...) {
   eta
 }
 
-#' Somers' D of the prediction with respect to the realised value
+#' Somers' D of the prediction with respect to the realized value
 #'
 #' `(C - D) / (pairs untied on the realised value)`, the pairs counted
 #' exactly in `O(n log n)` by the compiled kernel (`.scr_somers()`); `NA`
-#' when the prediction is constant. Generalised AUC is `(D + 1) / 2`.
+#' when the prediction is constant. Generalized AUC is `(D + 1) / 2`.
 #' @keywords internal
 #' @noRd
 .lgd_somers <- function(p, r) .scr_somers(p, r, const_p = NA_real_)
@@ -625,7 +625,7 @@ print.scr_workout <- function(x, ...) {
   findInterval(pred, pools$pred_hi[-k], left.open = TRUE) + 1L
 }
 
-#' Reference value: mean realised LGD of the two worst calendar years, per pool
+#' Reference value: mean realized LGD of the two worst calendar years, per pool
 #' @keywords internal
 #' @noRd
 .lgd_reference_value <- function(scored, pools) {
@@ -689,18 +689,18 @@ print.scr_workout <- function(x, ...) {
 #' machinery: optimal binning of the drivers on the training cohorts, WOE,
 #' hold-out revalidation with frozen bins and a logistic regression on the
 #' WOE columns with the sign check (every coefficient positive). The
-#' **severity stage** bins the same drivers against the realised LGD of
+#' **severity stage** bins the same drivers against the realized LGD of
 #' the non-cures with [scr_bin_continuous()] (bin means, monotone, at least
 #' `lgd_min_defaults_bin` defaults per bin, hold-out revalidated) and fits a
 #' fractional logit (`glm` with a quasi-binomial family on the bin means)
 #' or, with `lgd_severity = "beta"`, a beta regression through the
-#' `betareg` package. `LGD^cure` is the mean realised LGD of the cures on
+#' `betareg` package. `LGD^cure` is the mean realized LGD of the cures on
 #' train (costs and the discount effect, never zero by decree).
 #'
 #' The split is by cohort of default: the last `holdout` share of the
 #' default dates is the hold-out. Metrics on both samples: RMSE, MAE,
 #' R-squared, Spearman rho, Somers' D of the prediction with respect to
-#' the realised LGD (generalised AUC `(D + 1) / 2`) with a bootstrap
+#' the realized LGD (generalized AUC `(D + 1) / 2`) with a bootstrap
 #' confidence interval, and the loss capture ratio. Pools come from
 #' [scr_lgd_pools()]. The object carries a provisional downturn (type 3
 #' add-on, or none, by configuration) and no floor until
@@ -717,7 +717,7 @@ print.scr_workout <- function(x, ...) {
 #'   features, coef, sign_check, bins, holdout), `severity` (fit, features,
 #'   coef, engine, sign_check, bins), `lgd_cure`, `has_cures`, `scored` (one
 #'   row per default: `sample`, `p_cure`, `severity`, `lgd_pred`, `pool`,
-#'   `lgd_real`), `bins_idx`, `samples` (predicted vs realised by decile of
+#'   `lgd_real`), `bins_idx`, `samples` (predicted vs realized by decile of
 #'   the prediction), `metrics`, `pools`, `downturn`, `floors`, `workout`
 #'   (the profile and summary of the RDS), `model_card`, `ledger`, `config`.
 #'
@@ -824,7 +824,7 @@ scr_lgd <- function(x, drivers, config = scr_config(), holdout = 0.3, date_col =
   out
 }
 
-#' Predicted vs realised by decile of the prediction, per sample
+#' Predicted vs realized by decile of the prediction, per sample
 #' @keywords internal
 #' @noRd
 .lgd_deciles <- function(scored) {
@@ -886,10 +886,10 @@ print.scr_lgd <- function(x, ...) {
 #' LGD pools from the predicted LGD
 #'
 #' Cuts the training predictions into `n_pools` quantile bands, merges the
-#' bands with fewer than `min_defaults` defaults into the neighbour with
+#' bands with fewer than `min_defaults` defaults into the neighbor with
 #' the closer long-run average, then merges adjacent bands whose long-run
 #' averages break the increasing order (pool-adjacent violators), so that
-#' the pools are ordered both in predicted and in realised LGD. Per pool:
+#' the pools are ordered both in predicted and in realized LGD. Per pool:
 #' the default-weighted long-run average (the regulatory estimate), the
 #' exposure-weighted one, the standard error, the category-C margin of
 #' conservatism (one-sided 95% t interval on the mean) and their sum.
@@ -931,7 +931,7 @@ scr_lgd_pools <- function(x, n_pools = NULL, min_defaults = NULL) {
   ledger <- list()
   g <- .cbin_merge(n_b, s_b, max_bins = K, min_n = min_n, min_share = 0)$group
   n_small <- K - max(g)
-  if (n_small > 0) ledger$small <- .lgd_ledger_row("pool_merge", sprintf("%d band(s) below %d defaults merged into the neighbour with the closer LRA", n_small, min_n), "MIN_DEFAULTS")
+  if (n_small > 0) ledger$small <- .lgd_ledger_row("pool_merge", sprintf("%d band(s) below %d defaults merged into the neighbor with the closer LRA", n_small, min_n), "MIN_DEFAULTS")
   n_g <- vapply(seq_len(max(g)), function(i) sum(n_b[g == i]), numeric(1)); s_g <- vapply(seq_len(max(g)), function(i) sum(s_b[g == i]), numeric(1))
   g2 <- .cbin_pava(n_g, s_g, increasing = TRUE)
   if (max(g2) < max(g)) ledger$pava <- .lgd_ledger_row("pool_merge", sprintf("%d adjacent pool(s) merged: long-run average not increasing in the prediction", max(g) - max(g2)), "NOT_MONOTONE")
@@ -955,7 +955,7 @@ scr_lgd_pools <- function(x, n_pools = NULL, min_defaults = NULL) {
 #' Downturn LGD per pool
 #'
 #' Quantifies the downturn per pool from user-supplied downturn periods.
-#' `method = "type1"` (observed impact): the default-weighted realised LGD
+#' `method = "type1"` (observed impact): the default-weighted realized LGD
 #' of the training defaults whose default date falls inside the periods; a
 #' pool with fewer than ten such defaults falls back to type 3. `method = "type3"`:
 #' the long-run average plus `add_on`. `method = "none"`: the long-run
@@ -1021,7 +1021,7 @@ scr_lgd_downturn <- function(x, periods = NULL, method = NULL, add_on = NULL, re
 #' Input floor on the downturn LGD per pool
 #'
 #' Applies the LGD input floor of the framework's parameter table, blended
-#' between the unsecured and the collateralised floor with the secured
+#' between the unsecured and the collateralized floor with the secured
 #' share of the exposure:
 #' \deqn{\mathrm{floor} = \mathrm{floor}_U\,(1 - s) + \mathrm{floor}_S\,s,\qquad
 #'       \mathrm{LGD}^{\mathrm{final}} = \max(\mathrm{LGD}^{DT}, \mathrm{floor})}
@@ -1089,7 +1089,7 @@ scr_lgd_floor <- function(x, params = NULL, asset_class = NULL, secured_share = 
 #' ELBE and in-default LGD on a grid of months since default
 #'
 #' For every pool and every reference age `tau` of the grid, the expected
-#' loss best estimate is the mean realised LGD of the training defaults of
+#' loss best estimate is the mean realized LGD of the training defaults of
 #' the pool that were still in workout at `tau` (so that at `tau = 0` it
 #' equals the pool's long-run average), and the in-default LGD adds the
 #' unexpected-loss increment
@@ -1261,11 +1261,11 @@ scr_sql.scr_lgd <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
 #' (or on `newdata`) against the training reference:
 #'
 #' * **Calibration.** Per pool and for the portfolio, the one-sided t-test
-#'   of realised against estimated LGD (the pool long-run average), where
+#'   of realized against estimated LGD (the pool long-run average), where
 #'   under-estimation is the failure: `p = 1 - Phi(t)`; the loss shortfall
-#'   `1 - sum(LGD_real E) / sum(LGD_pred E)`; the coverage of the realised
-#'   mean by the downturn LGD; the regression of realised on predicted.
-#' * **Discrimination.** Somers' D / generalised AUC of the prediction with
+#'   `1 - sum(LGD_real E) / sum(LGD_pred E)`; the coverage of the realized
+#'   mean by the downturn LGD; the regression of realized on predicted.
+#' * **Discrimination.** Somers' D / generalized AUC of the prediction with
 #'   its bootstrap interval, compared with the training value through
 #'   `S = (gAUC_init - gAUC_curr) / sigma_curr`; Spearman rho; the loss
 #'   capture ratio; R-squared.
@@ -1277,8 +1277,8 @@ scr_sql.scr_lgd <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
 #'   (Welch test; a large p-value means pools that do not differ).
 #'
 #' Traffic lights use the p-value thresholds of `config$pd_lights` (shared
-#' with the PD validation) (red below the
-#' first, amber below the second) and the fixed PSI thresholds.
+#' with the PD validation) (red at or below the
+#' first, amber at or below the second) and the fixed PSI thresholds.
 #'
 #' @param x An [scr_lgd()] object.
 #' @param newdata `NULL` (the hold-out), an [scr_workout()] object or a
@@ -1286,8 +1286,10 @@ scr_sql.scr_lgd <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
 #'
 #' @return An object of class `scr_lgd_validation`: `calibration` (per
 #'   pool), `portfolio`, `discrimination`, `stability` (`pools`, `drivers`),
-#'   `homogeneity`, `heterogeneity`, `summary` (test, statistic, p, light),
-#'   `sample`, `n`.
+#'   `homogeneity`, `heterogeneity`, `summary` (test, statistic, p, light;
+#'   the light is `"grey"` when the test has no result, and a row that sums
+#'   up several pools or drivers is the worst of their lights: red, then
+#'   amber, then green, otherwise grey), `sample`, `n`.
 #'
 #' @family irb-lgd
 #' @examples
@@ -1401,7 +1403,8 @@ scr_lgd_validate <- function(x, newdata = NULL) {
                            light = data.table::fifelse(is.na(p), "grey", data.table::fifelse(p <= 0.05, "green", data.table::fifelse(p <= 0.10, "amber", "red"))))
   })) else data.table::data.table(pool_a = integer(), pool_b = integer(), n_a = integer(), n_b = integer(), mean_a = numeric(), mean_b = numeric(), p = numeric(), light = character())
 
-  worst <- function(l) if (!length(l) || all(is.na(l))) "grey" else if ("red" %in% l) "red" else if ("amber" %in% l) "amber" else "green"
+  # grey (no testable result) never rolls up to green: all grey, or none, stays grey
+  worst <- function(l) if ("red" %in% l) "red" else if ("amber" %in% l) "amber" else if ("green" %in% l) "green" else "grey"
   summary <- data.table::rbindlist(list(
     data.table::data.table(test = "calibration_portfolio_t", statistic = portfolio$t, p = portfolio$p, light = portfolio$light),
     data.table::data.table(test = "calibration_pools_t", statistic = suppressWarnings(max(calib$t, na.rm = TRUE)), p = suppressWarnings(min(calib$p, na.rm = TRUE)), light = worst(calib$light)),
@@ -1423,7 +1426,7 @@ scr_lgd_validate <- function(x, newdata = NULL) {
 print.scr_lgd_validation <- function(x, ...) {
   cat(sprintf("<scr_lgd_validation> sample %s | n %s\n", x$sample, n_fmt(x$n)))
   p <- x$portfolio; d <- x$discrimination
-  cat(sprintf("  calibration: realised %s vs estimate %s | t %.2f p %.3f [%s] | loss shortfall %s | downturn covers: %s\n",
+  cat(sprintf("  calibration: realized %s vs estimate %s | t %.2f p %.3f [%s] | loss shortfall %s | downturn covers: %s\n",
               fmt_pct(p$real_mean), fmt_pct(p$est_mean), p$t, p$p, p$light, fmt_pct(p$loss_shortfall), p$dt_coverage))
   cat(sprintf("  discrimination: gAUC %.3f [%.3f, %.3f] vs initial %.3f (S %.2f, p %.3f) [%s] | Spearman %.3f | LCR %.3f\n",
               d$gauc, d$gauc_lo, d$gauc_hi, d$gauc_init, d$S, d$p, d$light, d$spearman, d$lcr))

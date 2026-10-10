@@ -53,14 +53,14 @@ event: identifiers, \code{default_date}, \code{ead}, \code{product}, drivers,
 has \code{kept}; \code{summary} has \code{n_cure}, \code{lra_raw}, \code{ead_total} and \code{years}.
 }
 \description{
-Builds the reference data set (RDS) of realised loss given default, one
+Builds the reference data set (RDS) of realized loss given default, one
 row per default event, from a table of default events and the long table
 of their post-default cash flows. Every cash flow is discounted to the
 default date at the reference rate in force at that date plus
 \code{lgd_discount_add_on}, with monthly compounding over whole months:
 \deqn{\mathrm{PV} = \frac{A}{(1 + r/12)^{t}}}
 where \code{t} is the number of whole months between the default date and the
-cash-flow date. The realised LGD is the economic loss
+cash-flow date. The realized LGD is the economic loss
 \deqn{\mathrm{LGD} = \frac{E - \mathrm{PV}(R) + \mathrm{PV}(C) + \mathrm{PV}(D) + C^{\mathrm{ind}}}{E}}
 with \code{E} the exposure at default, \code{R} recoveries, \code{C} direct costs, \code{D}
 drawings after default and \code{C^ind} the indirect costs allocated by
@@ -84,7 +84,7 @@ receives the expected further recovery read from the recovery profile
 of the closed defaults of the same product (cumulative discounted
 recovery rate by month in default); an open event at or beyond
 \code{lgd_t_max} is treated as closed with no further recovery.
-\item \strong{Bounds.} With \code{lgd_floor_at_zero} the realised LGD used in the
+\item \strong{Bounds.} With \code{lgd_floor_at_zero} the realized LGD used in the
 averages is floored at zero and with \code{lgd_cap_at_one} capped at one;
 \code{lgd_raw} always keeps the unbounded value.
 }

@@ -84,7 +84,7 @@ test_that("the ECL kernel matches the matrix formulation", {
   expect_error(cpp_ecl_paths(h[, 1:3], L, E, NULL, r, n, H, 1L, TRUE, st3, NULL, NULL, NULL, NULL, 0.15, 1L), "must be")
 })
 
-test_that("kernel thread counts honour the check limit", {
+test_that("kernel thread counts honor the check limit", {
   withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = "TRUE"))
   expect_equal(.scr_threads(8L), 2L)
   withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = ""))

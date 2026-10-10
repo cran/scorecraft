@@ -12,14 +12,31 @@ scr_score_gains(x, sample = NULL)
 \item{sample}{\code{NULL} (all), \code{"train"} or \code{"holdout"}.}
 }
 \value{
-A \code{data.table} with one row per sample and band, from the riskiest
-band to the safest.
+A \code{data.table} with one row per sample and band, the band
+richest in events first (the riskiest under \code{objective = "risk"}):
+\code{sample}, \code{id}, \code{band}, \code{n}, \code{pct}, \code{events}, \code{non_events},
+\code{event_rate}, \code{pct_event} and \code{pct_nonevent} (the band's share of all
+events and of all non-events), \code{woe}, \code{min_score}, \code{mean_score},
+\code{max_score}, \code{cum_pct}, \code{cum_event_pct}, \code{cum_nonevent_pct}, \code{ks},
+\code{lift}, \code{cum_lift}, \code{odds} and \code{log_odds}.
 }
 \description{
-How the score behaves in each band: count, event rate, KS, lift,
-cumulative capture and the score interval of the band, which is what lets
-a cut-off be read straight from the table. The bands are the deciles of
-the score on \strong{train}, applied frozen to the other samples.
+How the score behaves in each band: count, event rate, the event and
+non-event distributions, KS, lift, cumulative capture, odds and the score
+interval of the band, which is what lets a cut-off be read straight from
+the table. The bands are the deciles of the score on \strong{train}, applied
+frozen to the other samples.
+}
+\details{
+\code{woe} is \code{log(pct_event / pct_nonevent)}, event-oriented like the WOE of
+the variables (positive when the band event rate is above the overall
+rate) and equal to \code{log_odds} in \code{\link[=scr_strategy]{scr_strategy()}} for the same sample and
+bands; when a band has no events or no non-events, 0.5 is added to the
+counts of every band for \code{woe} only. \code{odds} follows the odds
+orientation of the scale: non-events per event under \code{higher_is_safer},
+events per non-event under \code{higher_is_riskier}, with 0.5 added to each
+count. \code{log_odds} therefore rises with the score under both directions,
+and its slope against \code{mean_score} can be read against \code{log(2) / pdo}.
 }
 \examples{
 cfg <- scr_config(verbose = FALSE, nthread = 1, use_ranger = FALSE,

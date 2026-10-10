@@ -8,7 +8,8 @@ scr_config_keys(stage = NULL)
 }
 \arguments{
 \item{stage}{Optional filter by stage: \code{0} to \code{7} for the scorecard
-pipeline, \code{8} to \code{12} for the IRB models. \code{NULL} returns everything.}
+pipeline, \code{8} to \code{12} for the IRB models, \code{13} for the score studies.
+\code{NULL} returns everything.}
 }
 \value{
 A \code{data.frame} with \code{key}, \code{stage}, \code{default} and \code{description}.

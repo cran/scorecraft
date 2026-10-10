@@ -19,7 +19,7 @@ with no \code{NA}) and the originating \code{split}.
 }
 \description{
 Profiles every candidate \strong{on the training rows only}, decides its fate
-and materialises the clean data for train and hold-out with the same
+and materializes the clean data for train and hold-out with the same
 values (training median, \code{"MISSING"} level). A sentinel or missing mass
 with weight (\code{special_min_share}) and signal (\code{special_min_woe}) becomes a
 categorical flag \verb{<column><flag_suffix>}, which the engine bins and emits

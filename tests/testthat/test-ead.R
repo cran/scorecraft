@@ -1,4 +1,4 @@
-# EAD/CCF module: the realised-CCF reference data set, the pools, the downturn
+# EAD/CCF module: the realized-CCF reference data set, the pools, the downturn
 # and floor stack, application in R and SQL, validation and the workbook.
 
 hand_args <- function(...) {
@@ -21,7 +21,7 @@ test_that("the reference data set applies the identities, the measure rule and t
   expect_equal(a$measure, "ulf"); expect_equal(a$ccf, 0.5); expect_equal(a$ccf_raw, 0.5)
   expect_equal(a$utilisation_ref + a$ccf * (1 - a$utilisation_ref), a$ead_realised / a$limit_ref)
   expect_equal(a$horizon_months, 12L); expect_false(a$fast_default); expect_equal(a$rule, "OK")
-  # B: nothing undrawn -> limit factor, uncapped realised EAD above the limit
+  # B: nothing undrawn -> limit factor, uncapped realized EAD above the limit
   b <- r["B"]
   expect_equal(b$measure, "lf"); expect_equal(b$ccf, 1.1); expect_equal(b$rule, "ZERO_UNDRAWN")
   # C: repaid before default -> raw -1.5 kept, floored at 0 and counted
@@ -34,7 +34,7 @@ test_that("the reference data set applies the identities, the measure rule and t
   e <- r["E"]
   expect_equal(e$ref_date, as.Date("2023-11-01")); expect_equal(e$horizon_months, 2L)
   expect_true(e$fast_default); expect_equal(e$rule, "FAST_DEFAULT"); expect_equal(e$ccf, 0.75)
-  # H: utilisation 0.96 at or above u* -> LF by the measure rule
+  # H: utilization 0.96 at or above u* -> LF by the measure rule
   hh <- r["H"]
   expect_equal(hh$measure, "lf"); expect_equal(hh$ccf, 1); expect_equal(hh$rule, "OK")
   # L: above one, kept uncapped and counted
@@ -63,7 +63,7 @@ test_that("the reference data set applies the identities, the measure rule and t
   expect_output(print(ed), "ZERO_UNDRAWN")
 })
 
-test_that("floor and cap of the realised value are explicit and logged; raw value always kept", {
+test_that("floor and cap of the realized value are explicit and logged; raw value always kept", {
   h <- ead_hand()
   ed <- do.call(scr_ead_data, c(list(h), hand_args(config = ead_cfg(ccf_floor_realised = NA, ccf_cap_realised = 1))))
   r <- ed$rds; data.table::setkey(r, facility_id)
@@ -193,7 +193,7 @@ test_that("Somers' D, gAUC and the cumulative EAD accuracy ratio are pinned on h
   expect_true(is.na(.ead_cear(c(1, 2), c(0, 0))))
 })
 
-test_that("scr_apply predicts an EAD never below the drawn amount nor the standardised floor, with the LF branch", {
+test_that("scr_apply predicts an EAD never below the drawn amount nor the standardized floor, with the LF branch", {
   m <- ead_model()
   a <- scr_apply(m, scr_demo_ead)
   expect_equal(nrow(a), nrow(scr_demo_ead))
@@ -226,7 +226,7 @@ test_that("scr_apply predicts an EAD never below the drawn amount nor the standa
   pr <- scr_irb_params("bcb"); mf <- scr_ead(ead_demo(), drivers = "utilisation_ref", config = ead_cfg(ccf_sa_ccf = 1), params = pr)
   expect_equal(mf$pools[pool != "LF", ccf_applied], pmax(mf$pools[pool != "LF", ccf_final], 0.5))
   expect_equal(mf$pools[pool == "P1", ccf_applied], 0.5); expect_true(mf$pools[pool == "P1", floor_binding])
-  af <- scr_apply(mf, data.frame(limit = 1000, drawn = 900))      # high utilisation below u*: the low-CCF pool
+  af <- scr_apply(mf, data.frame(limit = 1000, drawn = 900))      # high utilization below u*: the low-CCF pool
   expect_equal(af$pool, "P1"); expect_equal(af$ead_predicted, 900 + 0.5 * 100); expect_true(af$ead_floor_binding)
 })
 
@@ -287,7 +287,7 @@ test_that("the validation battery reports calibration, discrimination, back-test
   expect_equal(v$summary$test, c("calibration_t_total", "ead_adequacy_total", "gauc_vs_development", "pool_psi"))
   expect_true(all(grepl("convention|Yurdakul|bootstrap", v$summary$convention)))
   expect_output(print(v), "TOTAL")
-  # the lights follow the thresholds: a red one when realised exceeds predicted strongly
+  # the lights follow the thresholds: a red one when realized exceeds predicted strongly
   vv <- scr_ead_validate(m, lights = c(0.99, 0.995))
   expect_true(all(vv$calibration$light_p == "red"))
   expect_error(scr_ead_validate(m, lights = c(0.5, 0.1)), "increasing")
@@ -296,6 +296,27 @@ test_that("the validation battery reports calibration, discrimination, back-test
   expect_equal(v2$source, "newdata"); expect_equal(v2$n, 197L)
   expect_equal(v2$calibration[pool == "TOTAL", n], 197L)
   expect_error(scr_ead_validate(m, newdata = data.frame(x = 1)), "lacks")
+})
+
+test_that("an EAD light without a testable result is grey, and grey never rolls up to green", {
+  m <- ead_model(); r <- ead_demo()$rds
+  # one row: no t-test, no gAUC, and two pools without rows
+  v1 <- scr_ead_validate(m, newdata = r[measure == m$meta$main_measure][1])
+  c1 <- v1$calibration
+  expect_identical(c1[pool == "TOTAL", light_p], "grey")
+  expect_identical(c1$light_adequacy[c1$n == 0L], rep("grey", sum(c1$n == 0L)))
+  expect_identical(v1$discrimination$light, "grey")
+  expect_false(anyNA(v1$summary$light))
+  expect_true(all(c(v1$summary$light, c1$light_p, c1$light_adequacy, v1$stability$light) %in% c("red", "amber", "green", "grey")))
+  sl <- v1$summary$light[v1$summary$light != "grey"]
+  expect_identical(v1$light, if ("red" %in% sl) "red" else if ("amber" %in% sl) "amber" else "green")
+  # no row: every light is grey, and so is the overall one
+  v0 <- scr_ead_validate(m, newdata = r[0])
+  expect_identical(v0$summary$light, rep("grey", 4L))
+  expect_identical(v0$light, "grey")
+  expect_output(print(v0), "overall light: GREY")
+  # the full hold-out keeps its tested lights
+  expect_true(scr_ead_validate(m)$light %in% c("red", "amber", "green"))
 })
 
 test_that("R and SQL agree on pool, applied CCF and predicted EAD (DuckDB), in every dialect", {

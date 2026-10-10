@@ -45,7 +45,7 @@ regulatory floors on purpose) and the LGD a pool value constant within
 the segment, so that segment by grade is a homogeneous pool and the
 production SQL of \code{\link[=scr_capital]{scr_capital()}} reproduces R exactly. About 3 \% of the
 exposures are in default with a best estimate of expected loss and a
-provision close to it; the other columns feed the standardised
+provision close to it; the other columns feed the standardized
 comparison and the accounting stage rule of \code{\link[=scr_ecl]{scr_ecl()}}.
 }
 \examples{

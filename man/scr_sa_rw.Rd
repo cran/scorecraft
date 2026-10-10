@@ -2,7 +2,7 @@
 % Please edit documentation in R/capital.R
 \name{scr_sa_rw}
 \alias{scr_sa_rw}
-\title{Standardised risk weight of an exposure}
+\title{Standardized risk weight of an exposure}
 \usage{
 scr_sa_rw(
   asset_class,
@@ -42,7 +42,7 @@ the non-granular retail weight.}
 \item{params}{An \code{\link[=scr_irb_params]{scr_irb_params()}} object.}
 }
 \value{
-A numeric vector of standardised risk weights (decimals).
+A numeric vector of standardized risk weights (decimals).
 }
 \description{
 Lookup in \code{params$sa_rw}: regulatory retail (\code{"retail_other"},

@@ -55,7 +55,7 @@ chance of engaging.\tabular{lll}{
 
 
 \strong{\code{objective} does not touch the selection.} It does not change the
-modelled target, the cut points, the IV or the shortlist; it acts on the
+modeled target, the cut points, the IV or the shortlist; it acts on the
 direction of the points scale, on the odds orientation of the alignment
 and on the vocabulary of the reports. To model the other class as the
 event, the argument is \code{event_level} in \code{\link[=scr_split]{scr_split()}} and \code{\link[=scr_select]{scr_select()}},

@@ -22,7 +22,7 @@ ead_model <- function() {
 
 # Hand-made snapshots: one facility per rule, 13 monthly snapshots, default in
 # the last month (2024-01) unless stated. Amounts are chosen so that every
-# realised value is a short decimal.
+# realized value is a short decimal.
 ead_hand <- function() {
   dates <- seq(as.Date("2023-01-01"), by = "month", length.out = 13L)
   mk <- function(id, obl, limit, drawn, from = 1L, def_from = 13L) {

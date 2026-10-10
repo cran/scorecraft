@@ -15,8 +15,10 @@ table with the drivers, \code{lgd_real}, \code{ead} and the default date.}
 \value{
 An object of class \code{scr_lgd_validation}: \code{calibration} (per
 pool), \code{portfolio}, \code{discrimination}, \code{stability} (\code{pools}, \code{drivers}),
-\code{homogeneity}, \code{heterogeneity}, \code{summary} (test, statistic, p, light),
-\code{sample}, \code{n}.
+\code{homogeneity}, \code{heterogeneity}, \code{summary} (test, statistic, p, light;
+the light is \code{"grey"} when the test has no result, and a row that sums
+up several pools or drivers is the worst of their lights: red, then
+amber, then green, otherwise grey), \code{sample}, \code{n}.
 }
 \description{
 Runs the three blocks of the usual LGD validation on the hold-out sample
@@ -25,11 +27,11 @@ Runs the three blocks of the usual LGD validation on the hold-out sample
 \details{
 \itemize{
 \item \strong{Calibration.} Per pool and for the portfolio, the one-sided t-test
-of realised against estimated LGD (the pool long-run average), where
+of realized against estimated LGD (the pool long-run average), where
 under-estimation is the failure: \code{p = 1 - Phi(t)}; the loss shortfall
-\verb{1 - sum(LGD_real E) / sum(LGD_pred E)}; the coverage of the realised
-mean by the downturn LGD; the regression of realised on predicted.
-\item \strong{Discrimination.} Somers' D / generalised AUC of the prediction with
+\verb{1 - sum(LGD_real E) / sum(LGD_pred E)}; the coverage of the realized
+mean by the downturn LGD; the regression of realized on predicted.
+\item \strong{Discrimination.} Somers' D / generalized AUC of the prediction with
 its bootstrap interval, compared with the training value through
 \code{S = (gAUC_init - gAUC_curr) / sigma_curr}; Spearman rho; the loss
 capture ratio; R-squared.
@@ -42,8 +44,8 @@ that still discriminates) and heterogeneity between adjacent pools
 }
 
 Traffic lights use the p-value thresholds of \code{config$pd_lights} (shared
-with the PD validation) (red below the
-first, amber below the second) and the fixed PSI thresholds.
+with the PD validation) (red at or below the
+first, amber at or below the second) and the fixed PSI thresholds.
 }
 \examples{
 cfg <- scr_config(verbose = FALSE, nthread = 1, n_boot = 20)

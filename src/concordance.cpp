@@ -1,6 +1,6 @@
 // concordance.cpp - pair counts for Somers' D in O(n log n)
 //
-// Somers' D of a prediction against a realised continuous outcome (LGD, CCF)
+// Somers' D of a prediction against a realized continuous outcome (LGD, CCF)
 // needs, over all n(n-1)/2 pairs, the concordant minus the discordant count
 // and the number of pairs tied on the outcome. Knight's (1966) algorithm
 // sorts by the prediction and counts, for each observation, how many earlier

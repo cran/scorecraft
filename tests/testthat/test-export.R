@@ -20,12 +20,35 @@ test_that("scr_export writes the selection deliverables and the four scorecard w
                     "Rank_Order_Diagnostics") %in% openxlsx::getSheetNames(sc$files$validation)))
   expect_true(all(c("Population_Scope", "Cutoff_Sweep", "Strategy_Bands", "Reject_Sensitivity",
                     "Monitoring_Plan") %in% openxlsx::getSheetNames(sc$files$strategy)))
+  sb <- openxlsx::read.xlsx(sc$files$strategy, sheet = "Strategy_Bands")
+  expect_true(all(c("pct_event", "pct_nonevent", "odds_event", "log_odds") %in% names(sb)))
+  vg <- openxlsx::read.xlsx(sc$files$validation, sheet = "Variable_Gains_IV")
+  expect_identical(names(vg), c("variable", "bin_id", "bin", "count_fit", "pos_rate", "pct_event",
+                                "pct_nonevent", "woe", "iv", "points"))
   ss <- openxlsx::read.xlsx(sc$files$scorecard, sheet = "Score_Summary")
   expect_true("odds_orientation" %in% ss$item)
   expect_true(any(grepl("score_points", readLines(sc$files$sql_score))))
 })
 
-test_that("the hardened writer sanitises formula injection and never fabricates a row", {
+test_that("the bin shares are rebuilt for a scorecard fitted before they were stored", {
+  sc <- sc_demo()
+  sc2 <- sc
+  sc2$points <- sc2$points[, !c("pct_event", "pct_nonevent")]
+  p <- .points_shares(sc2$points)
+  expect_equal(p$pct_event, sc$points$pct_event)
+  expect_equal(p$pct_nonevent, sc$points$pct_nonevent)
+  expect_false("pct_event" %in% names(sc2$points))   # the stored table is left untouched
+  expect_identical(.points_shares(sc$points), sc$points)
+  skip_if_not_installed("openxlsx")
+  out <- file.path(tempdir(), "scr-export-old-points")
+  unlink(out, recursive = TRUE)
+  ex <- scr_export(sc2, out, stamp = FALSE)
+  vg <- openxlsx::read.xlsx(ex$files$validation, sheet = "Variable_Gains_IV")
+  expect_equal(vg$pct_event, sc$points$pct_event, tolerance = 1e-8)
+  expect_equal(vg$pct_nonevent, sc$points$pct_nonevent, tolerance = 1e-8)
+})
+
+test_that("the hardened writer sanitizes formula injection and never fabricates a row", {
   skip_if_not_installed("openxlsx")
   f <- file.path(tempdir(), "scr-hardened.xlsx")
   sheets <- list(A = data.frame(x = c("=cmd()", "+1", "-1", "@x", "plain"), stringsAsFactors = FALSE),

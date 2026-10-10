@@ -77,7 +77,7 @@ A \code{data.table} with one row per exposure: \code{pd_used}, \code{lgd_used}
 where each floor was binding.
 }
 \description{
-The asymptotic single risk factor function, vectorised over exposures:
+The asymptotic single risk factor function, vectorized over exposures:
 PD floors by asset class, LGD input floors for own estimates
 (\code{approach = "airb"}; the unsecured column of \code{params$lgd_floor} unless
 \code{collateral} names another column, blended with \code{secured_share}), the

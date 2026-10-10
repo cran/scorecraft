@@ -68,7 +68,7 @@ test_that("sentinels are numeric-only: a text level equal to a sentinel is not s
   expect_equal(r$row$n_special, 0L)
 })
 
-test_that("triage materialises more survivors than data.table over-allocates (1024)", {
+test_that("triage materializes more survivors than data.table over-allocates (1024)", {
   set.seed(11)
   n <- 120L; p <- 1100L
   y <- rep(0:1, length.out = n)
@@ -101,7 +101,7 @@ test_that("configuration keys of stages 0-7 are validated when the config is bui
 test_that(".sql_str doubles the backslash only where it is an escape, and maps NA to NULL", {
   expect_identical(.sql_str("a\\b'c", dialect = "ansi"), "'a\\b''c'")
   expect_identical(.sql_str("a\\b'c", dialect = "databricks"), "'a\\\\b''c'")
-  expect_identical(.sql_str("a\\b"), "'a\\\\b'")   # NULL dialect: historical behaviour
+  expect_identical(.sql_str("a\\b"), "'a\\\\b'")   # NULL dialect: historical behavior
   expect_identical(.sql_str(c("x", NA)), c("'x'", "NULL"))
 })
 

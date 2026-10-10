@@ -16,7 +16,7 @@ old_dt <- data.table::setDTthreads(2)
 ## Why manual coarse classing still matters
 
 Optimal binning does one job well: it finds the cut points and the
-groupings that maximise the information value of a variable subject to the
+groupings that maximize the information value of a variable subject to the
 admission rules (minimum bin size, monotonicity, hold-out stability). What
 it cannot know is how the business reads the variable. A bureau score is
 communicated to underwriters in policy bands; a region is priced as edge
@@ -36,7 +36,7 @@ before anything is committed.
 What the lab refuses to do is let a manual decision enter silently. Every
 proposal is compared against the optimal bins, every acceptance carries a
 reason, every override of a blocking rule is a row in an append-only
-ledger, and the automatic artefacts are frozen alongside the manual ones.
+ledger, and the automatic artifacts are frozen alongside the manual ones.
 The scorecard, the R scoring function and the production SQL consume the
 manual bins through the very same code path as the optimal ones, so there
 is no second implementation to keep in step.
@@ -286,7 +286,7 @@ lab <- scr_classing_choose(lab, drop = "vl_score_10", force = "vl_score_03",
 
 ## The session summary and the ledger
 
-Printing the lab summarises the session: the variables touched with bins
+Printing the lab summarizes the session: the variables touched with bins
 and IV before and after, the verdicts, the reasons, the discards and the
 final choice.
 
@@ -342,7 +342,7 @@ must equal the `upper` of the one before it. The edit above touched only
 scr_classing_read(spec_file)
 ```
 
-Fixing the neighbouring `lower` makes the spec contiguous again.
+Fixing the neighboring `lower` makes the spec contiguous again.
 
 ```{r read-ok}
 sheet$lower[sheet$variable == "vl_score_01" & sheet$bin_id == 2] <- 42

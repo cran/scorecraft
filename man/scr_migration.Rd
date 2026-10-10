@@ -25,7 +25,7 @@ at the second, the row probabilities \code{p_ij}, the upper and lower matrix
 weighted bandwidths
 \deqn{MWB_{up} = \frac{\sum_{i<j} |i-j|\, N_i\, p_{ij}}{\sum_i \max(|i-K|, |i-1|)\, N_i \sum_{j>i} p_{ij}},}
 (and the mirror image for downgrades), the \code{z} statistic of every
-off-diagonal cell against its neighbour closer to the diagonal (a
+off-diagonal cell against its neighbor closer to the diagonal (a
 significantly positive value means the probability does not decay away
 from the diagonal) and the mobility summary. Values of \code{grade_t1}
 outside \verb{1..K} count as \code{default}, \code{NA} as \code{closed}; both stay out of

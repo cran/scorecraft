@@ -35,7 +35,9 @@ reported above 0.5 when the score ranks correctly.}
 \item{seed}{Bootstrap seed, local to the call (the user's random stream
 is restored on exit); \code{NULL} draws from the user's stream.}
 
-\item{nthread}{Parallel workers for the resamples.}
+\item{nthread}{Parallel workers for the resamples on the rows; not used
+when the resamples are drawn on the counts (see Details). The result
+does not depend on it.}
 }
 \value{
 A list of class \code{scr_metrics} with \code{auc}, \code{ks}, \code{gini}, the
@@ -54,10 +56,20 @@ class and returns \code{NA}.
 The confidence interval is \strong{always} computed by default: a bootstrap
 stratified by outcome, percentile method, with
 \code{n_boot} resamples. Gini is derived from AUC (\code{2 * AUC - 1}) inside each
-resample, never bootstrapped separately. The cost is absorbed by
-\code{nthread} (parallelism by resample). DeLong's analytic variance is not
-used: the interval is a stratified percentile bootstrap, which also
+resample, never bootstrapped separately. DeLong's analytic variance is
+not used: the interval is a stratified percentile bootstrap, which also
 covers KS.
+
+The resamples are drawn in one of two ways. With \eqn{K} distinct scores
+in the \eqn{n} rows used (those with a score and an outcome) and
+\eqn{K \le n / 10} (many ties: scorecard points, a grade scale, a WOE
+score on a large sample), each class is redrawn on the counts, as a
+multinomial over the score values with its observed shares, at a cost
+of \eqn{O(K)} per resample. Otherwise the rows of each class are
+resampled, at \eqn{O(n)} per resample, over \code{nthread} workers.
+Rows of one class with the same score are exchangeable, so both are the
+same bootstrap stratified by outcome and differ only in how the draws
+are made: for a given seed, the bounds depend on which of the two ran.
 
 The AUC is computed from the counts per unique score after one sort, so
 its cost is \eqn{O(n \log n)}, never the \eqn{O(n_1 n_0)} of the pairwise

@@ -30,7 +30,7 @@ falls more than this fraction below the optimal one raises
 }
 \value{
 An \code{scr_classing} object (the lab), with a print method that
-summarises the session: variables touched, before/after IV, verdicts,
+summarizes the session: variables touched, before/after IV, verdicts,
 reasons, pending proposals and the final choice.
 }
 \description{

@@ -2,7 +2,7 @@
 # model.R - Stages 3 and 4: classifiers on the WOE space and consensus
 # ============================================================================ #
 # Different families of evidence over the SAME WOE columns:
-#   glmnet   - regularisation (elastic net): who survives the shrinkage
+#   glmnet   - regularization (elastic net): who survives the shrinkage
 #   xgboost  - boosting: accumulated gain (required Import)
 #   lightgbm - alternative boosting, optional (Suggests)
 #   ranger   - random forest: permutation importance
@@ -146,7 +146,7 @@ run_classifiers <- function(app_train, app_holdout, y_train, y_holdout, features
 
 # -- adapters --------------------------------------------------------------- #
 
-#' Elastic net: the regularisation itself is the selector (coefficient != 0)
+#' Elastic net: the regularization itself is the selector (coefficient != 0)
 #' @keywords internal
 #' @noRd
 .fit_glmnet <- function(x_tr, y_tr, x_ho, y_ho, cfg) {

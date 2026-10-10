@@ -149,16 +149,34 @@ The lowest approved band has an event rate of 17.4%, above the portfolio
 rate of 14.5%, yet a positive expected profit: declining it would look
 prudent and lose money. The cumulative profit peaks at that band.
 `loss_bad` is a flat loss per bad account here; in an IRB setting it is
-the product of the exposure at default and the loss given default, modelled
+the product of the exposure at default and the loss given default, modeled
 in the article on
 [LGD and EAD](https://evandeilton.github.io/scorecraft/articles/lgd-and-ead-under-irb.html)
 and combined in
 [expected loss and capital](https://evandeilton.github.io/scorecraft/articles/expected-loss-and-capital.html).
 
+The table also carries the two distributions the score separates:
+`pct_event` and `pct_nonevent` are the band's shares of all events and of
+all non-events, and `log_odds`, the log of their ratio `odds_event`, is the
+WOE of the band, positive exactly when the band event rate is above the
+portfolio rate. The two distributions cross where their cumulative shares
+are furthest apart, at the KS of the table; `st$crossing` records that
+boundary, and `rule = "crossing"` approves the bands on its safe side and
+declines the rest, a cut that needs no revenue or loss figures.
+
+```{r strategy-crossing}
+st$crossing[c("cut", "ks", "single_crossing")]
+scr_strategy(sc, rule = "crossing")$table[, .(band, event_rate = round(event_rate, 4),
+                                              log_odds = round(log_odds, 3), decision)]
+```
+
+The crossing falls one band above break-even and declines the 17.4% band:
+the prudent cut that loses money.
+
 ## 5. Reject inference
 
 The scorecard is fitted on accounts that were accepted and therefore have an
-outcome. Classical reject inference (parcelling, augmentation,
+outcome. Classical reject inference (parceling, augmentation,
 extrapolation) assigns outcomes to the declined applicants, and it cannot
 be validated on the data at hand: every method rests on an assumption about
 the rejects that the accepts cannot test (Hand and Henley, 1993).
@@ -340,7 +358,7 @@ mo3 <- scr_monitor(sc, scr_demo, date_col = "ref_date", target = "default", n_bo
 identical(mo3$psi$flag_adjusted, mo$psi$flag_adjusted)
 ```
 
-Every sheet is sanitised before it is written (a cell starting with `=`,
+Every sheet is sanitized before it is written (a cell starting with `=`,
 `+`, `-` or `@` cannot become a formula), and each workbook is verified
 after writing. `?scr_export` lists the sheets.
 

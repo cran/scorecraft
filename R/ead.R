@@ -1,14 +1,14 @@
 # ============================================================================ #
-# ead.R - exposure at default: realised CCF data set, pools, downturn,
+# ead.R - exposure at default: realized CCF data set, pools, downturn,
 #         application, production SQL, validation and export
 # ============================================================================ #
 # Notation: R the reference date, D the default
-# date, E and L the drawn amount and the limit. The realised measures are
+# date, E and L the drawn amount and the limit. The realized measures are
 #   ULF / CCF = (E_D - E_R) / (L_R - E_R)      undrawn part material at R,
 #   LF        = E_D / L_R                       region of instability, over
 #                                               limit or nothing undrawn,
 #   EADF      = E_D / E_R                       no usable limit,
-# with the identity LF = u + CCF (1 - u), u = E_R / L_R. The realised EAD
+# with the identity LF = u + CCF (1 - u), u = E_R / L_R. The realized EAD
 # is never capped at the limit. Pools are cells of driver bins fitted with
 # the continuous binner of R/irb-binning.R, so that obwoe_apply() and
 # obwoe_sql() reproduce the bin index in R and in every SQL dialect. The
@@ -20,12 +20,12 @@
 
 # -- 1. Reference data set -------------------------------------------------- #
 
-#' Build the realised-CCF reference data set from facility snapshots
+#' Build the realized-CCF reference data set from facility snapshots
 #'
 #' One row per default event (or per event and reference date under the
 #' variable-horizon comparison), with the facility as it stood at the
-#' reference date and the realised exposure at default (EAD) at the default
-#' date, from which the realised credit conversion factor (CCF) follows. The
+#' reference date and the realized exposure at default (EAD) at the default
+#' date, from which the realized credit conversion factor (CCF) follows. The
 #' reference date follows `config$ccf_horizon`: `"fixed"` takes the
 #' snapshot `ccf_horizon_months` before the default month (the nearest
 #' earlier snapshot when that month is missing; the first snapshot for a
@@ -34,15 +34,15 @@
 #' falls; `"variable"` takes every snapshot in the horizon before the
 #' default, for comparison only.
 #'
-#' The realised measure per row follows `config$ccf_measure`: under
-#' `"auto"` the undrawn-limit factor (CCF) when the utilisation at the
+#' The realized measure per row follows `config$ccf_measure`: under
+#' `"auto"` the undrawn-limit factor (CCF) when the utilization at the
 #' reference date is below `ccf_u_star` and the limit factor (LF) at or
 #' above it; rows with nothing undrawn or over the limit at the reference
 #' date are always routed to the limit factor (`ZERO_UNDRAWN`,
-#' `OVER_LIMIT_AT_REF`), never dropped. The raw realised value is kept in
+#' `OVER_LIMIT_AT_REF`), never dropped. The raw realized value is kept in
 #' `ccf_raw`; `ccf` carries the value after the optional floor
 #' (`ccf_floor_realised`) and cap (`ccf_cap_realised`), both logged in the
-#' funnel (`NEGATIVE_CCF_FLOORED`, `CCF_ABOVE_ONE`). The realised EAD is
+#' funnel (`NEGATIVE_CCF_FLOORED`, `CCF_ABOVE_ONE`). The realized EAD is
 #' the drawn amount at the default date, uncapped; with
 #' `post_default_drawings_in = "ccf"` it is the maximum drawn amount over
 #' the default event when `defaulted` is given.
@@ -298,7 +298,7 @@ scr_ead_data <- function(snapshots, facility_id, obligor_id = NULL, date_col, li
 
 #' Reference rows of every default event under the configured horizon
 #'
-#' Vectorised over the events with rolling joins on the (facility, month)
+#' Vectorized over the events with rolling joins on the (facility, month)
 #' panel `p`, sorted by `fid` and `date`:
 #' * the default row `i_d` is the first snapshot at or after the default
 #'   month (next observation carried backward); an event without one is
@@ -311,7 +311,7 @@ scr_ead_data <- function(snapshots, facility_id, obligor_id = NULL, date_col, li
 #'   else the last snapshot before `D`;
 #' * a facility with no snapshot before `D` takes the default row itself
 #'   (`horizon_months = 0`, excluded later as `FAST_DEFAULT_EXCLUDED`).
-#' With `post_default = "ccf"` and a default flag, the realised EAD is the
+#' With `post_default = "ccf"` and a default flag, the realized EAD is the
 #' maximum drawn amount from the default row to the end of the run of
 #' flagged months that follows it.
 #' @keywords internal
@@ -326,7 +326,7 @@ scr_ead_data <- function(snapshots, facility_id, obligor_id = NULL, date_col, li
   if (!nrow(ev)) return(NULL)
   first <- q$.first[ev$i_d]
   has_before <- ev$i_d > first
-  # realised EAD: the drawn amount at the default row, or the running maximum
+  # realized EAD: the drawn amount at the default row, or the running maximum
   # over the flagged months that follow it
   ead <- q$drawn[ev$i_d]
   if (identical(post_default, "ccf") && !all(is.na(q$def))) {
@@ -381,13 +381,13 @@ scr_ead_data <- function(snapshots, facility_id, obligor_id = NULL, date_col, li
   m
 }
 
-#' Exposure-weighted realised value of a set of rows, by their measure
+#' Exposure-weighted realized value of a set of rows, by their measure
 #' @keywords internal
 #' @noRd
 .ead_ew <- function(r, m = NULL) {
   if (!nrow(r)) return(NA_real_)
   m <- m %||% r$measure[1]
-  # weighted mean of the (floored, capped) realised value, weights = the
+  # weighted mean of the (floored, capped) realized value, weights = the
   # denominator of the measure; equals the ratio of sums when nothing is floored
   w <- switch(m, ulf = r$undrawn_ref, lf = r$limit_ref, eadf = r$drawn_ref)
   ok <- is.finite(w) & w > 0 & is.finite(r$ccf)
@@ -434,7 +434,7 @@ print.scr_ead_data <- function(x, ...) {
 #' Estimate CCF pools from the reference data set
 #'
 #' Splits the reference data set by reference date (the most recent
-#' cohorts form the hold-out), bins every driver against the realised CCF
+#' cohorts form the hold-out), bins every driver against the realized CCF
 #' with the continuous binner ([scr_bin_continuous()]) on the training
 #' rows, revalidates the frozen bins on the hold-out and admits a driver
 #' when it passes the named rules `TOO_FEW_DEFAULTS`, `NO_SEPARATION`,
@@ -445,13 +445,13 @@ print.scr_ead_data <- function(x, ...) {
 #' measure form their own pool `LF`.
 #'
 #' Per pool the estimate is the long-run (default-weighted) average of the
-#' realised values on the training rows, `lra`; `moc_est` is the one-sided
+#' realized values on the training rows, `lra`; `moc_est` is the one-sided
 #' normal estimation-error margin at `config$ccf_moc_alpha`;
 #' `ccf_dt` is the downturn value (equal to `lra` until
 #' [scr_ead_downturn()] is run); `ccf_final = max(lra, ccf_dt) + moc_est`;
 #' `ccf_floor = params$ccf_floor_fraction * config$ccf_sa_ccf`; and
 #' `ccf_applied = max(ccf_final, ccf_floor)`. For the `LF` pool the floor
-#' depends on the utilisation and is applied per row by [scr_apply()].
+#' depends on the utilization and is applied per row by [scr_apply()].
 #'
 #' @param x An [scr_ead_data()] object.
 #' @param drivers Column names of the candidate drivers (columns of
@@ -678,14 +678,14 @@ scr_ead <- function(x, drivers, config = scr_config(), holdout = 0.3, params = N
     key <- .ead_cell_key(idx, survivors, ks)
     pool <- cells$pool[match(key, cells$cell)]
     # unbinned rows (missing driver, unseen category): the highest pool, the
-    # most conservative one since pools are labelled in increasing mean
+    # most conservative one since pools are labeled in increasing mean
     pool[is.na(pool)] <- .ead_top_pool(cells)
   }
   pool[to_lf] <- "LF"
   pool
 }
 
-#' Highest pool label (pools are labelled in increasing mean)
+#' Highest pool label (pools are labeled in increasing mean)
 #' @keywords internal
 #' @noRd
 .ead_top_pool <- function(cells) {
@@ -772,9 +772,9 @@ scr_ead <- function(x, drivers, config = scr_config(), holdout = 0.3, params = N
   data.table::rbindlist(rows)
 }
 
-#' Somers' D between a prediction and a realised value, over pairs with distinct realised values
+#' Somers' D between a prediction and a realized value, over pairs with distinct realized values
 #'
-#' Concordant when the prediction orders the pair as the realised values do;
+#' Concordant when the prediction orders the pair as the realized values do;
 #' pairs tied on the prediction count as neither. gAUC = (D + 1) / 2. Pairs
 #' are counted exactly in `O(n log n)` by the compiled kernel
 #' (`.scr_somers()`), whatever the number of distinct predictions; a
@@ -806,7 +806,7 @@ scr_ead <- function(x, drivers, config = scr_config(), holdout = 0.3, params = N
   out
 }
 
-#' Cumulative EAD accuracy ratio: share of realised additional drawing captured by the predicted ranking
+#' Cumulative EAD accuracy ratio: share of realized additional drawing captured by the predicted ranking
 #' @keywords internal
 #' @noRd
 .ead_cear <- function(pred, add) {
@@ -873,7 +873,7 @@ print.scr_ead <- function(x, ...) {
                 mt$rmse[i], mt$mae[i], mt$gauc[i], mt$gauc_lo[i], mt$gauc_hi[i], mt$adequacy[i],
                 if (is.na(mt$cear[i])) "-" else sprintf("%.4f", mt$cear[i])))
   }
-  if (any(p$floor_binding)) cat("  * the standardised floor binds\n")
+  if (any(p$floor_binding)) cat("  * the standardized floor binds\n")
   invisible(x)
 }
 
@@ -883,7 +883,7 @@ print.scr_ead <- function(x, ...) {
 #'
 #' Quantifies the downturn component of the CCF from user-supplied downturn
 #' periods. `"type1"` (observed impact) takes, per pool, the default-weighted
-#' average of the realised values of the training events whose default date
+#' average of the realized values of the training events whose default date
 #' falls in the periods (the hold-out stays independent) and sets
 #' `ccf_dt = max(lra, observed)`; `"type3"` (long-run average plus add-on)
 #' sets `ccf_dt = lra + add_on`; `"none"` resets
@@ -1016,7 +1016,7 @@ scr_sql.scr_ead <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
   surv <- x$survivors
   raw_drivers <- setdiff(surv, "utilisation_ref")
   greatest <- function(...) .sql_greatest(c(...), dl)
-  # block 1: utilisation and undrawn
+  # block 1: utilization and undrawn
   base <- c(if (length(keep)) sprintf("    %s,", keep),
             sprintf("    %s AS limit_amt,", lim), sprintf("    %s AS drawn_amt,", drw),
             sprintf("    CASE WHEN %s > 0 THEN %s / %s ELSE NULL END AS utilisation,", lim, drw, lim),
@@ -1125,14 +1125,14 @@ scr_sql.scr_ead <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
 
 #' Validate CCF pools: calibration, discrimination, back-testing and stability
 #'
-#' Per pool and in total, compares realised and predicted values on the
+#' Per pool and in total, compares realized and predicted values on the
 #' validation rows (the hold-out of the model by default): simple and
-#' exposure-weighted averages, the one-sided t-test of realised above
+#' exposure-weighted averages, the one-sided t-test of realized above
 #' predicted (under-estimation) with its p-value, the EAD adequacy ratio
-#' (sum of realised EAD over sum of predicted EAD) and traffic lights
+#' (sum of realized EAD over sum of predicted EAD) and traffic lights
 #' (red at or below `lights[1]`, amber at or below `lights[2]`, green above;
 #' adequacy green at or below `adequacy_lights[1]`, amber up to
-#' `adequacy_lights[2]`, red above). Adds the
+#' `adequacy_lights[2]`, red above; grey when the value is missing). Adds the
 #' discrimination block (gAUC with a bootstrap interval against the
 #' development value, Spearman correlation, cumulative EAD accuracy
 #' ratio), the back-test by cohort and the stability of the pool
@@ -1149,7 +1149,9 @@ scr_sql.scr_ead <- function(x, table = NULL, dialect = NULL, file = NULL, ...) {
 #'
 #' @return An object of class `scr_ead_validation`: `calibration`,
 #'   `discrimination`, `backtest`, `stability`, `summary` (test,
-#'   statistic, p, light), `n`, `source`.
+#'   statistic, p, light; the light is `"grey"` when the test has no
+#'   result), `light` (the worst light of the summary: red, then amber,
+#'   then green; `"grey"` when no test has a result), `n`, `source`.
 #'
 #' @family irb-ead
 #' @examples
@@ -1178,8 +1180,9 @@ scr_ead_validate <- function(x, newdata = NULL, lights = c(0.01, 0.05), adequacy
     v[, pool := .ead_pool_of(v, x$bins, x$survivors, x$cells, main, x$meta)]
     source <- "newdata"
   }
-  light_p <- function(p) data.table::fcase(is.na(p), NA_character_, p <= lights[1], "red", p <= lights[2], "amber", default = "green")
-  light_a <- function(a) data.table::fcase(is.na(a), NA_character_, a <= adequacy_lights[1], "green", a <= adequacy_lights[2], "amber", default = "red")
+  # a missing value (no testable result) is grey, as in the PD and LGD validations
+  light_p <- function(p) data.table::fcase(is.na(p), "grey", p <= lights[1], "red", p <= lights[2], "amber", default = "green")
+  light_a <- function(a) data.table::fcase(is.na(a), "grey", a <= adequacy_lights[1], "green", a <= adequacy_lights[2], "amber", default = "red")
   pr <- .ead_predict_rows(v$pool, v$measure, v$drawn_ref, v$limit_ref, pools, x$meta$floor)
   v[, `:=`(predicted = .ead_lookup(pools, pool, "ccf_applied"), ead_predicted = pr$ead_predicted)]
   calib_row <- function(r, label) {
@@ -1236,7 +1239,7 @@ scr_ead_validate <- function(x, newdata = NULL, lights = c(0.01, 0.05), adequacy
                              critical = q$critical, flag_adjusted = q$flag_adjusted)
     })))
   }
-  stab[, light := data.table::fcase(is.na(flag_fixed), NA_character_, flag_fixed == "stable", "green", flag_fixed == "moderate", "amber", default = "red")]
+  stab[, light := data.table::fcase(is.na(flag_fixed), "grey", flag_fixed == "stable", "green", flag_fixed == "moderate", "amber", default = "red")]
   tot <- calibration[pool == "TOTAL"]
   summary <- data.table::data.table(
     test = c("calibration_t_total", "ead_adequacy_total", "gauc_vs_development", "pool_psi"),
@@ -1244,17 +1247,22 @@ scr_ead_validate <- function(x, newdata = NULL, lights = c(0.01, 0.05), adequacy
     p = c(tot$p, NA_real_, discrimination$p_vs_dev, NA_real_),
     light = c(tot$light_p, tot$light_adequacy, discrimination$light, stab$light[1]),
     convention = c(sprintf("one-sided t; red <= %s, amber <= %s (package convention)", lights[1], lights[2]),
-                   sprintf("sum realised / sum predicted EAD; amber above %s, red above %s (package convention)", adequacy_lights[1], adequacy_lights[2]),
+                   sprintf("sum realized / sum predicted EAD; amber above %s, red above %s (package convention)", adequacy_lights[1], adequacy_lights[2]),
                    "z of development minus current gAUC over the bootstrap standard errors",
                    "PSI 0.10/0.25 fixed; adjusted: Yurdakul & Naranjo (2020)"))
+  # overall light: grey (no testable result) never rolls up to green; all grey stays grey
+  sl <- summary$light
+  worst <- if ("red" %in% sl) "red" else if ("amber" %in% sl) "amber" else if ("green" %in% sl) "green" else "grey"
   structure(list(calibration = calibration, discrimination = discrimination, backtest = backtest, stability = stab,
-                 summary = summary, n = nrow(v), source = source, lights = lights, adequacy_lights = adequacy_lights),
+                 summary = summary, light = worst, n = nrow(v), source = source, lights = lights, adequacy_lights = adequacy_lights),
             class = c("scr_ead_validation", "list"))
 }
 
 #' @export
 print.scr_ead_validation <- function(x, ...) {
-  cat(sprintf("<scr_ead_validation> %s rows (%s)\n", n_fmt(x$n), x$source))
+  # an object saved before the overall light existed prints without it
+  cat(sprintf("<scr_ead_validation> %s rows (%s)%s\n", n_fmt(x$n), x$source,
+              if (is.null(x[["light"]])) "" else sprintf(" | overall light: %s", toupper(x[["light"]]))))
   cat(sprintf("  %-6s %6s %9s %9s %8s %8s %6s %9s %6s\n", "pool", "n", "realised", "predicted", "t", "p", "light", "adequacy", "light"))
   c <- x$calibration
   for (i in seq_len(nrow(c))) {

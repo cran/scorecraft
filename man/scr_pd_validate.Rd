@@ -47,7 +47,8 @@ from \code{score} with the cut points of \code{x}.}
 
 \item{lights}{Two p-value thresholds (red at or below the first, amber at
 or below the second, green above; the convention shared with the LGD
-and EAD validations); \code{NULL} reads \code{config$pd_lights}.}
+and EAD validations); \code{NULL} reads \code{config$pd_lights}. A missing
+p-value gives \code{"grey"}.}
 
 \item{pd_column}{Grade PD tested: \code{"pd_final"} (default), \code{"pd_moc"} or \code{"pd_be"}.}
 
@@ -62,8 +63,11 @@ grade, pooled), \code{calibration_cohort} (per cohort and grade),
 \code{pd}, \code{p_jeffreys}, \code{p_binomial}, \code{hl_chi2}, \code{hl_df}, \code{hl_p},
 \code{multi_period_z}, \code{multi_period_p}, \code{brier}), \code{discrimination},
 \code{stability} (\code{psi} table, \code{migration}, \code{concentration}), \code{summary}
-(one row per test with \code{statistic}, \code{p_value}, \code{light}), \code{light}
-(the worst light of the summary), \code{n_cohorts}, \code{alpha}, \code{lights}.
+(one row per test with \code{statistic}, \code{p_value}, \code{light}; the light is
+\code{"grey"} when the row has no testable result, such as a missing p-value
+or the descriptive migration bandwidth), \code{light} (the worst light of the
+summary: red, then amber, then green; \code{"grey"} when no row has a
+testable result), \code{n_cohorts}, \code{alpha}, \code{lights}.
 \code{portfolio_tests} also carries \code{critical}, \code{z}, \code{p_normal}, \code{n_cohorts}
 and \code{pd_column}; the object also has \code{horizon}, \code{by}, \code{pd_column} and
 \code{target}.

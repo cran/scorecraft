@@ -118,7 +118,7 @@ test_that("a line break in a name cannot escape an SQL comment", {
   expect_false(any(grepl("^DROP TABLE", sql)))
 })
 
-test_that("scr_reasons() (vectorised) returns what the row-by-row ranking returned", {
+test_that("scr_reasons() (vectorized) returns what the row-by-row ranking returned", {
   sc <- sc_demo()
   new <- head(scr_demo, 60)
   got <- scr_reasons(sc, new, k = 3)

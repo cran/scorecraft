@@ -1,6 +1,6 @@
 Package: scorecraft
 Title: Scorecard Development and Internal Ratings-Based Risk Parameters
-Version: 0.3.0
+Version: 0.3.2
 Authors@R: c(
     person("Jose Evandeilton", "Lopes", email = "evandeilton@gmail.com",
            role = c("aut", "cre", "cph"))
@@ -33,16 +33,17 @@ Description: Builds points scorecards for binary targets (credit risk, fraud,
     <doi:10.1002/9781119282396> and Thomas et al. (2017)
     <doi:10.1137/1.9781611974560>.
 License: MIT + file LICENSE
-URL: https://github.com/evandeilton/scorecraft
+URL: https://github.com/evandeilton/scorecraft,
+        https://evandeilton.github.io/scorecraft/
 BugReports: https://github.com/evandeilton/scorecraft/issues
 Encoding: UTF-8
-Language: en-GB
+Language: en-US
 Depends: R (>= 4.1.0)
 Imports: data.table (>= 1.14.0), OptimalBinningWoE (>= 1.13.4),
         xgboost, stats, utils, graphics, parallel, Rcpp (>= 1.0.10)
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: glmnet, lightgbm, ranger, DBI, odbc, RSQLite, duckdb,
-        openxlsx, betareg, bit64, testthat (>= 3.0.0), knitr,
+        openxlsx, betareg, bit64, survival, testthat (>= 3.0.0), knitr,
         rmarkdown, withr
 LazyData: true
 LazyDataCompression: xz
@@ -51,8 +52,8 @@ Config/testthat/edition: 3
 Config/testthat/parallel: false
 Config/roxygen2/version: 8.1.0
 NeedsCompilation: yes
-Packaged: 2026-09-25 22:47:44 UTC; evandeilton
+Packaged: 2026-10-10 01:38:12 UTC; evandeilton
 Author: Jose Evandeilton Lopes [aut, cre, cph]
 Maintainer: Jose Evandeilton Lopes <evandeilton@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-10-06 16:10:02 UTC
+Date/Publication: 2026-10-10 15:10:02 UTC

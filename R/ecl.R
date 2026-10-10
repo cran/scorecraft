@@ -29,7 +29,7 @@
 #' capped at one), `z` (systematic factor of the one-factor model applied to
 #' the hazards with correlation `rho`, negative in a bad year), `lgd_add`
 #' (added to the LGD, the result floored at zero) and `ead_mult`
-#' (non-negative); `weights` (normalised to one) give the
+#' (non-negative); `weights` (normalized to one) give the
 #' probability-weighted result. When a shocked hazard plus the prepayment
 #' hazard exceeds one, the exit probability of that month is capped at one.
 #' The `z` shock is applied to each monthly hazard, not to the annual PD;
@@ -227,7 +227,7 @@ scr_ecl <- function(pd_term, lgd, ead, eir = 0, stage = NULL, dpd = NULL, pd_ori
     .cap_ledger("horizon", sprintf("12-month figure over %d months, lifetime over %d months%s", hz, H,
                                    if (is.null(P)) "" else "; prepayment hazard applied")),
     .cap_ledger("scenarios", sprintf("%s", paste(sprintf("%s (%.3f)", names(scenarios), w), collapse = ", ")),
-                if (!isTRUE(all.equal(w_raw, w))) "weights normalised to one" else NA_character_)))
+                if (!isTRUE(all.equal(w_raw, w))) "weights normalized to one" else NA_character_)))
   msg("  ecl: %s exposures | ECL %s (coverage %s) | stage 2 %s, stage 3 %s (%.2fs)", n_fmt(n),
       format(round(totals$ecl)), fmt_pct(totals$coverage, 2), fmt_pct(totals$share_stage2), fmt_pct(totals$share_stage3),
       as.numeric(difftime(Sys.time(), t0, units = "secs")))

@@ -12,7 +12,7 @@
 #' Stage 1: descriptive triage and sentinel resolution
 #'
 #' Profiles every candidate **on the training rows only**, decides its fate
-#' and materialises the clean data for train and hold-out with the same
+#' and materializes the clean data for train and hold-out with the same
 #' values (training median, `"MISSING"` level). A sentinel or missing mass
 #' with weight (`special_min_share`) and signal (`special_min_woe`) becomes a
 #' categorical flag `<column><flag_suffix>`, which the engine bins and emits
@@ -46,7 +46,7 @@ scr_triage <- function(split, config = scr_config()) {
   msg_stage(1, "descriptive triage")
   plan  <- time_it("profile + heuristics", triage_plan(split$data, split$target, split$cols,
                                                         split$train_idx, config))
-  clean <- time_it("materialisation (imputation + flags)", apply_triage(split$data, split$target, plan, config))
+  clean <- time_it("materialization (imputation + flags)", apply_triage(split$data, split$target, plan, config))
   dead <- plan$profile[triage_status == "drop", .N, by = triage_reason][order(-N)]
   for (i in seq_len(nrow(dead))) msg("  failed for %-22s %d", dead$triage_reason[i], dead$N[i])
   msg("  survived: %d (%d derived from special populations)", length(plan$keep), length(plan$derived))
@@ -228,7 +228,7 @@ triage_plan <- function(dt, target, cols, train_idx, cfg) {
   list(row = row, ledger = led, fp = fp)
 }
 
-#' Materialise the triage plan (same transformation on train and hold-out)
+#' Materialize the triage plan (same transformation on train and hold-out)
 #' @keywords internal
 #' @noRd
 apply_triage <- function(dt, target, plan, cfg) {

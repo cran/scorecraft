@@ -684,9 +684,10 @@ one constant and twelve bin points.</p>
 <h2>5. Do the odds double every PDO?</h2>
 <p>The scale is a claim about odds: at 600 points 50:1, and twice the
 odds every 20 points. <code>scr_score_gains()</code> gives the observed
-odds (non-events per event) in each band of the score, the training
-deciles applied frozen to the hold-out, and the claim can be checked
-against them.</p>
+odds in each band of the score, in the orientation of the scale
+(non-events per event for this risk scorecard), the training deciles
+applied frozen to the hold-out, and the claim can be checked against
+them.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">scr_score_gains</span>(sc_risk)</span>
 <span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>g[, scale_odds <span class="sc">:=</span> <span class="fu">exp</span>((mean_score <span class="sc">-</span> al<span class="sc">$</span>offset) <span class="sc">/</span> al<span class="sc">$</span>factor)]</span>
 <span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>g[sample <span class="sc">==</span> <span class="st">&quot;holdout&quot;</span>, .(band, n, events, <span class="at">mean_score =</span> <span class="fu">round</span>(mean_score, <span class="dv">1</span>),</span>
@@ -811,7 +812,7 @@ more than one target.</p>
 <span id="cb21-18"><a href="#cb21-18" tabindex="-1"></a><span class="co">#&gt; 5: vl_score_05         2       6.0 churn, default</span></span>
 <span id="cb21-19"><a href="#cb21-19" tabindex="-1"></a><span class="co">#&gt; 6: vl_score_07         2       7.5 churn, default</span></span>
 <span id="cb21-20"><a href="#cb21-20" tabindex="-1"></a><span class="co">#&gt; 7:  vl_hist_04         2      10.0 churn, default</span></span></code></pre></div>
-<p>A variable approved on both targets is not an artefact of one target
+<p>A variable approved on both targets is not an artifact of one target
 definition. <code>relaxation</code> records whether the consensus
 loosened its vote threshold to reach the minimum number of variables, as
 it did for <code>churn</code>. The AUC here is that of the
@@ -867,7 +868,7 @@ can be recovered from the other exactly:</p>
 <span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p>That identity is what “comparable” means: two scorecards are on the
 same scale when the same log-odds gives the same points, and a scorecard
-is rescaled, not remodelled, when only <code>factor</code> and
+is rescaled, not remodeled, when only <code>factor</code> and
 <code>offset</code> change.</p>
 </div>
 <div id="a-checklist-for-the-model-committee" class="section level2">

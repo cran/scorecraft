@@ -1,3 +1,124 @@
+# scorecraft 0.3.2
+
+* New score studies, computed from one pass over the scored rows into a
+  table of counts per score value:
+  * `scr_bands()` cuts a score into percentile or tail bands frozen on a
+    reference sample and reports, per band and sample, the event rate with
+    a Jeffreys interval, lift, capture, KS, WOE, IV, PSI and a one-sided
+    Fisher exact test of rank order, plus the AUC, Gini and KS with a
+    bootstrap interval. Accepts a scorecard, a data.frame (with weights,
+    a value column and sample labels) or pre-aggregated counts.
+  * `scr_tiers()` fits 2 to 9 tiers (labeled from "low" to "high", with
+    words for 2 to 7 tiers) by an exact dynamic program under share, event
+    and distinctness constraints, by event-rate anchors or by equal shares;
+    `round_to` gives policy-friendly cuts, and `n_boot` measures the
+    stability of the cuts. An infeasible tier count falls back and is
+    recorded in a ledger.
+  * `scr_rag()` lights discrimination, calibration, stability and, for a
+    scorecard, the variables red, amber or green, per period or segment
+    with `by`; the thresholds are an editable table from `scr_rag_plan()`.
+  * `scr_apply()`, `scr_sql()` and `scr_export()` assign the bands or tiers
+    in R and in SQL and write the study to a workbook. Tier labels carry
+    their order in production (`"01.very high"` for the tier with the
+    highest event rate, down to `"05.very low"`), so they sort from the
+    event-richest tier; the tiers table has the same value in `tier_label`,
+    and `numbered = FALSE` gives the plain labels.
+  * `scr_claims()` tests statements such as "rate >= 60% for scores of 625
+    or more" on a band, a tier or a score range, with an exact one-sided
+    binomial test, a one-sided Jeffreys bound and a Holm adjustment, and
+    writes each verdict ("supported", "refuted" or "not proven") as one
+    sentence. `type = "floor"` tests the weakest end of the group under a
+    monotone fit of the rate instead of its average.
+  * `scr_operating()` finds the cut that maximizes the value of targeting,
+    alerting or approval under volume, share, budget, event-rate and daily
+    capacity constraints, and reports the binding constraint and its
+    shadow price.
+  * `scr_score_cross()` crosses two scores on the same rows: the table of
+    their bands with one or two outcomes, Spearman's rho and Kendall's
+    tau-b, and the overlap of the rows each selects, with the swap-in and
+    swap-out rates.
+  * The three write a workbook with `scr_export()`; the vignette
+    "Score studies" walks through them on credit, fraud and churn scores.
+  * `scr_mix_shift()` splits the change of the event rate between two
+    samples, or between each period and a base, into a mix effect and a
+    rate effect per band; the effects add up to the change exactly.
+  * `scr_segments()` reads one score on many segments: AUC with the DeLong
+    standard error and a test of equal AUC, observed against expected
+    events, the log-odds offset and the slope ratio, with a suggested
+    action per segment.
+  * `scr_maturity()` estimates the cumulative incidence of the event by
+    band and horizon under censoring (Kaplan-Meier with Greenwood's
+    variance), and the discrimination at each horizon.
+  * `scr_uplift()` reads a score on a treated and a control group: uplift
+    per band with the Newcombe interval, the Qini coefficient and the AUUC
+    with bootstrap intervals, and a randomization check.
+  * `scr_overlap()` compares rule flags with the alerts of a score: what
+    each catches, the incremental recall of one over the other and the
+    rules the score makes redundant.
+  * `scr_detection()` measures, per alert threshold, the fraud episodes
+    detected, the fraudulent transactions and the time before the first
+    alert, and the loss prevented.
+  * The six write a workbook with `scr_export()`.
+* New configuration keys for the score studies (stage 13): `study_bands`,
+  `study_level`, `tier_min_pct`, `tier_min_events` and `tier_max_bins`.
+* `scr_pd_validate()` gives the light `"grey"` to a row without a testable
+  result (a missing p-value) instead of `NA`, and the overall light is
+  `"grey"`, not `"green"`, when no row has a testable result.
+  `scr_ead_validate()` does the same and adds the overall `light`. In
+  `scr_lgd_validate()`, a summary row over pools or drivers that are all
+  grey is now grey, not green.
+* `scr_monitor()` and the CSI timelines of `scr_export()` compute the CSI
+  as `scr_psi()` does: a bin empty in both samples is left out of the
+  smoothing and of the degrees of freedom of the adjusted threshold, and
+  the CSI and its critical value are missing when the period has no rows
+  in the bins or fewer than two bins are populated. Other results are
+  unchanged.
+* `scr_strategy()` freezes `crossing$cut` on the training scores, like the
+  bands: midway between the training scores on either side of the band
+  edge of the crossing. `score >= cut`, the convention of `scr_cutoff()`,
+  then reproduces the split of the bands on train and on any score seen in
+  training, so rows at a band edge seen in training no longer change side
+  between the two functions. `breaks` given as a number of intervals now
+  also gets a cut, taken on the evaluated sample.
+* The rank-order diagnostics of `scr_scorecard()` test each band against
+  the previous one with a one-sided Fisher exact test. The binomial test
+  used before took the previous band's rate as known and flagged too many
+  breaks when that band was small.
+* `scr_scorecard()` says when ties in the training score give fewer score
+  bands than `score_groups`.
+* `scr_metrics()` draws its bootstrap on the counts per score value when
+  the score has many ties (at most one distinct value for every ten rows:
+  scorecard points, a grade scale, a WOE score on a large sample), so the
+  cost of a resample follows the number of distinct scores, not of rows.
+  The intervals of such scores keep their distribution but change for a
+  given seed, wherever they are reported; scores with fewer ties keep the
+  row resampling and their intervals. The band tables of the scorecard,
+  `scr_strategy()`, `scr_reject()` and `scr_psi()` assign the bands as
+  integer indices, without a factor per row. The DeLong standard error of
+  `scr_pd_validate()` is computed from the counts and can differ in the
+  last digits (about 1e-16). No other result changes.
+* The cheat sheet gains a third page on the score studies.
+
+# scorecraft 0.3.1
+
+* `scr_strategy()` reports the event and non-event distributions of each
+  band (`pct_event`, `pct_nonevent`, `odds_event` and `log_odds`, the band
+  WOE) and the score where they cross (`crossing`); `rule = "crossing"`
+  sets the decisions at that boundary.
+* `scr_strategy()` follows the objective of the scorecard: under propensity
+  the table starts at the most likely band, `revenue_good` is the revenue
+  of an event and the decisions are `"target"`, `"review"` and `"skip"`.
+  Credit and fraud results are unchanged.
+* `scr_score_gains()` adds `pct_event`, `pct_nonevent` and `woe`. Under
+  `higher_is_riskier`, `odds` and `log_odds` are now events per non-event,
+  the orientation of the scale, so `log_odds` rises with the score in both
+  directions.
+* The points table and the `Variable_Gains_IV` sheet of `scr_export()` add
+  `pct_event` and `pct_nonevent` per bin.
+* Documentation, messages and comments use American English spelling.
+  Column names, configuration keys and data values are unchanged (for
+  example `utilisation`, `realised` and the `"grey"` traffic light).
+
 # scorecraft 0.3.0
 
 * `scr_lgd_downturn()` and `scr_ead_downturn()` estimate the observed

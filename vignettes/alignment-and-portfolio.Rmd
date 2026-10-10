@@ -313,9 +313,10 @@ sc_new[, .(score = round(score, 2), score_points,
 ## 5. Do the odds double every PDO?
 
 The scale is a claim about odds: at 600 points 50:1, and twice the odds
-every 20 points. `scr_score_gains()` gives the observed odds (non-events
-per event) in each band of the score, the training deciles applied frozen
-to the hold-out, and the claim can be checked against them.
+every 20 points. `scr_score_gains()` gives the observed odds in each band
+of the score, in the orientation of the scale (non-events per event for
+this risk scorecard), the training deciles applied frozen to the hold-out,
+and the claim can be checked against them.
 
 ```{r odds}
 g <- scr_score_gains(sc_risk)
@@ -401,7 +402,7 @@ scr_compare(runs)[, .(target, rows, event_rate, approved, best_model, auc, ks, r
 scr_core(runs, min_targets = 2)
 ```
 
-A variable approved on both targets is not an artefact of one target
+A variable approved on both targets is not an artifact of one target
 definition. `relaxation` records whether the consensus loosened its vote
 threshold to reach the minimum number of variables, as it did for `churn`.
 The AUC here is that of the selection-stage models; the scorecards' own
@@ -447,7 +448,7 @@ all.equal(a700$offset + a700$factor * ln_odds, sc_700$samples$holdout$score)
 
 That identity is what "comparable" means: two scorecards are on the same
 scale when the same log-odds gives the same points, and a scorecard is
-rescaled, not remodelled, when only `factor` and `offset` change.
+rescaled, not remodeled, when only `factor` and `offset` change.
 
 ## 9. A checklist for the model committee
 

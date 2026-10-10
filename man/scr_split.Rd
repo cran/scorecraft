@@ -54,7 +54,7 @@ hold-out \strong{before} any supervised fit.
 }
 \details{
 The split prefers out-of-time by \code{date_col}: it is the only one that
-tests generalisation to a future period. The cut is made on the
+tests generalization to a future period. The cut is made on the
 \strong{distinct} date values, not by row quantile: it picks the smallest set
 of most recent periods that already reaches \code{ratio} of the population.
 Without a date column, or with a single period, it falls back to random
@@ -67,7 +67,7 @@ of both train and hold-out, with a warning in the log.
 \section{Event orientation}{
 
 
-\code{event_level} changes \strong{what is modelled}. Passing \code{0} makes class 0 the
+\code{event_level} changes \strong{what is modeled}. Passing \code{0} makes class 0 the
 event: the sign of every WOE flips, the emitted SQL changes, the points
 change. For a text target, the second level in alphabetical order is the
 event by default, and the choice is always reported. Not to be confused

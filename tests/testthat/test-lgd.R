@@ -1,7 +1,7 @@
 # LGD module: workout engine, two-stage model, pools, downturn, floors, ELBE,
 # production (R and SQL), validation and export.
 
-test_that("the present value and the realised LGD of a hand-made workout are exact", {
+test_that("the present value and the realized LGD of a hand-made workout are exact", {
   cfg <- lgd_cfg(lgd_discount_rate = 0.12, lgd_discount_add_on = 0)
   wo <- scr_workout(hand_defaults(), hand_cashflows(), config = cfg)
   expect_s3_class(wo, "scr_workout")
@@ -154,7 +154,7 @@ test_that("the two-stage model fits, scores every default, and the pools are mon
   # Somers' D and the loss capture ratio on tiny hand vectors
   expect_equal(.lgd_somers(c(1, 2, 3, 4), c(0.1, 0.2, 0.3, 0.4)), 1)
   expect_equal(.lgd_somers(c(4, 3, 2, 1), c(0.1, 0.2, 0.3, 0.4)), -1)
-  expect_equal(.lgd_somers(c(1, 2, 3, 4), c(0.1, 0.1, 0.3, 0.3)), 1)     # ties on the realised value are excluded
+  expect_equal(.lgd_somers(c(1, 2, 3, 4), c(0.1, 0.1, 0.3, 0.3)), 1)     # ties on the realized value are excluded
   expect_equal(.lgd_lcr(c(0.9, 0.5, 0.1), c(0.9, 0.5, 0.1), c(1, 1, 1)), 1)
   expect_lt(.lgd_lcr(c(0.1, 0.5, 0.9), c(0.9, 0.5, 0.1), c(1, 1, 1)), 0)
   expect_error(scr_lgd(wo_demo(), drivers = "nope", config = lgd_cfg()), "not found")
@@ -178,7 +178,7 @@ test_that("downturn: observed impact per pool, the type-3 add-on, the reference 
   tb <- d1$downturn$table
   expect_equal(d1$downturn$status, "final")
   expect_true(all(tb$method_used %in% c("type1", "type3_fallback")))
-  # observed: default-weighted realised LGD of the pool's training defaults inside the periods
+  # observed: default-weighted realized LGD of the pool's training defaults inside the periods
   s <- m$scored[sample == "train" & default_date >= per$start & default_date <= per$end]
   obs <- s[, list(v = mean(lgd_real), n = .N), by = pool][order(pool)]
   expect_equal(tb$dt_observed[match(obs$pool, tb$pool)], obs$v)
@@ -301,6 +301,23 @@ test_that("the validation battery runs on the hold-out and on new data with traf
   v2 <- scr_lgd_validate(m, newdata = wo_demo())
   expect_equal(v2$sample, "newdata"); expect_equal(v2$n, nrow(wo_demo()$rds))
   expect_error(scr_lgd_validate(m, newdata = scr_demo_lgd), "lacks column")
+})
+
+test_that("an LGD summary row over untestable pools is grey, never green", {
+  m <- lgd_final()
+  # one hold-out default per pool: no t-test, no Welch test in any pool or pair
+  ids <- m$scored[sample == "holdout", .SD[1], by = pool]$default_id
+  nd <- wo_demo()$rds[as.character(default_id) %in% as.character(ids)]
+  v <- scr_lgd_validate(m, newdata = nd)
+  expect_equal(v$calibration$n, rep(1L, nrow(m$pools)))
+  expect_true(all(c(v$calibration$light, v$homogeneity$light, v$heterogeneity$light) == "grey"))
+  rows <- c("calibration_pools_t", "homogeneity_within_pools", "heterogeneity_between_pools")
+  expect_identical(v$summary[match(rows, test), light], rep("grey", 3L))
+  # next to a tested light, grey gives way: red, then amber, then green
+  v0 <- scr_lgd_validate(m)
+  roll <- function(l) if ("red" %in% l) "red" else if ("amber" %in% l) "amber" else if ("green" %in% l) "green" else "grey"
+  expect_identical(v0$summary[test == "calibration_pools_t", light], roll(v0$calibration$light))
+  expect_identical(v0$summary[test == "psi_drivers", light], roll(v0$stability$drivers$light))
 })
 
 test_that("results are identical under the serial and the PSOCK backend", {

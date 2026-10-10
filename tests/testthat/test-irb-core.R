@@ -36,6 +36,7 @@ test_that("the IRB configuration keys are registered, validated and documented",
   expect_error(scr_config(framework = "mars"), "framework")
   expect_error(scr_config(ccf_u_star = 2), "ccf_u_star")
   expect_error(scr_config(pd_lights = c(0.05, 0.01)), "pd_lights")
+  expect_error(scr_config(pd_lights = c(0.05, 0.01)), "red at or below the first, amber at or below the second", fixed = TRUE)
   expect_equal(nrow(scr_config_keys(stage = 12)), sum(keys$stage == 12))
 })
 

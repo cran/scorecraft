@@ -297,7 +297,7 @@ test_that("the calibration tests are pinned: Jeffreys, binomial critical count, 
   expect_equal(hl$df, 3L)
   expect_equal(hl$p, stats::pchisq(100 / 28.2, 3, lower.tail = FALSE))
   expect_equal(.pd_hl(c(100, 100), c(1, 2), c(0.01, 0.02))$df, 2L)
-  expect_equal(.pd_light(c(0.005, 0.03, 0.2, NA), c(0.01, 0.05)), c("red", "amber", "green", NA))
+  expect_equal(.pd_light(c(0.005, 0.03, 0.2, NA), c(0.01, 0.05)), c("red", "amber", "green", "grey"))
 })
 
 test_that("the migration matrix and its bandwidths are pinned on a hand matrix", {
@@ -313,7 +313,7 @@ test_that("the migration matrix and its bandwidths are pinned on a hand matrix",
   expect_equal(m$mobility$share_stable, 230 / 300)
   expect_equal(m$mobility$share_up, 40 / 300); expect_equal(m$mobility$share_down, 30 / 300)
   expect_equal(m$mobility$mean_distance, (15 + 10 + 20 + 15 + 2 * 5 + 2 * 5) / 300)
-  # z of the cell two steps away against its neighbour: p decays, so z is negative
+  # z of the cell two steps away against its neighbor: p decays, so z is negative
   expect_lt(m$z[1, 3], 0)
   expect_equal(m$n_significant, 0L)
   expect_true(is.na(m$z[1, 1]))
@@ -393,13 +393,34 @@ test_that("the validation battery runs on the cohort panel with lights, discrimi
   expect_equal(length(v$stability$concentration$shares), K)
   expect_s3_class(v$stability$migration, "scr_migration")
   expect_equal(v$stability$migration$K, K)
-  expect_true(all(v$summary$light[!is.na(v$summary$light)] %in% c("red", "amber", "green")))
+  expect_true(all(v$summary$light %in% c("red", "amber", "green", "grey")))
   expect_true(v$light %in% c("red", "amber", "green"))
   expect_output(print(v), "overall light")
   expect_error(scr_pd_validate(pd, p), "grade")
   expect_error(scr_pd_validate(pd, p, grade = "nope"), "not found")
   expect_error(scr_pd_validate(pd, p, grade = "grade", horizon = 48L), "complete")
   expect_error(scr_pd_validate(list(), p), "scr_pd")
+})
+
+test_that("a validation row without a testable result is grey and grey never rolls up to green", {
+  pd <- pd_model(); p <- pd_panel()
+  # the migration bandwidth is descriptive: no p-value, no light to give
+  vm <- scr_pd_validate(pd, p, score = "score", tests = "migration")
+  expect_identical(vm$summary$test, "migration_mwb_upper")
+  expect_identical(vm$summary$light, "grey")
+  expect_identical(vm$light, "grey")
+  expect_output(print(vm), "overall light: GREY")
+  # a single cohort (two months, one-month window): the multi-period test is not computable
+  p1 <- p[date %in% sort(unique(date))[1:2]]
+  v1 <- scr_pd_validate(pd, p1, score = "score", tests = "multi_period", horizon = 1L, by = "month")
+  expect_equal(v1$n_cohorts, 1L)
+  expect_true(is.na(v1$summary$p_value))
+  expect_identical(v1$light, "grey")
+  # grey next to a tested row: the tested rows decide, red over amber over green
+  v <- scr_pd_validate(pd, p, score = "score", tests = c("jeffreys", "migration"))
+  expect_true("grey" %in% v$summary$light)
+  l <- v$summary$light[v$summary$light != "grey"]
+  expect_identical(v$light, if ("red" %in% l) "red" else if ("amber" %in% l) "amber" else "green")
 })
 
 test_that("every PD function is identical under the serial and the PSOCK backend", {

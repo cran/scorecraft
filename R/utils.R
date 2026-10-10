@@ -93,7 +93,7 @@ time_it <- function(label, expr) {
 #' ([parallel::mclapply()], the default on unix), `"psock"` (a
 #' [parallel::makeCluster()] cluster, the default on Windows and the path
 #' exercised by the tests on every platform, since PSOCK workers share no
-#' memory and therefore prove that every closure serialises), or `"serial"`.
+#' memory and therefore prove that every closure serializes), or `"serial"`.
 #' Serial when `nthread <= 1` or there are fewer than two items.
 #'
 #' Every worker returns a sealed envelope (value, error message, warnings),
@@ -107,7 +107,7 @@ time_it <- function(label, expr) {
 #'   stderr;
 #' * a `data.table` returned by a worker is re-allocated
 #'   ([data.table::setalloccol()]), so that `:=` on it works without the
-#'   "invalid .internal.selfref" warning that follows serialisation.
+#'   "invalid .internal.selfref" warning that follows serialization.
 #'
 #' Under fork the number of workers is also capped by the memory available
 #' (see `.scr_fork_cap()`): a forked worker starts as a copy-on-write clone,
@@ -119,7 +119,7 @@ time_it <- function(label, expr) {
 #' itself); PSOCK workers are set to one thread explicitly, since `k`
 #' workers times the default thread count oversubscribe the machine.
 #' `R CMD check --as-cran` limits every package to two processes through
-#' `_R_CHECK_LIMIT_CORES_`, which is honoured.
+#' `_R_CHECK_LIMIT_CORES_`, which is honored.
 #' @keywords internal
 #' @noRd
 .scr_lapply <- function(X, FUN, nthread = 1L, ..., fork_only = FALSE) {
@@ -129,7 +129,7 @@ time_it <- function(label, expr) {
   if (nzchar(lim) && !identical(tolower(lim), "false")) k <- min(k, 2L)
   backend <- .scr_backend()
   # fork_only: FUN closes over a large table; under fork it is shared
-  # copy-on-write, under PSOCK it would be serialised to every worker
+  # copy-on-write, under PSOCK it would be serialized to every worker
   if (n < 2L || is.na(k) || k <= 1L || identical(backend, "serial") ||
       (isTRUE(fork_only) && !identical(backend, "fork"))) return(lapply(X, FUN, ...))
 
@@ -320,7 +320,7 @@ time_it <- function(label, expr) {
 #' Indices of a subsample stratified by the target
 #'
 #' Used only for the classifiers: permutation importance and cross-validation
-#' grow with the number of rows, and the *ordering* of importance stabilises
+#' grow with the number of rows, and the *ordering* of importance stabilizes
 #' long before the whole table is used.
 #' @keywords internal
 #' @noRd
@@ -408,7 +408,7 @@ lst <- function(x, n = 8) {
 #' ANSI SQL, PostgreSQL (standard_conforming_strings), SQL Server, Oracle,
 #' SQLite and DuckDB it is an ordinary character, and doubling it there
 #' would change the literal. `dialect = NULL` keeps the historical
-#' behaviour (backslash doubled); callers that know the dialect should pass
+#' behavior (backslash doubled); callers that know the dialect should pass
 #' it. `NA` becomes `NULL`.
 #' @keywords internal
 #' @noRd

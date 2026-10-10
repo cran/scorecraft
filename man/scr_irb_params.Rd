@@ -21,9 +21,9 @@ edited).
 Returns the numeric tables the internal ratings-based (IRB) functions
 read: probability of default (PD) floors, loss given default (LGD) input
 floors for own estimates,
-supervisory LGD values of the foundation approach, standardised credit
+supervisory LGD values of the foundation approach, standardized credit
 conversion factors (CCF), asset-correlation parameters of the risk-weight
-function, maturity rules, the output floor and the standardised risk
+function, maturity rules, the output floor and the standardized risk
 weights used for the floor comparison. Three presets ship: \code{"bcb"}
 (Brazil, BCB Resolutions 303/2023 and 229/2022), \code{"basel3_final"} (the
 consolidated Basel Framework in force from 2023) and \code{"crr3"} (the EU

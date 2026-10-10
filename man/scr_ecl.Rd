@@ -91,7 +91,7 @@ list with any of \code{pd_mult} (non-negative multiplier of the hazards,
 capped at one), \code{z} (systematic factor of the one-factor model applied to
 the hazards with correlation \code{rho}, negative in a bad year), \code{lgd_add}
 (added to the LGD, the result floored at zero) and \code{ead_mult}
-(non-negative); \code{weights} (normalised to one) give the
+(non-negative); \code{weights} (normalized to one) give the
 probability-weighted result. When a shocked hazard plus the prepayment
 hazard exceeds one, the exit probability of that month is capped at one.
 The \code{z} shock is applied to each monthly hazard, not to the annual PD;

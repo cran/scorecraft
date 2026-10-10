@@ -13,10 +13,20 @@
 #' The confidence interval is **always** computed by default: a bootstrap
 #' stratified by outcome, percentile method, with
 #' `n_boot` resamples. Gini is derived from AUC (`2 * AUC - 1`) inside each
-#' resample, never bootstrapped separately. The cost is absorbed by
-#' `nthread` (parallelism by resample). DeLong's analytic variance is not
-#' used: the interval is a stratified percentile bootstrap, which also
+#' resample, never bootstrapped separately. DeLong's analytic variance is
+#' not used: the interval is a stratified percentile bootstrap, which also
 #' covers KS.
+#'
+#' The resamples are drawn in one of two ways. With \eqn{K} distinct scores
+#' in the \eqn{n} rows used (those with a score and an outcome) and
+#' \eqn{K \le n / 10} (many ties: scorecard points, a grade scale, a WOE
+#' score on a large sample), each class is redrawn on the counts, as a
+#' multinomial over the score values with its observed shares, at a cost
+#' of \eqn{O(K)} per resample. Otherwise the rows of each class are
+#' resampled, at \eqn{O(n)} per resample, over `nthread` workers.
+#' Rows of one class with the same score are exchangeable, so both are the
+#' same bootstrap stratified by outcome and differ only in how the draws
+#' are made: for a given seed, the bounds depend on which of the two ran.
 #'
 #' The AUC is computed from the counts per unique score after one sort, so
 #' its cost is \eqn{O(n \log n)}, never the \eqn{O(n_1 n_0)} of the pairwise
@@ -34,7 +44,9 @@
 #' @param level Confidence level.
 #' @param seed Bootstrap seed, local to the call (the user's random stream
 #'   is restored on exit); `NULL` draws from the user's stream.
-#' @param nthread Parallel workers for the resamples.
+#' @param nthread Parallel workers for the resamples on the rows; not used
+#'   when the resamples are drawn on the counts (see Details). The result
+#'   does not depend on it.
 #'
 #' @return A list of class `scr_metrics` with `auc`, `ks`, `gini`, the
 #'   bounds `auc_lo`/`auc_hi`, `ks_lo`/`ks_hi`, `gini_lo`/`gini_hi` (`NA`
@@ -73,8 +85,8 @@ scr_metrics <- function(score, y, higher_is_event = TRUE, ci = TRUE, n_boot = 20
     return(structure(empty, class = c("scr_metrics", "list")))
   }
 
-  # the unique scores are ranked ONCE; every resample only re-tabulates the
-  # counts per rank, O(n) and without a sort
+  # the unique scores are ranked ONCE: the point estimates and every resample
+  # work on the event and non-event counts per rank
   idx <- data.table::frank(score, ties.method = "dense")
   K <- max(idx)
   idx1 <- idx[y == 1L]; idx0 <- idx[y == 0L]
@@ -83,8 +95,23 @@ scr_metrics <- function(score, y, higher_is_event = TRUE, ci = TRUE, n_boot = 20
   out$auc <- pt$auc; out$ks <- pt$ks; out$gini <- pt$gini
   out$n <- length(y); out$events <- n1
 
-  if (isTRUE(ci) && n_boot >= 2L) {
-    # `seed` is local to this call: the user's random stream is restored on exit
+  # one distinct score for every ten rows is where the counts start to pay,
+  # also against the rows resampled over the default two workers; the switch
+  # does not look at `nthread`, so the result never depends on it
+  if (isTRUE(ci) && n_boot >= 2L && K <= length(y) / 10) {
+    # many ties: each class is redrawn on the counts, as a multinomial over
+    # the score values, O(K) per resample and without pooling. `seed` is
+    # local to the kernel, which restores the user's random stream
+    b <- .study_auc_boot(tabulate(idx1, K), tabulate(idx0, K), as.integer(n_boot), level,
+                         seed = seed, boot_cells = Inf)
+    out$auc_lo <- b$auc_lo; out$auc_hi <- b$auc_hi
+    out$ks_lo <- b$ks_lo;   out$ks_hi <- b$ks_hi
+    out$gini_lo <- b$gini_lo; out$gini_hi <- b$gini_hi
+    out$n_boot <- as.integer(n_boot)
+  } else if (isTRUE(ci) && n_boot >= 2L) {
+    # fewer ties: the rows are resampled, O(n) per resample, and no count
+    # vector is kept alive across the resamples. `seed` is local to this
+    # call: the user's random stream is restored on exit
     .scr_local_seed(seed)
     # The seed of every resample is drawn HERE, in the main process, so the
     # result is identical with 1 or N workers.
@@ -235,6 +262,35 @@ woe_subpop <- function(mask, y, laplace = 0.5) {
   log(((s1 + laplace) / (n1 + 2 * laplace)) / ((s0 + laplace) / (n0 + 2 * laplace)))
 }
 
+#' Event and non-event shares per band and their log ratio (the band WOE)
+#'
+#' `pct_event` and `pct_nonevent` are exact (`NA` when that side has no
+#' case). `odds_event = pct_event / pct_nonevent` and `log_odds` are
+#' event-oriented, like the WOE of the binning engine: `log_odds > 0` when
+#' the band event rate is above the overall rate. As in `.psi_counts()`,
+#' 0.5 is added to every populated band only when one of them lacks events
+#' or non-events, so a fully populated table keeps the exact ratio. A band
+#' with no case, or with a missing count, gets `NA` odds; a zero total on
+#' either side leaves every odds `NA`.
+#' @keywords internal
+#' @noRd
+.band_woe <- function(events, non_events) {
+  e <- as.double(events); ne <- as.double(non_events)
+  # a band with an unknown count on either side is unknown on both
+  bad <- !is.finite(e) | !is.finite(ne); e[bad] <- NA_real_; ne[bad] <- NA_real_
+  # only populated bands with known counts enter the totals and the smoothing
+  live <- !bad & (e + ne) > 0
+  E <- sum(e[live]); NE <- sum(ne[live]); K <- sum(live)
+  pe <- if (E > 0) e / E else rep(NA_real_, length(e))
+  pn <- if (NE > 0) ne / NE else rep(NA_real_, length(ne))
+  odds <- rep(NA_real_, length(e))
+  if (E > 0 && NE > 0) {
+    sm <- if (any(e[live] == 0) || any(ne[live] == 0)) 0.5 else 0
+    odds[live] <- ((e[live] + sm) / (E + sm * K)) / ((ne[live] + sm) / (NE + sm * K))
+  }
+  list(pct_event = pe, pct_nonevent = pn, odds_event = odds, log_odds = log(odds))
+}
+
 # -- PSI / CSI with adjusted threshold -------------------------------------- #
 
 #' Population stability index, with the fixed and the sample-size-adjusted threshold
@@ -299,15 +355,18 @@ scr_psi <- function(base, compare, levels = NULL, breaks = NULL, n_groups = 10L,
       probs  <- seq(0, 1, length.out = n_groups + 1L)[-c(1L, n_groups + 1L)]
       breaks <- unique(c(-Inf, stats::quantile(base, probs = probs, na.rm = TRUE, names = FALSE), Inf))
     }
-    gb <- cut(base, breaks = breaks, include.lowest = TRUE)
-    gc <- cut(compare, breaks = breaks, include.lowest = TRUE)
-    lv <- levels(gb)
+    # integer band index per row; the labels are built once from the breaks
+    gb <- .score_band(base, breaks); gc <- .score_band(compare, breaks)
+    lv <- gb$labels
+    nb <- tabulate(gb$idx, nbins = length(lv))
+    # bands are matched by label, as a number of intervals gives each sample its own edges
+    nc <- tabulate(match(gc$labels, lv)[gc$idx], nbins = length(lv))
   } else {
     gb <- as.character(base); gc <- as.character(compare)
     lv <- levels %||% sort(union(unique(gb[!is.na(gb)]), unique(gc[!is.na(gc)])))
+    nb <- tabulate(match(gb, lv), nbins = length(lv))
+    nc <- tabulate(match(gc, lv), nbins = length(lv))
   }
-  nb <- tabulate(match(gb, lv), nbins = length(lv))
-  nc <- tabulate(match(gc, lv), nbins = length(lv))
   .psi_counts(nb, nc, lv, alpha, thresholds)
 }
 

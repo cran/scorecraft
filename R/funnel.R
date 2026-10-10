@@ -142,8 +142,8 @@ build_summary <- function(meta, funnel, models, cfg, lab = NULL) {
     sprintf("- Event rate: train %s | hold-out %s", fmt_pct(meta$event_rate_train, 2), fmt_pct(meta$event_rate_holdout, 2)),
     sprintf("- Convention (objective = \"%s\"): %s. Score: %s.", cfg$objective, vv$target1, vv$points),
     if (isTRUE(meta$event$inverted))
-      "- **Target inverted** by `event_level = 0`: class 0 of the table is the modelled event."
-    else sprintf("- Class modelled as the event: `%s`", meta$event$label %||% "1"),
+      "- **Target inverted** by `event_level = 0`: class 0 of the table is the modeled event."
+    else sprintf("- Class modeled as the event: `%s`", meta$event$label %||% "1"),
     sprintf("- Preset: %s | seed: %d | variables target: %d to %d | algorithm: %s",
             cfg$preset, cfg$seed, cfg$target_min, cfg$target_max, cfg$algorithm),
     "", "## Funnel", "",

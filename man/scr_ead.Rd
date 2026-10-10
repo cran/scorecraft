@@ -35,7 +35,7 @@ of the data set); \code{metrics} also carries \code{n}, \code{n_main}, \code{gau
 }
 \description{
 Splits the reference data set by reference date (the most recent
-cohorts form the hold-out), bins every driver against the realised CCF
+cohorts form the hold-out), bins every driver against the realized CCF
 with the continuous binner (\code{\link[=scr_bin_continuous]{scr_bin_continuous()}}) on the training
 rows, revalidates the frozen bins on the hold-out and admits a driver
 when it passes the named rules \code{TOO_FEW_DEFAULTS}, \code{NO_SEPARATION},
@@ -47,13 +47,13 @@ measure form their own pool \code{LF}.
 }
 \details{
 Per pool the estimate is the long-run (default-weighted) average of the
-realised values on the training rows, \code{lra}; \code{moc_est} is the one-sided
+realized values on the training rows, \code{lra}; \code{moc_est} is the one-sided
 normal estimation-error margin at \code{config$ccf_moc_alpha};
 \code{ccf_dt} is the downturn value (equal to \code{lra} until
 \code{\link[=scr_ead_downturn]{scr_ead_downturn()}} is run); \code{ccf_final = max(lra, ccf_dt) + moc_est};
 \code{ccf_floor = params$ccf_floor_fraction * config$ccf_sa_ccf}; and
 \code{ccf_applied = max(ccf_final, ccf_floor)}. For the \code{LF} pool the floor
-depends on the utilisation and is applied per row by \code{\link[=scr_apply]{scr_apply()}}.
+depends on the utilization and is applied per row by \code{\link[=scr_apply]{scr_apply()}}.
 }
 \examples{
 cfg <- scr_config(verbose = FALSE, n_boot = 20, nthread = 1)

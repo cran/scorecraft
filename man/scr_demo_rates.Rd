@@ -19,8 +19,8 @@ repository \url{https://github.com/evandeilton/scorecraft}.
 scr_demo_rates
 }
 \description{
-A smooth annualised reference rate by month from 2019-01 to 2026-06,
-falling to two per cent in 2020-2021 and rising above thirteen per cent
+A smooth annualized reference rate by month from 2019-01 to 2026-06,
+falling to two percent in 2020-2021 and rising above thirteen percent
 in 2022-2023, used by \code{\link[=scr_workout]{scr_workout()}} as the rate at the default date.
 }
 \examples{

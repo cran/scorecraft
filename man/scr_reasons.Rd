@@ -23,7 +23,7 @@ and \code{shortfall_1} ... \code{shortfall_k} (points below the reference).
 For each row of \code{newdata}, the \code{k} variables whose contribution in points
 fell furthest below the reference. The reference is the mean points of
 the variable on the training population (\code{"mean"}, the Regulation B safe
-harbour referenced to the average) or the maximum points of the variable
+harbor referenced to the average) or the maximum points of the variable
 (\code{"max"}). Only applies to the additive scorecard; a tree challenger has
 no reason codes.
 }

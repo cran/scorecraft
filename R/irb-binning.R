@@ -14,7 +14,7 @@
 # until the target number of bins, the minimum share and the minimum count
 # hold; then pool-adjacent-violators on the bin means when monotonicity is
 # required. Categoricals: levels ordered by mean, rare levels attached to
-# the nearest neighbour, then the same merge on the ordered sequence.
+# the nearest neighbor, then the same merge on the ordered sequence.
 # ============================================================================ #
 
 #' Bin drivers against a continuous target (LGD, CCF)
@@ -190,7 +190,7 @@ print.scr_cbins <- function(x, ...) {
     small <- which(nn < min_n | nn / N < min_share)
     if (length(small)) {
       i <- small[which.min(nn[small])]
-      # attach the small group to the neighbour with the closer mean
+      # attach the small group to the neighbor with the closer mean
       cand <- c(if (i > 1L) i - 1L, if (i < m) i + 1L)
       j <- cand[which.min(abs(mm[cand] - mm[i]))]
     } else if (m > max_bins) {

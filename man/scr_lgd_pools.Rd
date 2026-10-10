@@ -21,10 +21,10 @@ A \code{data.table} with one row per pool: \code{pool}, \code{pred_lo},
 }
 \description{
 Cuts the training predictions into \code{n_pools} quantile bands, merges the
-bands with fewer than \code{min_defaults} defaults into the neighbour with
+bands with fewer than \code{min_defaults} defaults into the neighbor with
 the closer long-run average, then merges adjacent bands whose long-run
 averages break the increasing order (pool-adjacent violators), so that
-the pools are ordered both in predicted and in realised LGD. Per pool:
+the pools are ordered both in predicted and in realized LGD. Per pool:
 the default-weighted long-run average (the regulatory estimate), the
 exposure-weighted one, the standard error, the category-C margin of
 conservatism (one-sided 95\% t interval on the mean) and their sum.

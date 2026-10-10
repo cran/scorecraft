@@ -11,7 +11,7 @@
 #'   \item **Triage** ([scr_triage()]): structural filters, decomposition of
 #'     sentinels and missing values, exact duplicates. The data leaves with no
 #'     `NA`.
-#'   \item **Binning and screening** ([scr_bin()]): optimal bins parallelised
+#'   \item **Binning and screening** ([scr_bin()]): optimal bins parallelized
 #'     by column, eight admission rules, hold-out revalidation with frozen
 #'     bins, redundancy pruning.
 #'   \item **Multi-strategy selection** ([scr_model()]): elastic net, boosting
@@ -49,10 +49,10 @@
 #' tests with traffic lights; [scr_master_scale()], [scr_migration()] and
 #' [scr_pd_pit_ttc()] support the grade structure, the migration analysis
 #' and the point-in-time bridge. LGD: [scr_workout()] discounts recovery cash
-#' flows into realised LGD, [scr_lgd()] fits the cure and severity stages
+#' flows into realized LGD, [scr_lgd()] fits the cure and severity stages
 #' and the pools, [scr_lgd_downturn()], [scr_lgd_floor()] and [scr_elbe()]
 #' complete the estimate, [scr_lgd_pools()] and [scr_lgd_validate()] close
-#' the pools and the validation. EAD: [scr_ead_data()] builds the realised
+#' the pools and the validation. EAD: [scr_ead_data()] builds the realized
 #' conversion factors from facility snapshots and [scr_ead()] the pools;
 #' [scr_ead_downturn()] and [scr_ead_validate()] add the downturn and the
 #' validation. [scr_el()], [scr_irb_rw()], [scr_sa_rw()], [scr_capital()],
@@ -62,6 +62,22 @@
 #' result the engine reproduces in R and in SQL. The regulatory texts behind
 #' the presets are listed in [scr_irb_params()]; users are responsible for
 #' checking the tables against the texts in force before any regulatory use.
+#'
+#' @section Score studies:
+#'
+#' The score studies, stage 13 of [scr_config_keys()], read a score against
+#' its outcome from one table of counts per score value: [scr_bands()]
+#' (percentile and tail bands frozen on the reference), [scr_tiers()] (a few
+#' labeled tiers), [scr_rag()] (red, amber and green lights against the
+#' reference), [scr_claims()] (tested statements about event rates),
+#' [scr_operating()] (the cut under volume, budget and capacity constraints)
+#' and [scr_score_cross()] (two scores on the same rows). Six more read the
+#' score against a second dimension: [scr_mix_shift()] (a change of the
+#' event rate split into mix and rate effects), [scr_segments()] (one score
+#' on many segments), [scr_maturity()] (events over time by band, with
+#' censoring), [scr_uplift()] (a treated against a control group),
+#' [scr_overlap()] (rules against the alerts of a score) and
+#' [scr_detection()] (time to detection of fraud episodes).
 #'
 #' @section Parallelism:
 #'
@@ -82,8 +98,8 @@
 #'
 #' `objective` declares the vocabulary and the direction of the scale
 #' (`"risk"`: more points, safer; `"propensity"`: more points, more likely)
-#' and does **not** change what is modelled. `event_level` changes what is
-#' modelled. Both are documented in [scr_config()] and [scr_split()].
+#' and does **not** change what is modeled. `event_level` changes what is
+#' modeled. Both are documented in [scr_config()] and [scr_split()].
 #'
 #' @keywords internal
 #' @importFrom data.table := .N .SD as.data.table copy data.table dcast fcase
@@ -121,5 +137,6 @@ utils::globalVariables(c(
   "rate_implied", "points_shift", "Feature", "Gain", ".tmp", ".i",
   "n_vote", "count_train", "pct_train", "observed", "expected",
   "psi_critical", "psi_flag_adjusted", "provenance", "manual_reason", "status", "pct_shift",
-  "pct_holdout", "current", "metric", "optimal", "manual", "delta", "blocking"
+  "pct_holdout", "current", "metric", "optimal", "manual", "delta", "blocking",
+  "pct_event", "pct_nonevent", "odds_event"
 ))

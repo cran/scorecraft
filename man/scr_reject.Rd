@@ -32,7 +32,7 @@ An \code{scr_reject} object with \code{scope}, \code{coverage} (per band) and
 \code{sensitivity} (per band and multiplier, plus the \code{TOTAL} row).
 }
 \description{
-Does not ship parcelling as the default behaviour: instead
+Does not ship parceling as the default behavior: instead
 of inventing a single multiplier and reweighting, it declares the
 \strong{population scope} of the scorecard, measures the \strong{coverage per band}
 (where an observed outcome exists, and in what volume) and presents a

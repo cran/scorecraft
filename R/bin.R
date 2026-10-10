@@ -3,8 +3,8 @@
 # ============================================================================ #
 # Almost everything here is delegation to the engine: obwoe() bins,
 # obwoe_select() applies the eight admission rules, obwoe_apply()
-# materialises the WOE space and obwoe_prune() removes redundancy. What is
-# ours: parallelising by column and revalidating on the hold-out with
+# materializes the WOE space and obwoe_prune() removes redundancy. What is
+# ours: parallelizing by column and revalidating on the hold-out with
 # FROZEN bins (recomputed IV + PSI), because the engine's screening looks at
 # the training rows only.
 # ============================================================================ #
@@ -242,7 +242,7 @@ screen_features <- function(fit, cfg) {
   })
 }
 
-#' Materialise the WOE space with a frozen fit (subset of features)
+#' Materialize the WOE space with a frozen fit (subset of features)
 #' @keywords internal
 #' @noRd
 apply_woe <- function(fit, dt, features, what = "both") {

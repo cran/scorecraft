@@ -10,7 +10,7 @@
 #' hold-out **before** any supervised fit.
 #'
 #' The split prefers out-of-time by `date_col`: it is the only one that
-#' tests generalisation to a future period. The cut is made on the
+#' tests generalization to a future period. The cut is made on the
 #' **distinct** date values, not by row quantile: it picks the smallest set
 #' of most recent periods that already reaches `ratio` of the population.
 #' Without a date column, or with a single period, it falls back to random
@@ -22,7 +22,7 @@
 #'
 #' @section Event orientation:
 #'
-#' `event_level` changes **what is modelled**. Passing `0` makes class 0 the
+#' `event_level` changes **what is modeled**. Passing `0` makes class 0 the
 #' event: the sign of every WOE flips, the emitted SQL changes, the points
 #' change. For a text target, the second level in alphabetical order is the
 #' event by default, and the choice is always reported. Not to be confused
@@ -149,7 +149,7 @@ print.scr_split <- function(x, ...) {
   list(y = y, event = list(label = label, inverted = inverted, input_class = class(raw)[1]))
 }
 
-#' Separate candidates from dropped columns and normalise types (by reference)
+#' Separate candidates from dropped columns and normalize types (by reference)
 #' @keywords internal
 #' @noRd
 prepare_columns <- function(dt, target, drop_cols = character()) {

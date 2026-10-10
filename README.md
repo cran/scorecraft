@@ -1,9 +1,9 @@
 # scorecraft <img src="man/figures/logo.png" align="right" height="139" alt="scorecraft hex logo" />
 
 <!-- badges: start -->
-<!-- [![CRAN status](https://www.r-pkg.org/badges/version/scorecraft)](https://CRAN.R-project.org/package=scorecraft) -->
+[![CRAN status](https://www.r-pkg.org/badges/version/scorecraft)](https://CRAN.R-project.org/package=scorecraft)
 [![R-CMD-check](https://github.com/evandeilton/scorecraft/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/evandeilton/scorecraft/actions/workflows/R-CMD-check.yaml)
-<!-- [![Downloads](https://cranlogs.r-pkg.org/badges/grand-total/scorecraft)](https://CRAN.R-project.org/package=scorecraft) -->
+[![Downloads](https://cranlogs.r-pkg.org/badges/grand-total/scorecraft)](https://CRAN.R-project.org/package=scorecraft)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <!-- badges: end -->
 
@@ -23,7 +23,8 @@ and ECL, with the same ledgers, SQL and workbooks.
 Every stage is an exported function; `scr_select()` and `scr_scorecard()`
 are the shortcuts that chain them.
 
-Documentation site: <https://evandeilton.github.io/scorecraft/>.
+On CRAN: <https://CRAN.R-project.org/package=scorecraft>. Documentation site:
+<https://evandeilton.github.io/scorecraft/>.
 
 ## Installation
 

@@ -18,7 +18,7 @@ chains them for the common case:
 \item \strong{Triage} (\code{\link[=scr_triage]{scr_triage()}}): structural filters, decomposition of
 sentinels and missing values, exact duplicates. The data leaves with no
 \code{NA}.
-\item \strong{Binning and screening} (\code{\link[=scr_bin]{scr_bin()}}): optimal bins parallelised
+\item \strong{Binning and screening} (\code{\link[=scr_bin]{scr_bin()}}): optimal bins parallelized
 by column, eight admission rules, hold-out revalidation with frozen
 bins, redundancy pruning.
 \item \strong{Multi-strategy selection} (\code{\link[=scr_model]{scr_model()}}): elastic net, boosting
@@ -57,10 +57,10 @@ PD: \code{\link[=scr_calibrate]{scr_calibrate()}} anchors the scorecard to a cen
 tests with traffic lights; \code{\link[=scr_master_scale]{scr_master_scale()}}, \code{\link[=scr_migration]{scr_migration()}} and
 \code{\link[=scr_pd_pit_ttc]{scr_pd_pit_ttc()}} support the grade structure, the migration analysis
 and the point-in-time bridge. LGD: \code{\link[=scr_workout]{scr_workout()}} discounts recovery cash
-flows into realised LGD, \code{\link[=scr_lgd]{scr_lgd()}} fits the cure and severity stages
+flows into realized LGD, \code{\link[=scr_lgd]{scr_lgd()}} fits the cure and severity stages
 and the pools, \code{\link[=scr_lgd_downturn]{scr_lgd_downturn()}}, \code{\link[=scr_lgd_floor]{scr_lgd_floor()}} and \code{\link[=scr_elbe]{scr_elbe()}}
 complete the estimate, \code{\link[=scr_lgd_pools]{scr_lgd_pools()}} and \code{\link[=scr_lgd_validate]{scr_lgd_validate()}} close
-the pools and the validation. EAD: \code{\link[=scr_ead_data]{scr_ead_data()}} builds the realised
+the pools and the validation. EAD: \code{\link[=scr_ead_data]{scr_ead_data()}} builds the realized
 conversion factors from facility snapshots and \code{\link[=scr_ead]{scr_ead()}} the pools;
 \code{\link[=scr_ead_downturn]{scr_ead_downturn()}} and \code{\link[=scr_ead_validate]{scr_ead_validate()}} add the downturn and the
 validation. \code{\link[=scr_el]{scr_el()}}, \code{\link[=scr_irb_rw]{scr_irb_rw()}}, \code{\link[=scr_sa_rw]{scr_sa_rw()}}, \code{\link[=scr_capital]{scr_capital()}},
@@ -70,6 +70,24 @@ against a continuous target goes through \code{\link[=scr_bin_continuous]{scr_bi
 result the engine reproduces in R and in SQL. The regulatory texts behind
 the presets are listed in \code{\link[=scr_irb_params]{scr_irb_params()}}; users are responsible for
 checking the tables against the texts in force before any regulatory use.
+}
+
+\section{Score studies}{
+
+
+The score studies, stage 13 of \code{\link[=scr_config_keys]{scr_config_keys()}}, read a score against
+its outcome from one table of counts per score value: \code{\link[=scr_bands]{scr_bands()}}
+(percentile and tail bands frozen on the reference), \code{\link[=scr_tiers]{scr_tiers()}} (a few
+labeled tiers), \code{\link[=scr_rag]{scr_rag()}} (red, amber and green lights against the
+reference), \code{\link[=scr_claims]{scr_claims()}} (tested statements about event rates),
+\code{\link[=scr_operating]{scr_operating()}} (the cut under volume, budget and capacity constraints)
+and \code{\link[=scr_score_cross]{scr_score_cross()}} (two scores on the same rows). Six more read the
+score against a second dimension: \code{\link[=scr_mix_shift]{scr_mix_shift()}} (a change of the
+event rate split into mix and rate effects), \code{\link[=scr_segments]{scr_segments()}} (one score
+on many segments), \code{\link[=scr_maturity]{scr_maturity()}} (events over time by band, with
+censoring), \code{\link[=scr_uplift]{scr_uplift()}} (a treated against a control group),
+\code{\link[=scr_overlap]{scr_overlap()}} (rules against the alerts of a score) and
+\code{\link[=scr_detection]{scr_detection()}} (time to detection of fraud episodes).
 }
 
 \section{Parallelism}{
@@ -94,8 +112,8 @@ when the cap applies. Set the option to \code{Inf} to disable it.
 
 \code{objective} declares the vocabulary and the direction of the scale
 (\code{"risk"}: more points, safer; \code{"propensity"}: more points, more likely)
-and does \strong{not} change what is modelled. \code{event_level} changes what is
-modelled. Both are documented in \code{\link[=scr_config]{scr_config()}} and \code{\link[=scr_split]{scr_split()}}.
+and does \strong{not} change what is modeled. \code{event_level} changes what is
+modeled. Both are documented in \code{\link[=scr_config]{scr_config()}} and \code{\link[=scr_split]{scr_split()}}.
 }
 
 \seealso{

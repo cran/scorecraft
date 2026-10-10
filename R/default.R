@@ -87,7 +87,7 @@ scr_default <- function(data, id, date, dpd = NULL, arrears = NULL, exposure = N
   p[, trig := trig_dpd | utp %in% TRUE]
 
   # -- state machine per unit ------------------------------------------- #
-  # vectorised over the sorted panel; units with a restructuring (when its
+  # vectorized over the sorted panel; units with a restructuring (when its
   # probation differs) run the row loop. Results are placed by row position:
   # split() orders the units by the locale collation, setorder() by the C
   # locale, so a positional rbindlist() of split() groups can misalign rows.

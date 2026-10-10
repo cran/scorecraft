@@ -18,7 +18,7 @@ An object of class \code{scr_elbe}: \code{table} (\code{months_since_default},
 }
 \description{
 For every pool and every reference age \code{tau} of the grid, the expected
-loss best estimate is the mean realised LGD of the training defaults of
+loss best estimate is the mean realized LGD of the training defaults of
 the pool that were still in workout at \code{tau} (so that at \code{tau = 0} it
 equals the pool's long-run average), and the in-default LGD adds the
 unexpected-loss increment

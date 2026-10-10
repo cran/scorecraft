@@ -10,7 +10,8 @@ scr_strategy(
   decisions = NULL,
   revenue_good = 1,
   loss_bad = 1,
-  sample = "holdout"
+  sample = "holdout",
+  rule = c("breakeven", "crossing")
 )
 }
 \arguments{
@@ -18,33 +19,121 @@ scr_strategy(
 
 \item{breaks}{Band cut points. \code{NULL} uses the deciles frozen on train.}
 
-\item{decisions}{Vector of decisions, one per band (from the safest to
-the riskiest). \code{NULL} derives them from break-even.}
+\item{decisions}{Vector of decisions, one per band (from the first row
+of the table to the last). \code{NULL} derives them from \code{rule}; when
+given, it overrides \code{rule}.}
 
-\item{revenue_good}{Expected revenue per account without the event
-(default \code{1}).}
+\item{revenue_good}{Expected revenue per account of the good case (the
+non-event under risk, the event under propensity; default \code{1}).}
 
-\item{loss_bad}{Expected loss per account with the event (default \code{1};
-with both defaults the break-even event rate is 50\%).}
+\item{loss_bad}{Expected loss per account of the bad case (default \code{1};
+with both defaults the break-even is 50\%). \code{revenue_good} and
+\code{loss_bad} cannot both be 0.}
 
 \item{sample}{\code{"holdout"} (default) or \code{"train"}.}
+
+\item{rule}{\code{"breakeven"} (default) or \code{"crossing"}; see the section
+Decision rules.}
 }
 \value{
-An \code{scr_strategy} object with \code{table}, \code{breakeven} and the parameters.
+An \code{scr_strategy} object with
+\describe{
+\item{\code{table}}{One row per band: \code{id}, \code{band}, \code{min_score},
+\code{max_score}, \code{n}, \code{pct}, \code{events}, \code{event_rate}, \code{pct_event},
+\code{pct_nonevent}, \code{odds_event}, \code{log_odds}, \code{decision},
+\code{ep_per_account}, \code{band_profit}, \code{cum_pct}, \code{cum_event_rate} and
+\code{cum_profit}.}
+\item{\code{breakeven}}{The break-even event rate.}
+\item{\code{crossing}}{A list: \code{cut}, the score where the upper side of
+the crossing starts (\code{score >= cut}, the convention of
+\code{\link[=scr_cutoff]{scr_cutoff()}}), frozen on the training scores like the bands:
+midway between the largest training score at or below the band
+edge of the crossing and the smallest training score above it.
+\code{score >= cut} then reproduces the split of the bands on train and
+on any score seen in training; a score of another sample strictly
+between those two training scores can fall on the other side. When
+\code{breaks} is a number of intervals (whose edges come from \code{sample}),
+or no training score lies on one side of the edge, the cut is the
+midpoint between the bands on \code{sample}; \code{ks}, the distance
+\eqn{D_k} at it; \code{after_band}, the last band on the good side;
+\code{single_crossing}, whether \code{log_odds} changes sign exactly once
+along the table. All \code{NA} when undefined.}
+\item{\code{objective}, \code{rule}}{The objective of the scorecard and the
+rule used.}
+\item{\code{revenue_good}, \code{loss_bad}, \code{sample}, \code{direction}, \code{target}}{
+The parameters and the scorecard's direction and target.}
+}
 }
 \description{
 Score bands (by default the deciles frozen on train) with volume, event
-rate, decision and the expected result per account:
+rate, the event and non-event distributions, decision and the expected
+result per account. The good case is the non-event under
+\code{objective = "risk"} (credit, fraud) and the event under
+\code{"propensity"}; the bad case is the other one. With \eqn{p} the rate of
+the bad case in the band (the event rate under risk, one minus it under
+propensity):
 \deqn{EP = (1 - p)\,\mathrm{revenue\_good} - p\,\mathrm{loss\_bad},}
 which makes visible the band that is profitable \strong{at the margin} even
-with a high event rate. The break-even event rate, where \code{EP = 0}, is
-\code{revenue_good / (revenue_good + loss_bad)}.
+with a high rate of the bad case. \code{EP = 0} at the break-even rate of the
+bad case, \code{revenue_good / (revenue_good + loss_bad)}. The object stores
+it as an event rate (\code{breakeven}): the same value under risk, and
+\code{loss_bad / (revenue_good + loss_bad)} under propensity, where a band is
+targeted at or above it.
 }
 \details{
-The automatic decision approves a band whose rate is below break-even,
-sends to review a band up to 25\% above it and declines the rest; pass
-\code{decisions} to fix the policy.
+The table runs from the band richest in the good case to the poorest:
+the safest band first under risk, the most likely first under
+propensity.
 }
+\section{Event and non-event distributions}{
+
+
+With \eqn{e_k} events and \eqn{m_k} non-events in band \eqn{k}, and
+\eqn{E} and \eqn{M} their totals over the sample:
+\deqn{\mathrm{pct\_event}_k = e_k / E, \qquad
+      \mathrm{pct\_nonevent}_k = m_k / M,}
+\deqn{\mathrm{odds\_event}_k = \mathrm{pct\_event}_k / \mathrm{pct\_nonevent}_k,
+      \qquad \mathrm{log\_odds}_k = \ln \mathrm{odds\_event}_k.}
+\code{log_odds} is the WOE of the band, event-oriented like the WOE of the
+variables: \code{log_odds > 0} if and only if the band event rate is above the
+overall event rate, that is, the lift of the band is above 1 (exact when
+every band has both classes; under the smoothing below, a band at the
+overall rate can fall on either side). When a band has no events or no
+non-events, 0.5 is added to the counts of every band for \code{odds_event}
+and \code{log_odds}; the shares stay exact. With a single class in the
+sample, the shares of the missing class and every ratio are \code{NA}. This
+\code{log_odds} is the \code{woe} column of \code{\link[=scr_score_gains]{scr_score_gains()}}, not its
+\code{log_odds}, which is the log of the band odds in the orientation of the
+scale.
+}
+
+\section{Decision rules}{
+
+
+\code{rule = "breakeven"} (default) gives the good label (\code{"approve"} under
+risk, \code{"target"} under propensity) to a band whose rate of the bad case
+is at or below break-even, \code{"review"} to one up to 25\% above it, and the
+bad label (\code{"decline"} or \code{"skip"}) to the rest.
+
+\code{rule = "crossing"} cuts where the event and non-event distributions are
+furthest apart. With
+\deqn{D_k = \left|\sum_{j \le k} \mathrm{pct\_event}_j -
+      \sum_{j \le k} \mathrm{pct\_nonevent}_j\right|}
+over the first \eqn{k} rows of the table, the first maximum of \eqn{D_k}
+over the boundaries between rows is the KS of the table; the rows up to
+it get the good label and the rest the bad label, with no review band.
+When \code{log_odds} is monotone along the table this is where it changes
+sign, the band event rate crossing the overall rate; when it is not, the
+cut still gives a contiguous set of bands. The boundary is always
+computed and stored in \code{crossing}. It is undefined with fewer than two
+bands or a single class in the sample, and \code{rule = "crossing"} is then an
+error. Scores outside \code{breaks} form a last row with a missing \code{band},
+which gets no decision (\code{NA}) under the crossing rule; the shares, and
+hence \code{ks}, stay relative to the whole sample, that row included.
+
+\code{decisions}, when given, overrides either rule.
+}
+
 \examples{
 cfg <- scr_config(verbose = FALSE, nthread = 1, use_ranger = FALSE,
                   xgb_rounds = 60, n_boot = 20)
@@ -52,6 +141,10 @@ res <- scr_select(scr_demo, "default", config = cfg, drop = "id",
                   date_col = "ref_date")
 sc <- scr_scorecard(res)
 scr_strategy(sc, revenue_good = 1080, loss_bad = 4500)
+# approve down to where the event and non-event distributions cross
+st <- scr_strategy(sc, rule = "crossing")
+st$crossing
+st$table[, .(band, event_rate, log_odds, decision)]
 }
 \seealso{
 Other stages:

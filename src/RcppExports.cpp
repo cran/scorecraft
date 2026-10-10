@@ -59,11 +59,31 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_tier_dp
+Rcpp::List cpp_tier_dp(const Rcpp::NumericVector& e, const Rcpp::NumericVector& n, const Rcpp::NumericVector& vol, const Rcpp::NumericVector& e_raw, const Rcpp::NumericVector& n_raw, const int L, const int criterion, const double min_share, const double min_events, const double alpha);
+RcppExport SEXP _scorecraft_cpp_tier_dp(SEXP eSEXP, SEXP nSEXP, SEXP volSEXP, SEXP e_rawSEXP, SEXP n_rawSEXP, SEXP LSEXP, SEXP criterionSEXP, SEXP min_shareSEXP, SEXP min_eventsSEXP, SEXP alphaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type e(eSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type vol(volSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type e_raw(e_rawSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type n_raw(n_rawSEXP);
+    Rcpp::traits::input_parameter< const int >::type L(LSEXP);
+    Rcpp::traits::input_parameter< const int >::type criterion(criterionSEXP);
+    Rcpp::traits::input_parameter< const double >::type min_share(min_shareSEXP);
+    Rcpp::traits::input_parameter< const double >::type min_events(min_eventsSEXP);
+    Rcpp::traits::input_parameter< const double >::type alpha(alphaSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_tier_dp(e, n, vol, e_raw, n_raw, L, criterion, min_share, min_events, alpha));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_scorecraft_cpp_concordance", (DL_FUNC) &_scorecraft_cpp_concordance, 2},
     {"_scorecraft_cpp_cor_matrix", (DL_FUNC) &_scorecraft_cpp_cor_matrix, 3},
     {"_scorecraft_cpp_ecl_paths", (DL_FUNC) &_scorecraft_cpp_ecl_paths, 16},
+    {"_scorecraft_cpp_tier_dp", (DL_FUNC) &_scorecraft_cpp_tier_dp, 10},
     {NULL, NULL, 0}
 };
 

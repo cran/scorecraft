@@ -28,7 +28,7 @@ NULL
 #' Correlation matrix of the columns of a list or data.frame
 #'
 #' Pearson, or Spearman (Pearson on mid-ranks), through one cross-product of
-#' the standardised columns (`cpp_cor_matrix()`). The columns are read in
+#' the standardized columns (`cpp_cor_matrix()`). The columns are read in
 #' place; only integer or logical columns are converted to double.
 #' @return A `p x p` matrix with dimnames; constant columns give `NA`.
 #' @keywords internal
@@ -93,13 +93,13 @@ NULL
   list(keep = ranking[ranking %in% vars[alive]], dropped = dropped)
 }
 
-#' Somers' D of a prediction against a realised outcome
+#' Somers' D of a prediction against a realized outcome
 #'
 #' `(C - D) / (n(n-1)/2 - T_r)`: concordant minus discordant pairs over the
 #' pairs not tied on the outcome, counted exactly in `O(n log n)`
 #' (`cpp_concordance()`, Knight 1966). Pairs with a non-finite member are
 #' dropped first.
-#' @param p Prediction. @param r Realised outcome.
+#' @param p Prediction. @param r Realized outcome.
 #' @param const_p What a constant prediction returns: `NA` or `0`.
 #' @keywords internal
 #' @noRd
@@ -112,6 +112,26 @@ NULL
   if (den <= 0) return(NA_real_)
   if (cc[["pairs"]] - cc[["ties_p"]] <= 0) return(const_p)
   cc[["cmd"]] / den
+}
+
+#' Kendall's tau-b of two scores
+#'
+#' `(C - D) / sqrt((n0 - T_a)(n0 - T_b))` with `n0 = n(n-1)/2` and `T_a`,
+#' `T_b` the pairs tied on each score: the pair counts of
+#' `cpp_concordance()` (Knight 1966), exact and `O(n log n)`. Pairs tied on
+#' either score count neither way, so this is the tau-b of
+#' `cor(method = "kendall")`. `NA` with fewer than two rows or a constant
+#' score.
+#' @keywords internal
+#' @noRd
+.scr_kendall_tau_b <- function(a, b) {
+  ok <- is.finite(a) & is.finite(b)
+  a <- as.double(a[ok]); b <- as.double(b[ok])
+  if (length(a) < 2L) return(NA_real_)
+  cc <- cpp_concordance(a, b)
+  den <- (cc[["pairs"]] - cc[["ties_p"]]) * (cc[["pairs"]] - cc[["ties_r"]])
+  if (!(den > 0)) return(NA_real_)
+  cc[["cmd"]] / sqrt(den)
 }
 
 #' @keywords internal

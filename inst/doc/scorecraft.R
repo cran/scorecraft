@@ -40,6 +40,11 @@ st <- scr_strategy(sc, revenue_good = 1080, loss_bad = 4500)
 st
 st$table[, .(band, event_rate = round(event_rate, 4), decision, cum_pct = round(cum_pct, 3), cum_profit)]
 
+## ----strategy-crossing--------------------------------------------------------
+st$crossing[c("cut", "ks", "single_crossing")]
+scr_strategy(sc, rule = "crossing")$table[, .(band, event_rate = round(event_rate, 4),
+                                              log_odds = round(log_odds, 3), decision)]
+
 ## ----reject-------------------------------------------------------------------
 set.seed(11)
 train <- scr_demo[res$split$train_idx, ]

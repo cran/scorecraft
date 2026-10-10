@@ -13,7 +13,7 @@ A \code{data.frame} with 21,600 rows and 7 columns:
 \item{\code{arrears}}{Overdue amount.}
 \item{\code{exposure}}{Total exposure of the obligor (constant).}
 \item{\code{restructured}}{Logical distressed-restructuring flag.}
-\item{\code{score}}{Behavioural score, higher is safer.}
+\item{\code{score}}{Behavioral score, higher is safer.}
 }
 }
 \source{
@@ -28,7 +28,7 @@ scr_demo_panel
 whose slip probability depends on a latent risk; arrears are proportional
 to the exposure, with a few obligors whose arrears stay below the
 absolute materiality threshold on purpose; 25 obligors are restructured
-from month 18; \code{score} is a behavioural score (higher = safer) with
+from month 18; \code{score} is a behavioral score (higher = safer) with
 genuine rank-ordering power. Built for \code{\link[=scr_default]{scr_default()}},
 \code{\link[=scr_default_rate]{scr_default_rate()}} and the PD grade examples.
 }

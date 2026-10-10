@@ -56,8 +56,9 @@ the sign of the coefficients, aligns the logit to the declared scale with
 score on train and hold-out with a bootstrap CI (always), builds the
 gains with bands \strong{frozen on train}, the score PSI and the CSI per
 variable (fixed and n-adjusted thresholds), the
-calibration and the rank-order diagnostics. Optionally fits a tree
-challenger on the same WOE columns, aligned to the same scale, with an
+calibration and the rank-order diagnostics (a one-sided Fisher exact
+test of each band against the previous, riskier one). Optionally fits a
+tree challenger on the same WOE columns, aligned to the same scale, with an
 explicit \code{supports_scorecard = FALSE}: it compares, it never
 produces points or reason codes.
 }

@@ -2,7 +2,7 @@
 # irb-params.R - parameter tables of the IRB framework, by preset
 # ============================================================================ #
 # The package is a technical tool: a regime is a table of numbers (floors,
-# correlations, supervisory values, standardised risk weights) selected by a
+# correlations, supervisory values, standardized risk weights) selected by a
 # preset, never prose. Every table is a data.table the user may edit and pass
 # back; the functions that consume it record `params_modified` in the ledger.
 # ============================================================================ #
@@ -12,9 +12,9 @@
 #' Returns the numeric tables the internal ratings-based (IRB) functions
 #' read: probability of default (PD) floors, loss given default (LGD) input
 #' floors for own estimates,
-#' supervisory LGD values of the foundation approach, standardised credit
+#' supervisory LGD values of the foundation approach, standardized credit
 #' conversion factors (CCF), asset-correlation parameters of the risk-weight
-#' function, maturity rules, the output floor and the standardised risk
+#' function, maturity rules, the output floor and the standardized risk
 #' weights used for the floor comparison. Three presets ship: `"bcb"`
 #' (Brazil, BCB Resolutions 303/2023 and 229/2022), `"basel3_final"` (the
 #' consolidated Basel Framework in force from 2023) and `"crr3"` (the EU
@@ -126,7 +126,7 @@ scr_irb_params <- function(framework = c("bcb", "basel3_final", "crr3")) {
   ), use.names = TRUE)
 
   source <- switch(framework,
-    bcb          = "BCB Resolutions 303/2023 (IRB) and 229/2022 (standardised); values as tables, editable",
+    bcb          = "BCB Resolutions 303/2023 (IRB) and 229/2022 (standardized); values as tables, editable",
     basel3_final = "Basel Framework CRE20/CRE30-36 as in force from 2023; values as tables, editable",
     crr3         = "Regulation (EU) 575/2013 as amended by 2024/1623; values as tables, editable")
 
@@ -150,7 +150,7 @@ print.scr_irb_params <- function(x, ...) {
   cat("  LGD floors (unsecured): ", paste(sprintf("%s %s", lf$asset_class, ifelse(is.na(lf$unsecured), "n/a", fmt_pct(lf$unsecured, 0))),
                                          collapse = " | "), "\n")
   cat(sprintf("  F-IRB LGD: %s\n", paste(sprintf("%s %s", x$lgd_firb$claim, fmt_pct(x$lgd_firb$lgd, 0)), collapse = " | ")))
-  cat(sprintf("  CCF (standardised): %s | own-estimate floor %s of the standardised value\n",
+  cat(sprintf("  CCF (standardized): %s | own-estimate floor %s of the standardized value\n",
               paste(sprintf("%s %s", x$ccf_sa$item, fmt_pct(x$ccf_sa$ccf, 0)), collapse = " | "),
               fmt_pct(x$ccf_floor_fraction, 0)))
   co <- x$correlation

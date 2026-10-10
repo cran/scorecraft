@@ -10,8 +10,9 @@
 #' score on train and hold-out with a bootstrap CI (always), builds the
 #' gains with bands **frozen on train**, the score PSI and the CSI per
 #' variable (fixed and n-adjusted thresholds), the
-#' calibration and the rank-order diagnostics. Optionally fits a tree
-#' challenger on the same WOE columns, aligned to the same scale, with an
+#' calibration and the rank-order diagnostics (a one-sided Fisher exact
+#' test of each band against the previous, riskier one). Optionally fits a
+#' tree challenger on the same WOE columns, aligned to the same scale, with an
 #' explicit `supports_scorecard = FALSE`: it compares, it never
 #' produces points or reason codes.
 #'
@@ -141,6 +142,10 @@ scr_scorecard <- function(x, features = NULL, base_score = NULL, base_odds = NUL
   for (i in seq_len(nrow(metrics))) msg("  %-8s AUC %.4f [%.4f, %.4f]  KS %.4f  Gini %.4f", metrics$sample[i],
                                         metrics$auc[i], metrics$auc_lo[i], metrics$auc_hi[i], metrics$ks[i], metrics$gini[i])
   breaks <- .score_breaks(samples$train$score, cfg$score_groups)
+  # tied training scores merge quantiles: report the bands actually kept
+  if (length(breaks) - 1L < cfg$score_groups) {
+    msg("  score bands: %d of %d requested (ties in the training score)", length(breaks) - 1L, cfg$score_groups)
+  }
   gains  <- data.table::rbindlist(lapply(names(samples), function(nm)
     data.table::data.table(sample = nm, .score_gains(samples[[nm]]$score, samples[[nm]]$y, breaks, dir))))
   stability <- .scorecard_stability(samples, w_tr, w_ho, pts, breaks, cfg)
@@ -239,9 +244,12 @@ scr_scorecard <- function(x, features = NULL, base_score = NULL, base_odds = NUL
     p_raw <- al$b * beta * r$woe + if (distrib) base_raw / k else 0
     bl <- w_tr[[paste0(f, "_bin")]]
     cnt <- as.integer(tabulate(match(bl, r$bin), nbins = length(r$bin)))
+    # event and non-event shares per bin, from the fit counts behind pos_rate
+    bw <- .band_woe(r$count_pos, r$count - r$count_pos)
     data.table::data.table(variable = f, bin_id = as.integer(r$id), bin = r$bin, woe = r$woe,
                            count_train = cnt, pct_train = cnt / n_tr, count_fit = r$count,
-                           pos_rate = r$count_pos / pmax(1L, r$count), iv = r$iv, coef = beta,
+                           pos_rate = r$count_pos / pmax(1L, r$count),
+                           pct_event = bw$pct_event, pct_nonevent = bw$pct_nonevent, iv = r$iv, coef = beta,
                            points_raw = p_raw,
                            points = if (isTRUE(cfg$points_round)) round(p_raw) else p_raw)
   })
@@ -302,29 +310,59 @@ scr_scorecard <- function(x, features = NULL, base_score = NULL, base_odds = NUL
   unique(c(-Inf, stats::quantile(score, probs = probs, na.rm = TRUE, names = FALSE), Inf))
 }
 
+#' Band index of every score and the band labels, without a factor per row
+#'
+#' The intervals and the labels of `cut(score, breaks, include.lowest =
+#' TRUE)`: right-closed bands, the lowest edge included, `NA` outside the
+#' breaks. The labels are formatted once, from the breaks alone. A single
+#' number of intervals takes its edges from the scores, so it goes through
+#' cut() itself.
+#' @keywords internal
+#' @noRd
+.score_band <- function(score, breaks) {
+  if (length(breaks) == 1L) {
+    f <- cut(score, breaks = breaks, include.lowest = TRUE)
+    return(list(idx = as.integer(f), labels = levels(f)))
+  }
+  labels <- levels(cut(numeric(0), breaks = breaks, include.lowest = TRUE))
+  # cut() sorts the breaks and drops the missing ones
+  br <- sort.int(as.double(breaks))
+  idx <- findInterval(score, br, left.open = TRUE, rightmost.closed = TRUE)
+  idx[which(idx < 1L | idx >= length(br))] <- NA_integer_
+  list(idx = idx, labels = labels)
+}
+
 #' Score gains per frozen band, from the risky side to the safe side
 #' @keywords internal
 #' @noRd
 .score_gains <- function(score, y, breaks, direction) {
-  band <- cut(score, breaks = breaks, include.lowest = TRUE)
-  d <- data.table::data.table(band = band, score = score, y = as.integer(y))[
+  # aggregated by the integer band index; the labels are attached at the end
+  b <- .score_band(score, breaks)
+  d <- data.table::data.table(band = b$idx, score = score, y = as.integer(y))[
     , .(n = .N, events = sum(y), min_score = min(score), mean_score = mean(score), max_score = max(score)),
     by = band]
   # riskiest band first: low score under higher_is_safer, high under higher_is_riskier
-  d <- if (identical(direction, "higher_is_safer")) d[order(band)] else d[order(-as.integer(band))]
+  d <- if (identical(direction, "higher_is_safer")) d[order(band)] else d[order(-band)]
   n_tot <- sum(d$n); e_tot <- sum(d$events); ne_tot <- n_tot - e_tot
   d[, `:=`(id = seq_len(.N), pct = n / n_tot, event_rate = events / n, non_events = n - events)]
+  # event-oriented band WOE, the same values as log_odds in scr_strategy()
+  bw <- .band_woe(d$events, d$non_events)
+  d[, `:=`(pct_event = bw$pct_event, pct_nonevent = bw$pct_nonevent, woe = bw$log_odds)]
   d[, `:=`(cum_pct = cumsum(pct), cum_event_pct = cumsum(events) / max(1, e_tot),
            cum_nonevent_pct = cumsum(non_events) / max(1, ne_tot))]
+  # odds in the orientation of the scale (safe:event or event:safe), so
+  # log_odds rises with the score under both directions
+  safer <- identical(direction, "higher_is_safer")
   d[, `:=`(ks = abs(cum_event_pct - cum_nonevent_pct),
            lift = event_rate / (e_tot / n_tot),
            cum_lift = (cumsum(events) / cumsum(n)) / (e_tot / n_tot),
-           odds = (n - events + 0.5) / (events + 0.5))]
+           odds = if (safer) (n - events + 0.5) / (events + 0.5) else (events + 0.5) / (n - events + 0.5))]
   d[, log_odds := log(odds)]
   data.table::setcolorder(d, c("id", "band", "n", "pct", "events", "non_events", "event_rate",
+                               "pct_event", "pct_nonevent", "woe",
                                "min_score", "mean_score", "max_score", "cum_pct", "cum_event_pct",
                                "cum_nonevent_pct", "ks", "lift", "cum_lift", "odds", "log_odds"))
-  d[, band := as.character(band)]
+  d[, band := b$labels[band]]
   d[]
 }
 
@@ -354,12 +392,12 @@ scr_scorecard <- function(x, features = NULL, base_score = NULL, base_odds = NUL
 .calibration <- function(s, breaks, al) {
   p <- .score_to_prob(al, s$score)
   y <- s$y
-  band <- cut(s$score, breaks = breaks, include.lowest = TRUE)
-  # ordered by the band factor (numeric order), not by its label: "(1e+03,Inf]"
+  b <- .score_band(s$score, breaks)
+  # ordered by the band index (numeric order), not by its label: "(1e+03,Inf]"
   # would otherwise sort before "(512,530]"
-  tb <- data.table::data.table(band = band, p = p, y = y)[
+  tb <- data.table::data.table(band = b$idx, p = p, y = y)[
     , .(n = .N, expected = mean(p), observed = mean(y)), by = band][order(band)]
-  tb[, band := as.character(band)]
+  tb[, band := b$labels[band]]
   tb[, gap := observed - expected]
   ece <- sum(tb$n / sum(tb$n) * abs(tb$gap))
   lo <- suppressWarnings(stats::glm(y ~ stats::qlogis(pmin(pmax(p, 1e-6), 1 - 1e-6)), family = stats::binomial()))
@@ -371,18 +409,18 @@ scr_scorecard <- function(x, features = NULL, base_score = NULL, base_odds = NUL
        table = tb[])
 }
 
-#' Rank-order breaks between adjacent bands, with a binomial test
+#' Rank-order breaks between adjacent bands, with a one-sided Fisher exact test
 #' @keywords internal
 #' @noRd
 .rank_order <- function(g) {
   g <- data.table::copy(g)[order(id)]
-  g[, `:=`(prev_rate = data.table::shift(event_rate), monotone = NA, p_value = NA_real_)]
-  for (i in seq_len(nrow(g))[-1]) {
-    # expected: the event rate does not rise while moving from the risky to the safe side
-    g$monotone[i] <- g$event_rate[i] <= g$prev_rate[i]
-    # P(observe >= events | rate of the previous band): a small value is a significant break
-    g$p_value[i] <- stats::pbinom(g$events[i] - 1L, g$n[i], g$prev_rate[i], lower.tail = FALSE)
-  }
+  n_prev <- data.table::shift(g$n); e_prev <- data.table::shift(g$events)
+  # expected: the event rate does not rise while moving from the risky to the safe side
+  g[, `:=`(prev_rate = data.table::shift(event_rate), monotone = event_rate <= data.table::shift(event_rate))]
+  # one-sided Fisher exact test, H1: band i has a higher event rate than band
+  # i - 1 (both rates estimated); P(X >= events) under the hypergeometric,
+  # 1 when the pair has no events, NA on the first band
+  g[, p_value := stats::phyper(events - 1L, n, n_prev, events + e_prev, lower.tail = FALSE)]
   g[, break_flag := !(monotone %in% TRUE) & p_value < 0.05]
   g[, .(id, band, n, events, event_rate, prev_rate, monotone, p_value, break_flag)]
 }
@@ -498,16 +536,32 @@ print.scr_scorecard <- function(x, ...) {
 
 #' Score gains per frozen band
 #'
-#' How the score behaves in each band: count, event rate, KS, lift,
-#' cumulative capture and the score interval of the band, which is what lets
-#' a cut-off be read straight from the table. The bands are the deciles of
-#' the score on **train**, applied frozen to the other samples.
+#' How the score behaves in each band: count, event rate, the event and
+#' non-event distributions, KS, lift, cumulative capture, odds and the score
+#' interval of the band, which is what lets a cut-off be read straight from
+#' the table. The bands are the deciles of the score on **train**, applied
+#' frozen to the other samples.
+#'
+#' `woe` is `log(pct_event / pct_nonevent)`, event-oriented like the WOE of
+#' the variables (positive when the band event rate is above the overall
+#' rate) and equal to `log_odds` in [scr_strategy()] for the same sample and
+#' bands; when a band has no events or no non-events, 0.5 is added to the
+#' counts of every band for `woe` only. `odds` follows the odds
+#' orientation of the scale: non-events per event under `higher_is_safer`,
+#' events per non-event under `higher_is_riskier`, with 0.5 added to each
+#' count. `log_odds` therefore rises with the score under both directions,
+#' and its slope against `mean_score` can be read against `log(2) / pdo`.
 #'
 #' @param x An object from [scr_scorecard()].
 #' @param sample `NULL` (all), `"train"` or `"holdout"`.
 #'
-#' @return A `data.table` with one row per sample and band, from the riskiest
-#'   band to the safest.
+#' @return A `data.table` with one row per sample and band, the band
+#'   richest in events first (the riskiest under `objective = "risk"`):
+#'   `sample`, `id`, `band`, `n`, `pct`, `events`, `non_events`,
+#'   `event_rate`, `pct_event` and `pct_nonevent` (the band's share of all
+#'   events and of all non-events), `woe`, `min_score`, `mean_score`,
+#'   `max_score`, `cum_pct`, `cum_event_pct`, `cum_nonevent_pct`, `ks`,
+#'   `lift`, `cum_lift`, `odds` and `log_odds`.
 #'
 #' @family accessors
 #' @examples

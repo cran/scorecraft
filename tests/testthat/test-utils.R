@@ -31,9 +31,12 @@ test_that(".scr_chunks preserves order and covers every item", {
   expect_identical(.scr_chunks(character(), 2L), list(character()))
 })
 
-test_that(".sql_num keeps full double precision and is vectorised", {
-  x <- c(-1.3003598122031599, 1/3, 1e-7, 123456789.123)
-  expect_identical(as.numeric(.sql_num(x)), x)
+test_that(".sql_num keeps full double precision and is vectorized", {
+  # Literals are compared as text: without long double, R's own string-to-double
+  # parser is off by one ulp at 17 digits, so parsing them back is not a test.
+  x <- c(1 / 3, 2 / 3, 0.1 + 0.2, sqrt(2), 1e-7, 123456789.123, -0.1)
+  expect_identical(.sql_num(x), c("0.33333333333333331", "0.66666666666666663",
+    "0.30000000000000004", "1.4142135623730951", "0.0000001", "123456789.123", "-0.1"))
   expect_identical(.sql_num(NA_real_), "NULL")
   expect_false(any(grepl("e", .sql_num(x), fixed = TRUE)))
 })

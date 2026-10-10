@@ -1,7 +1,7 @@
 // correlation.cpp - Pearson / Spearman correlation matrix of many columns
 //
 // Used by the redundancy pruning of stage 2 on the WOE space. Every column is
-// standardised once (ranked first under Spearman, mid-ranks for ties), so the
+// standardized once (ranked first under Spearman, mid-ranks for ties), so the
 // correlation matrix is a single cross-product Z'Z computed by BLAS (syrk):
 // O(n p log n + n p^2 / BLAS) instead of ranking both columns of every pair,
 // O(p^2 n log n).
@@ -19,8 +19,8 @@
 #include <omp.h>
 #endif
 
-// Standardise one column into `z`: centred and scaled to unit Euclidean norm,
-// so that the dot product of two standardised columns is their correlation.
+// Standardize one column into `z`: centered and scaled to unit Euclidean norm,
+// so that the dot product of two standardized columns is their correlation.
 // Under `rank`, the values are replaced by their mid-ranks first; the sort is
 // done on a copy of the values and each value is mapped back to the average
 // rank of its tie group by binary search over the distinct values, which is
@@ -51,7 +51,7 @@ static bool standardise_column(const double* x, const std::size_t n, const bool 
   } else {
     std::copy(x, x + n, z);
   }
-  // two-pass centring for numerical stability (no sum-of-squares cancellation)
+  // two-pass centering for numerical stability (no sum-of-squares cancellation)
   long double s = 0.0L;
   for (std::size_t i = 0; i < n; ++i) s += z[i];
   const double m = static_cast<double>(s / static_cast<long double>(n));
@@ -75,7 +75,7 @@ static bool standardise_column(const double* x, const std::size_t n, const bool 
 //'   values.
 //' @param spearman `TRUE` for Spearman (Pearson on mid-ranks), `FALSE` for
 //'   Pearson.
-//' @param nthreads Threads used to standardise the columns (OpenMP); the
+//' @param nthreads Threads used to standardize the columns (OpenMP); the
 //'   cross-product runs on the BLAS R is linked to.
 //' @return A `p x p` matrix; rows and columns of a constant column are `NA`
 //'   (the diagonal included).

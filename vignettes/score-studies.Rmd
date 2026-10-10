@@ -1,0 +1,335 @@
+---
+title: "Score studies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Score studies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+has_glmnet <- requireNamespace("glmnet", quietly = TRUE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = has_glmnet)
+old_dt <- data.table::setDTthreads(2)
+```
+
+A score is validated with an AUC, but it is used through cuts: who is
+approved, who is reviewed, who gets the retention offer. The score studies
+of `scorecraft` answer the questions that come with the cuts. How does the
+event rate move along the score? Which few groups can be named and
+defended? Is the score still fit on new data? What can be promised about a
+group, and with what confidence? Where should the cut be under a budget or
+a team's capacity? How do two scores read on the same customers relate?
+When the event rate moves, is it the population or the score bands? Does
+one score serve every segment?
+
+Every study aggregates the scored rows once into a table of counts and
+works on that table afterwards, so a study of millions of rows costs one
+grouped pass plus work proportional to the number of distinct scores. The
+exceptions are the rank association of `scr_score_cross()`, which sorts
+the rows of the two scores once more, and `scr_detection()`, which sorts
+the rows of the entities with an event.
+
+## 1. Three scores on the demo data
+
+The demo table carries a risk target (`default`) and a propensity target
+(`churn`) on the same customers. A light configuration fits a credit
+scorecard, a mirrored copy of it read as a fraud score (a higher score
+means more risk), and a churn scorecard. The split is out-of-time on
+`ref_date`, so both targets share the same hold-out rows.
+
+```{r setup, message = FALSE}
+library(scorecraft)
+library(data.table)
+cfg <- scr_config(verbose = FALSE, nthread = 1, use_glmnet = TRUE, use_ranger = FALSE,
+                  use_lightgbm = FALSE, xgb_rounds = 60, n_boot = 20)
+res <- scr_select(scr_demo, "default", config = cfg, drop = c("id", "churn"),
+                  date_col = "ref_date")
+credit <- scr_scorecard(res)
+fraud <- scr_scorecard(res, direction = "higher_is_riskier")
+
+cfg_churn <- scr_config(objective = "propensity", verbose = FALSE, nthread = 1, use_glmnet = TRUE,
+                        use_ranger = FALSE, use_lightgbm = FALSE, xgb_rounds = 60, n_boot = 20)
+res_churn <- scr_select(scr_demo, "churn", config = cfg_churn, drop = c("id", "default"),
+                        date_col = "ref_date")
+churn <- scr_scorecard(res_churn)
+```
+
+## 2. Credit: bands, tiers and lights
+
+`scr_bands()` cuts the score into bands of equal share **frozen on the
+training sample** and reads them on the hold-out. Each band reports its
+event rate with a Jeffreys interval, the lift over the overall rate, the
+cumulative capture of events and the KS at its lower edge; the last column
+is the Holm-adjusted p-value of a one-sided Fisher test that the band is
+riskier than the band before it (a rank-order reversal).
+
+```{r bands}
+b <- scr_bands(credit, n_bands = 10, n_boot = 50, seed = 1)
+b
+```
+
+The hold-out shows `r b$summary[sample == "holdout", reversals]` significant
+reversal(s) of the rank order, and the summary compares the AUC on train
+and on the hold-out with bootstrap intervals. A band with a wide interval is a band with few events; the
+interval, not the point rate, is what a policy should be read against.
+
+Ten bands are too many to name in a credit policy. `scr_tiers()` groups
+the score into a few tiers by an exact dynamic program: every tier holds at
+least 5% of the volume and 20 events and non-events, adjacent tiers differ
+by a one-sided Fisher test, and among the segmentations that meet those
+constraints the one with the best binomial likelihood wins. `round_to`
+moves the cuts to round numbers, and `n_boot` refits on resampled counts
+to show how stable each cut is.
+
+```{r tiers}
+tr <- scr_tiers(credit, n_tiers = 5, round_to = 5, n_boot = 30, seed = 1)
+tr
+tr$stability$cuts
+```
+
+```{r, include = FALSE}
+mono <- tr$summary[sample == "holdout", monotone]
+```
+
+The tiers are fitted on train, so the hold-out tells whether they hold.
+Its summary line reads `monotone` "`r if (isTRUE(mono)) "yes" else "no"`":
+`r if (isTRUE(mono)) "the event rate rises from tier to tier on the hold-out too." else "the tiers are monotone on train by construction, but on the hold-out at least one pair of adjacent tiers comes out in the wrong order. The p_adj column and the intervals of the table say which pair, and whether the two tiers can be told apart at all on new data."`
+The interquartile range of each refitted cut, in score points, shows which
+boundaries the data pins down and which ones a different sample would
+move.
+
+`scr_rag()` turns the comparison of the hold-out with train into red,
+amber and green lights for discrimination, calibration, stability and the
+variables of the scorecard, each lit only when its confidence interval or
+test shows a deviation.
+
+```{r rag}
+rg <- scr_rag(credit, n_boot = 50, seed = 1)
+rg$summary
+```
+
+## 3. Fraud: tail bands, action tiers and a daily capacity
+
+A fraud score is read at its tail: the riskiest 2%, 5% or 10% of the
+traffic, not its deciles. `spacing = "tail"` places the cuts at
+cumulative shares counted from the event-rich end, here the high scores.
+
+```{r fraud-bands}
+bf <- scr_bands(fraud, spacing = "tail", tail_probs = c(0.02, 0.05, 0.10, 0.20, 0.50), n_boot = 0)
+bf$table[sample == "holdout", .(band, label, pct, rate, lift, capture)]
+```
+
+Three actions (pass, review, block) are three tiers; the labels follow
+the event rate, lowest first.
+
+```{r fraud-tiers}
+tf <- scr_tiers(fraud, n_tiers = 3, labels = c("pass", "review", "block"))
+tf$table[sample == "holdout", .(tier, label, score_lo, score_hi, pct, rate)]
+```
+
+How deep can the review queue go? A review team has a capacity per day.
+`scr_operating()` accumulates the score from its event-rich end and, with a
+date column, reads the selected volume of every date at each candidate
+cut. In the demo the date is monthly, so the capacity is read per month:
+here at most 80 cases on nine months in ten (`day_quantile = 0.9`), over
+the six months of the whole table. The rates of this curve include the
+training months and are therefore optimistic; the volumes, which is what a
+capacity is about, are not.
+
+```{r fraud-operating}
+d_fraud <- data.frame(score = scr_apply(fraud, scr_demo)$score, y = scr_demo$default,
+                      month = scr_demo$ref_date)
+op_f <- scr_operating(d_fraud, objective = "risk", direction = "higher_is_riskier",
+                      max_per_day = 80, date = "month")
+op_f
+```
+
+Without economics the optimum is the deepest cut that fits the capacity,
+and `binding` names the constraint that stops it. The curve shows what the
+capacity costs: the optimum captures
+`r sprintf("%.1f%%", 100 * op_f$optimum$capture)` of the defaults, and the
+next score value beyond it still has a smoothed default rate of
+`r sprintf("%.1f%%", 100 * op_f$optimum$next_rate)`, against an overall rate
+of `r sprintf("%.1f%%", 100 * mean(d_fraud$y))`.
+
+## 4. Churn: anchored tiers, claims and a budget
+
+Under propensity the event is the outcome sought, and tiers can be
+anchored on event rates that mean something to the business: below 15%,
+around the overall churn rate and above 50%.
+
+```{r churn-tiers}
+ta <- scr_tiers(churn, method = "anchored", anchors = c(0.15, "overall", 0.5))
+ta
+```
+
+`scr_claims()` turns such statements into tests. Each claim names a group
+(a tier, a band or a score range), a direction and a rate; it is tested on
+the hold-out with an exact one-sided binomial test, Holm-adjusted across
+the claims, and reported with its one-sided Jeffreys bound. A claim is
+"supported" when the data show it, "refuted" when they show the opposite
+and "not proven" otherwise.
+
+```{r claims}
+claims <- data.frame(
+  name = c("high tier churns", "top of the score", "low tier is quiet"),
+  label = c("high", NA, "low"), score_lo = c(NA, 480, NA),
+  op = c(">=", ">=", "<="), rate = c(0.50, 0.60, 0.15))
+cl <- scr_claims(ta, claims)
+cl
+```
+
+The claim on the top of the score shows the difference between a point
+rate and a statement: the observed rate is `r sprintf("%.1f%%", 100 * cl$table$rate[2])`
+against a claim of 60%, so the one-sided lower bound sits below the claim
+and the claim is `r cl$table$verdict[2]`.
+
+A rate of a group is an average. `type = "floor"` tests the claim on the
+weakest end of the group instead: the reference rows of the group are cut
+into ten pre-bins (`floor_bins`), a monotone fit of their rates along the
+score (pool adjacent violators) finds the end where the claim is hardest
+to meet (the lowest rates for a "rate >= r" claim, the highest for
+"rate <= r"), and the claim is tested on the hold-out rows of that end. A dip inside
+the group is averaged with its neighbors by the fit, and the pre-bins set
+the resolution, so the floor speaks for the weakest tenth or more of the
+group, not for each customer.
+
+```{r claims-floor}
+fl <- scr_claims(ta, claims, type = "floor")
+fl$table[, .(name, group, score_lo, score_hi, n, rate, bound, verdict)]
+```
+
+An average can be supported while its floor is not: on the tier "high",
+the average claim is `r cl$table$verdict[1]` but its floor is
+`r fl$table$verdict[1]`, because the customers at the low end of the tier
+churn less than the tier as a whole.
+
+A retention campaign has a gain per event reached (a churner who gets the
+offer; how many of them stay is part of that gain), a cost per contact and
+a budget. `scr_operating()` maximizes the value of the campaign along the
+score within the budget and reports the shadow price, what one more
+contact beyond the optimum would be worth.
+
+```{r churn-operating}
+op_c <- scr_operating(churn, gain_event = 100, cost_select = 20, budget = 3000)
+op_c$optimum[, .(cut, depth, n_sel, rate_sel, value, binding, shadow_price)]
+```
+
+The binding constraint is the `r op_c$optimum$binding`, and the shadow
+price of `r sprintf("%.1f", op_c$optimum$shadow_price)` per contact is
+positive: the next contacts would still pay, so the budget, not the score,
+limits the campaign.
+
+## 5. Credit and churn on the same customers
+
+The two scorecards score the same hold-out rows. `scr_score_cross()`
+crosses their tiers, reports the event rate of both targets in every cell,
+the rank association of the scores, and the overlap of the customers each
+score puts first.
+
+```{r cross}
+ho <- scr_demo[res$split$holdout_idx, ]
+d_x <- data.frame(credit = scr_apply(credit, ho)$score, churn = scr_apply(churn, ho)$score,
+                  default = ho$default, churned = ho$churn)
+cx <- scr_score_cross(d_x, "credit", "churn", y_a = "default", y_b = "churned",
+                      objective_b = "propensity", cuts_a = tr, cuts_b = ta)
+cx
+```
+
+The oriented association (Spearman
+`r sprintf("%.2f", cx$association$oriented[1])`) is positive: the customers the
+credit score calls risky tend to be those the churn score calls likely to
+leave. The
+overlap table says how far that goes at the top of each score, and the
+rates of the "A only" and "B only" sets say what changes when one list is
+replaced by the other.
+
+## 6. Why the default rate moved
+
+The hold-out defaults at a different rate than the training sample. Two
+things can move a rate: the population shifted along the score (the mix),
+or the same score now carries a different risk (the rates).
+`scr_mix_shift()` splits the change between the two, band by band, on
+bands frozen on the base. The two effects add up to the change exactly.
+
+```{r mix-shift}
+ms <- scr_mix_shift(credit, n_bands = 5)
+ms
+```
+
+Of the change of `r sprintf("%+.2f", 100 * ms$summary$delta)` percentage
+points, `r sprintf("%+.2f", 100 * ms$summary$mix_total)` come from the mix
+and `r sprintf("%+.2f", 100 * ms$summary$rate_total)` from the band rates;
+`r ms$summary$bands_changed` band(s) changed their rate significantly after
+the Holm adjustment, and the PSI of the band shares sits
+`r if (isTRUE(ms$summary$psi > ms$summary$psi_critical)) "above" else "below"`
+its critical value. With `by`, every period is compared with the base, here
+the first month of the scored rows:
+
+```{r mix-shift-by}
+scr_mix_shift(credit, by = "date", n_bands = 5)$summary[
+  , .(group, rate_base, rate_cmp, delta, mix_total, rate_total, psi)]
+```
+
+## 7. One score, many segments
+
+A single scorecard is applied to every channel. `scr_segments()` reads the
+score within each segment against the pooled rows: the AUC with its DeLong
+standard error and a chi-square test of equal AUC across the segments, the
+observed events against those expected from the pooled bands (indirect
+standardization), the offset on the log-odds scale and the slope of the
+score relative to the pooled slope. The `action` column summarizes them
+under stated tolerances: a shared score, an intercept offset, a separate
+model, or too few events to say.
+
+```{r segments}
+sg <- scr_segments(credit, ho, segment = "ds_channel")
+sg
+```
+
+The test of equal AUC has a p-value of
+`r sprintf("%.2f", sg$test$p_value)`, and the O/E intervals
+`r if (all(sg$table$oe_lo <= 1 & sg$table$oe_hi >= 1)) "all cover 1: the hold-out gives no reason to treat a channel apart" else "do not all cover 1: at least one channel sits at a different level than the pooled bands predict"`.
+
+## 8. Time, treatment, rules and episodes
+
+Four more studies need columns the demo table does not have; each help
+page has a worked example.
+
+* `scr_maturity()` follows each band over time with censoring (a
+  Kaplan-Meier curve per band) and shows where the event rate flattens: the
+  performance window.
+* `scr_uplift()` reads a score on a treated and a control group: the
+  uplift per band with its interval, the Qini coefficient and a check of
+  the randomization.
+* `scr_overlap()` compares expert rules with the alerts of a score: what
+  each catches alone, and which rules the score already covers.
+* `scr_detection()` measures, per alert threshold, how many fraud episodes
+  are detected, after how many fraudulent transactions and with how much of
+  the loss prevented.
+
+## 9. Production
+
+Bands and tiers are assigned to new scores in R and in SQL from the same
+frozen cuts, and every study writes a workbook. A tier label carries its
+order in front, `01` for the tier with the highest event rate, so that the
+labels sort from the event-richest tier in a report or an `ORDER BY`; the
+tiers table has the same value in `tier_label`, and `numbered = FALSE`
+returns the plain labels.
+
+```{r production}
+head(scr_apply(tr, c(495, 520, 560)))
+sql <- scr_sql(tr, table = "scored", dialect = "postgres")
+substr(sql[9], 1, 80)
+substr(sql[10], 1, 80)
+```
+
+`scr_export()` writes `study_tiers_<target>.xlsx`, `claims_<target>.xlsx`,
+`operating_<target>.xlsx`, `score_cross_<a>_<b>.xlsx`,
+`mix_shift_<target>.xlsx` and `segments_<target>.xlsx` for the objects
+above.
+
+```{r, include = FALSE}
+data.table::setDTthreads(old_dt)
+```

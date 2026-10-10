@@ -13,7 +13,7 @@ pd_grades <- function() {
   .fx$pd_gr
 }
 
-# the demo panel flagged with the default engine, plus its behavioural score
+# the demo panel flagged with the default engine, plus its behavioral score
 pd_panel <- function() {
   if (is.null(.fx$pd_panel)) {
     d <- scr_default(scr_demo_panel, "id", "ref_date", dpd = "dpd", arrears = "arrears", exposure = "exposure",

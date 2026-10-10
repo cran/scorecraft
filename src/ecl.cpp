@@ -5,7 +5,7 @@
 // with the 12-month figure the partial sum at t = hz. Scenario shocks (one
 // factor z with correlation rho, multiplier of the hazards, add-on to the
 // LGD, multiplier of the EAD) are applied on the fly, so no n x H matrix is
-// ever materialised: memory is O(n) whatever the term, where the matrix
+// ever materialized: memory is O(n) whatever the term, where the matrix
 // formulation needs several n x H copies (2.9 GB each at n = 1e6, H = 360).
 //
 // Every input is a scalar, a vector of length n (flat over the months) or a
